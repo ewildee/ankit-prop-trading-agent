@@ -13,11 +13,13 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
 - [x] **T002** Implement supervisor adopt/replace/refuse semantics with `/health` aggregator on port 9100. Exit gate: `bun run start` brings up fake services with all transitions verified. _Closes ANKA-6._
 
-## Phase 2 — `ctrader-gateway`
+## Phase 2 — `ctrader-gateway` (ANKA-7 split into 4 child issues)
 
-- [ ] **T003** Vendor cTrader client + protobuf transport over `wss://*.ctraderapi.com:5035/`.
-- [ ] **T004** Implement the 14 hard rails (BLUEPRINT §9), each with a `.spec.ts` regression.
-- [ ] **T005** Place + close + reconcile against the FTMO Free Trial account.
+- [~] **T003** Vendor cTrader client + protobuf transport over `wss://*.ctraderapi.com:5035/`.
+  - [ ] **T003.a** §10.3 7-step smoke-test against FTMO Free Trial — _ANKA-12_; blocked by ANKA-5 (creds) + ANKA-10 (FTMO pivot).
+  - [ ] **T003.b** Transport + OAuth + reconciliation — _ANKA-13_; blocked by ANKA-12.
+- [ ] **T004** Implement the 14 hard rails (BLUEPRINT §9), each with a `.spec.ts` regression — _ANKA-14_; blocked by ANKA-12.
+- [ ] **T005** Order-manager + execution-stream + persistence; place + close + reconcile against FTMO Free Trial — _ANKA-15_; blocked by ANKA-12, ANKA-13, ANKA-14.
 
 ## Phase 3 — `eval-harness`
 

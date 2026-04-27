@@ -2,11 +2,12 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-27 18:35 Europe/Amsterdam — v0.1.0 (ANKA-6 / Phase 1)
+## 2026-04-27 18:42 Europe/Amsterdam — Phase 2 breakdown (ANKA-7)
 
-- `@triplon/proc-supervisor` v0.1.0 + `@ankit-prop/contracts` v0.1.0 shipped end-to-end (BLUEPRINT §3, §17, §22 phase 1).
-- Submodules: topo-sort, restart-policy (3-in-5min circuit-break), health-poller, findproc-adapter (lsof), process-manager (adopt|replace|refuse, Bun.spawn, ring-buffered logs), aggregated-health on `:9100`, config-loader (`Bun.YAML.parse` + Zod), CLI (`start|stop|status|restart|logs|--version`).
-- 45 tests / 79 expect() / 0 fails — including all 7 BLUEPRINT §22 phase 1 integration cases (adopt, replace, refuse, restart-policy, topo-order, circuit-break, graceful shutdown).
-- `bun run lint`, `bun run typecheck`, `bun test` all green; `zod@4.3.6` pinned per §5.2; everything else Bun-native.
-- ANKA-10 (IC demo → FTMO Free Trial) was completed concurrently in the same working tree by a parallel session; its files (BLUEPRINT, README, .env.example, accounts.example.yaml) are left untouched for that commit boundary.
-- Next: ANKA-7 / Phase 2 (`svc:gateway` against FTMO Free Trial, 14 hard rails). Pre-condition: cTrader app + FTMO Free Trial creds in `.env` (open via ANKA-5 interaction).
+- ANKA-7 (Phase 2 — ctrader-gateway against FTMO Free Trial, 14 hard rails) split into 4 bounded child issues per the issue's own ask:
+  - **ANKA-12** §10.3 vendor 7-step smoke-test (FTMO Free Trial). Blocked by ANKA-5 (creds in `.env`) + ANKA-10 (FTMO Free Trial canonicalization landed).
+  - **ANKA-13** transport + OAuth (AES-GCM refresh token) + reconciliation. Blocked by ANKA-12 (vendor decision).
+  - **ANKA-14** the 14 hard rails (§9 matrix, 28 cases). Blocked by ANKA-12.
+  - **ANKA-15** order-manager + execution-stream + SQLite persistence + crash recovery. Blocked by ANKA-12 + ANKA-13 + ANKA-14.
+- Working tree still carries uncommitted parallel work: ANKA-10 (`BLUEPRINT.md`, `.env.example`, `README.md`, `config/accounts.example.yaml`) and untracked `packages/shared-contracts/src/eval.ts`+`eval.spec.ts` from another stream. Left untouched in this heartbeat.
+- Next: once ANKA-10 and ANKA-5 land, ANKA-12 unblocks; first deliverable is the §10.3 smoke harness + ADR-012 vendor-vs-in-house verdict.

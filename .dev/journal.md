@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-27 18:42 Europe/Amsterdam — Phase 2 breakdown (ANKA-7)
+
+**What was done**
+
+- Woke on `issue_blockers_resolved` for [ANKA-7](/ANKA/issues/ANKA-7) (Phase 1 → Phase 2 hand-off). Issue itself instructs the engineer to split sub-tasks into child issues; followed that.
+- Created 4 bounded children under ANKA-7, each with explicit `blockedByIssueIds`:
+  - **ANKA-12** Phase 2.1 — §10.3 cTrader vendor 7-step smoke-test against FTMO Free Trial. Blocked by ANKA-5 (creds in `.env`) and ANKA-10 (FTMO Free Trial canonicalization landing).
+  - **ANKA-13** Phase 2.2 — transport (Bun-native WSS, 10 s heartbeat, 1→30 s backoff) + two-phase OAuth + AES-GCM refresh-token persistence + reconciliation (broker-wins, drift = 0). Blocked by ANKA-12.
+  - **ANKA-14** Phase 2.3 — the 14 hard rails (§9), each with positive + negative test in a single matrix (28 cases). Blocked by ANKA-12.
+  - **ANKA-15** Phase 2.4 — order-manager (place/amend/close), execution-stream (`ProtoOAExecutionEvent` ingest), SQLite persistence, crash-recovery per §23.4. Blocked by ANKA-12 + ANKA-13 + ANKA-14.
+- Updated `TODOS.md` Phase 2 block to mirror the new ANKA-12..15 structure.
+- Did **not** ship code in this heartbeat: working tree still carries uncommitted parallel-session work (ANKA-10 broker-target rename across `BLUEPRINT.md`, `.env.example`, `README.md`, `config/accounts.example.yaml`, plus untracked `packages/shared-contracts/src/eval.ts` + `eval.spec.ts`). Adding offline contract scaffolding now would either co-commit those changes or fork divergent contracts; cleaner to wait for those parallel commits to land.
+
+**Findings**
+
+- BLUEPRINT §10.3 framing — vendor smoke first, in-house only if it fails — is itself the first deliverable, not a side-quest. ANKA-12 must run end-to-end before ANKA-13/14/15 can begin in earnest, because the chosen tree determines every subsequent type signature.
+- ANKA-7's pre-conditions for actually executing the smoke (live creds + FTMO Free Trial canonicalization) sit in two **other** assigned-to-me issues (ANKA-5 and ANKA-10) currently in flight via parallel runs. Phase 2 deliverable work is gated on those landing first; child blockers reflect that explicitly so the system wakes me again on `issue_blockers_resolved` rather than me polling.
+
+**Decisions**
+
+- Phase 2 child layout (ANKA-12 → 13 → {14 ‖ 15}) maps 1:1 onto BLUEPRINT §10 + §9 sub-systems and matches the issue description's recommended split. Recorded as the Phase 2 task graph in `TODOS.md`; no ADR needed yet (no design choice made — just decomposition).
+- Hold offline scaffolding (rails contract surface, smoke harness skeleton) until parallel ANKA-10 / shared-contracts work lands. That keeps commits atomic and prevents accidental co-commit of someone else's untracked `eval.ts`.
+
+**Surprises / contradictions**
+
+- `packages/shared-contracts/src/index.ts` already imports from `./eval.ts` even though `eval.ts` is **untracked** in git. Tests evidently run because mtime is recent and Bun resolves the on-disk file. If anyone runs `git stash` or `git clean -fd` they'll break the tree. Not mine to fix this heartbeat — flagging in journal so it surfaces at next session.
+
+**Open endings**
+
+- ANKA-12 is now the next Phase 2 deliverable. It cannot start until ANKA-5 (creds) and ANKA-10 (broker-target canonicalization) finish.
+- When woken on `issue_blockers_resolved` for ANKA-12, fetch the latest `.env` shape, sanity-check `BROKER_*_FTMO_TRIAL_1` are populated (without logging values), and start the 7-step harness scaffolding under `packages/ctrader-vendor/smoke/`.
+
 ## 2026-04-27 18:35 Europe/Amsterdam — v0.1.0
 
 **What was done**
