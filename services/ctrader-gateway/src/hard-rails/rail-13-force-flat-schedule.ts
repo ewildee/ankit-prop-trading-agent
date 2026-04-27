@@ -24,13 +24,38 @@ export function evaluateForceFlatSchedule(intent: RailIntent, ctx: RailContext):
     });
   }
 
+  // BLUEPRINT §3.5 — defense-in-depth fail-closed (ANKA-27 / ANKA-19 review B-2).
+  // BrokerSnapshot.marketCloseAtMs is now required at the type level, but a
+  // future Zod boundary parse (ANKA-15) or a malformed reconciliation must not
+  // silently disable rail 13. If every schedule anchor is missing we cannot
+  // know whether a NEW order is inside the force-flat window, so we reject.
+  // A bare `as` cast keeps this branch reachable even after the static type
+  // narrows the field to `number`.
+  const marketCloseAtMs = (broker as { marketCloseAtMs?: number }).marketCloseAtMs;
+  const fridayCloseAtMs = broker.fridayCloseAtMs;
   const next = news.nextRestrictedEvent(intent.symbol, broker.nowMs);
+  if (marketCloseAtMs === undefined && fridayCloseAtMs === undefined && next === null) {
+    return logDecision(intent, ctx, {
+      rail: 'force_flat_schedule',
+      outcome: 'reject',
+      reason: 'force-flat schedule unknown — fail-closed',
+      detail: {
+        forceFlatLeadMin: broker.symbol.forceFlatLeadMin,
+        preNewsFlattenLeadMin: broker.symbol.preNewsFlattenLeadMin,
+        marketCloseAtMs,
+        fridayCloseAtMs,
+        nextRestrictedEventAtMs: null,
+      },
+      decidedAt,
+    });
+  }
+
   const inside = isInsideForceFlatWindow({
     nowMs: broker.nowMs,
     forceFlatLeadMin: broker.symbol.forceFlatLeadMin,
     preNewsFlattenLeadMin: broker.symbol.preNewsFlattenLeadMin,
-    ...(broker.marketCloseAtMs !== undefined ? { marketCloseAtMs: broker.marketCloseAtMs } : {}),
-    ...(broker.fridayCloseAtMs !== undefined ? { fridayCloseAtMs: broker.fridayCloseAtMs } : {}),
+    ...(marketCloseAtMs !== undefined ? { marketCloseAtMs } : {}),
+    ...(fridayCloseAtMs !== undefined ? { fridayCloseAtMs } : {}),
     ...(next !== null ? { nextRestrictedEventAtMs: next.eventAtMs } : {}),
   });
 
@@ -44,8 +69,8 @@ export function evaluateForceFlatSchedule(intent: RailIntent, ctx: RailContext):
       forceFlatLeadMin: broker.symbol.forceFlatLeadMin,
       preNewsFlattenLeadMin: broker.symbol.preNewsFlattenLeadMin,
       windowAtMs: inside.windowAtMs,
-      marketCloseAtMs: broker.marketCloseAtMs,
-      fridayCloseAtMs: broker.fridayCloseAtMs,
+      marketCloseAtMs,
+      fridayCloseAtMs,
       nextRestrictedEventAtMs: next?.eventAtMs,
     },
     decidedAt,

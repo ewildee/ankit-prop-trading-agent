@@ -2,6 +2,106 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-27 23:55 Europe/Amsterdam — v0.4.6 ([ANKA-26](/ANKA/issues/ANKA-26) — rail 10 profit-target buffer is fraction of INITIAL, not flat dollars; parent [ANKA-19](/ANKA/issues/ANKA-19) B-1 BLOCKING)
+
+Heartbeat woken with [ANKA-26](/ANKA/issues/ANKA-26) assigned. The issue body is exhaustive — it cites BLUEPRINT §8.2 line 957 (buffer = `+1.0%` exact), §8.4 decision N line 1001 (`closed_balance >= INITIAL_CAPITAL × (1 + target + buffer)`), §17 `accounts.yaml` example (`profit_target_buffer_pct: 1.0`), and pins the bug to `services/ctrader-gateway/src/hard-rails/rail-10-phase-profit-target.ts:24-26` plus the matrix fixture at `matrix.spec.ts:57`. No discovery work needed; the fix is mechanical.
+
+**What was done**
+
+- **Type rename** — `ProfitTarget.bufferDollars: number` → `bufferFraction: number` in `services/ctrader-gateway/src/hard-rails/types.ts`. Inline comment cites §8.2 / §8.4 decision N and the `0.01` example so a future reader cannot re-introduce the dollar interpretation. The shared-contracts package was inspected via `grep -n "ProfitTarget" packages/shared-contracts/src/*.ts` first — no match, so `pkg:contracts` does not bump (per ANKA-26 verification line 4).
+- **Formula fix** — `rail-10-phase-profit-target.ts` line 41: `targetClosedBalance = broker.initialBalance * (1 + fractionOfInitial + bufferFraction)`. Header comment rewritten to spell out the §8.4 formula and reference the §8.2 percent-default. Pre-fix on §17 defaults the rail tripped at $110_050 (≈$950 too early); post-fix it trips at $111_000.
+- **Range guard** (ANKA-26 fix item 4) — runtime check throws when `bufferFraction` is non-finite, negative, or above `MAX_BUFFER_FRACTION = 0.5`. Implemented as a plain runtime guard inside `evaluatePhaseProfitTarget` rather than a Zod refinement on `ProfitTarget` itself, because there is no `ProfitTarget` Zod schema today (the type is a plain TS interface) and the rail-evaluator entry point is the canonical fail-closed boundary. Threshold of `0.5` is a sanity ceiling — buffer above 50% of INITIAL is meaningless on any prop-firm phase target. Throwing surfaces config bugs at the dispatcher and the gateway main loop fails-closed on the first NEW intent.
+- **Matrix fixture rewiring** (ANKA-26 fix item 3) — `matrix.spec.ts` defaultBroker `bufferFraction: 0.01`; rail 10 positive case `closedBalance: 111_001` (one dollar above the boundary), negative case `closedBalance: 110_999`. Description on the positive case rewritten from "closed_balance ≥ target+buffer AND min-days complete" to spell out the §8.4 formula. The 14 × 2 = 28 matrix invariant is preserved.
+- **Boundary lock spec** (ANKA-26 fix item 5) — new `rail-10-phase-profit-target.spec.ts`, 5 cases. Cases: (1) `targetHit` exactly at the boundary (uses `INITIAL × (1 + 0.1 + 0.01)` computed in-test, not the literal `111_000`, because `1 + 0.1 + 0.01 ≈ 1.1100000000000003` in IEEE-754 — the literal would fail by FP wobble); (2) one-cent-below allows; (3) the old flat-$50 threshold ($110_050) must allow under the new contract — direct regression pin; (4) `min_trading_days_completed=false` keeps the rail at `allow` even with `targetHit`; (5) range-guard throws for `bufferFraction = 0.6` and `bufferFraction = -0.01`.
+- **Consumer fixtures** — `rail-11-defensive-sl.spec.ts` updated to `bufferFraction: 0.01`. Rail 11 doesn't read this field but its `BrokerSnapshot` fixture must satisfy `ProfitTarget` so typecheck stays clean.
+
+**Surprises**
+
+- The working tree was unexpectedly hot at heartbeat-start: sibling agents on [ANKA-27](/ANKA/issues/ANKA-27) (rail 13 fail-closed, marketCloseAtMs becomes required), [ANKA-28](/ANKA/issues/ANKA-28) (rail 9 idempotency record-on-allow), and [ANKA-29](/ANKA/issues/ANKA-29) (news-staleness `lastSuccessfulFetchAtMs` rename) had partial WIP staged on the same files I needed to edit (`types.ts`, `matrix.spec.ts`, `news-client.ts`). Untracked spec files from those tickets (`idempotency-record-on-allow.spec.ts`, `rail-13-force-flat-schedule.spec.ts`, `rail-news-staleness.spec.ts`) sat alongside this heartbeat's `rail-10-phase-profit-target.spec.ts`. The harness automerges parallel adapter writes between my Edit calls, so individual edits sometimes had to be re-applied; the final on-disk state (committed in this batch) matches what tests verified.
+- FP imprecision on the `1 + 0.1 + 0.01` boundary cost a test cycle. Initial spec used the literal `111_000` and failed because the JS arithmetic yields `1.1100000000000003` ⇒ target $111_000.0000000003. Switched to computing the target value in-test from the same expression the rail uses; that survives any future re-ordering of the addition without false positives. The matrix uses ±$1 cushion on either side instead — both spec files lock the contract from a different angle.
+
+**Decisions**
+
+- Range guard is a plain `throw new Error(...)` inside the rail, not a Zod schema. Rationale: (a) `ProfitTarget` has no Zod schema today, adding one for this single field would be premature scope-creep, (b) the rail evaluator entry IS the fail-closed boundary that BLUEPRINT §3.5 cares about — anything that gets past it has been validated for this trade, (c) the throw propagates out of `evaluateAllRails` to the gateway dispatcher, which BLUEPRINT §3.5 already requires to halt on rail evaluation errors. If a Zod schema lands on `ProfitTarget` later (e.g. as part of `accounts.yaml` validation), `LossFraction` from the parallel `pkg:contracts` work is the natural shape — convergent.
+- `pct → fraction` translation at the YAML loader (e.g. `1.0 → 0.01`) is left out of scope per the issue. There is no current `accounts.yaml` loader pointed at by ANKA-26; the runtime contract is the in-code fraction. Operators today edit `BrokerSnapshot.profitTarget` directly via the dispatcher seam.
+- Matrix positive case uses `closedBalance: 111_001` (a dollar above) rather than the exact boundary `111_000`. The dedicated `rail-10-phase-profit-target.spec.ts` already pins the per-cent boundary; making the matrix duplicate that wiring would couple the matrix harness to FP arithmetic details. The matrix case is now a "well past boundary" smoke test; the contract spec is the precision check.
+
+**Open endings**
+
+- The pre-existing parallel WIP from ANKA-27 / ANKA-28 / ANKA-29 stays in the working tree for the sibling heartbeats to commit. This commit deliberately does not include their hunks (verified via `git diff --stat HEAD <commit>` before push). Workspace-wide `bun test` and `bun run typecheck` are NOT clean during the overlap window — they go green when the sibling commits land.
+- No follow-up child issue. The §17 `accounts.yaml` loader (where the `pct → fraction` translation would live) is part of the unimplemented config plumbing; T0XX for that work has not been allocated yet and is independent of ANKA-26's scope.
+
+## 2026-04-27 23:37 Europe/Amsterdam — v0.4.5 ([ANKA-27](/ANKA/issues/ANKA-27) — rail 13 fail-closed when force-flat schedule is unknown; parent [ANKA-19](/ANKA/issues/ANKA-19) B-2 BLOCKING)
+
+Heartbeat woken with [ANKA-27](/ANKA/issues/ANKA-27) assigned. Bug fix at the rail level: rail 13 was fail-OPEN when every schedule anchor was missing. BLUEPRINT §3.5 demands fail-closed on uncertainty; the single missing branch was a one-spot defect.
+
+**What was done**
+
+- `services/ctrader-gateway/src/hard-rails/rail-13-force-flat-schedule.ts` — explicit fail-closed branch lifted to the top of the NEW-intent path, before `isInsideForceFlatWindow` is called. When `marketCloseAtMs`, `fridayCloseAtMs`, AND `nextRestrictedEvent` are all undefined/null, the rail now rejects with reason `"force-flat schedule unknown — fail-closed"` and the §9 structured payload (`forceFlatLeadMin`, `preNewsFlattenLeadMin`, all three anchors as observed). The lookups are pulled into local consts (`marketCloseAtMs`, `fridayCloseAtMs`) so the post-anchor `inside` evaluation reads the same source-of-truth values; the bare `as { marketCloseAtMs?: number }` cast keeps the runtime guard reachable even after the contract surface narrows the field to a non-optional `number` (option 1 from the issue, landing alongside B-1's renames).
+- `services/ctrader-gateway/src/hard-rails/rail-13-force-flat-schedule.spec.ts` — new regression spec covering the two cases the issue spec called out: (1) `NEW` against a `BrokerSnapshot` constructed via `as unknown as BrokerSnapshot` with all three anchors omitted → outcome `reject`, reason exactly `"force-flat schedule unknown — fail-closed"`, captured logger emits one event at level `warn`; (2) `AMEND` against the same malformed snapshot → outcome `allow` (drain path stays open per BLUEPRINT §11.6).
+
+**Findings**
+
+- The working tree had multiple parallel ANKA-19 review-finding WIP from prior heartbeats actively churning during this run: B-1 unit-name renames (`bufferDollars` → `bufferFraction`, `defensiveSlMaxLossPct` → `defensiveSlMaxLossFraction`, `internalDailyFloorPct` → `internalDailyLossFraction`), a news-staleness API rename (`lastFetchAgeMs` → `lastSuccessfulFetchAtMs`), and ANKA-28's record-on-non-reject (already changelogged at v0.4.4 but uncommitted). After two `git stash push` rounds these hunks kept partially re-emerging — concurrent agent activity. To avoid bundling unrelated work, this commit is scoped to the rail-13 source + new spec + version+CHANGELOG+journal only; the contract-level marketCloseAtMs invariant (option 1 from the issue) is left to the B-1 commit so the rename and the type-tightening land together.
+- The issue's "verification > New matrix case" line was originally written against option 2 (rail-level reject). With the new spec file using `as unknown as BrokerSnapshot`, the test exercises the runtime guard regardless of whether the type later narrows the field — so once option 1 lands, the same spec keeps validating defense-in-depth.
+
+**Decisions**
+
+- **Rail-level fix (option 2) committed; contract-level (option 1) deferred to the B-1 commit.** The issue prefers (1) but the only obstacle to (2) is a single missing branch in rail-13. (2) closes the BLOCKING fail-OPEN today; (1) makes the failure loud at the type/Zod boundary tomorrow. They are additive, not alternative — keeping (1) bundled with the B-1 unit-name renames keeps each commit atomic.
+- **Spec file name + location:** `services/ctrader-gateway/src/hard-rails/rail-13-force-flat-schedule.spec.ts` mirrors `rail-11-defensive-sl.spec.ts` (the only other rail-specific spec at the moment) — colocated with the rail it tests, separate from `force-flat-scheduler.spec.ts` which exercises the scheduler helper. The matrix.spec.ts isn't extended because adding a 29th case would break its `expect(CASES).toHaveLength(28)` invariant (14 rails × {positive, negative}).
+- **Version axis:** umbrella `0.4.4 → 0.4.5`, gateway `0.2.1 → 0.2.2`. The working tree had already-prepared `0.4.4` / `0.2.1` numbers from the uncommitted ANKA-28 v0.4.4 entry (now landed at the top of CHANGELOG). My commit picks the next patch slot.
+- **Type-system escape hatch.** The `as { marketCloseAtMs?: number }` cast in rail-13 is intentional. If we narrowed the field to a strict `number` first (option 1), TS would dead-code-eliminate the runtime guard and a future Zod parse failure could re-introduce the fail-OPEN behaviour silently. The cast is the minimum surface that survives both shapes.
+
+**Surprises / contradictions**
+
+- Edit/Read of shared files (types.ts, matrix.spec.ts) was repeatedly clobbered by concurrent heartbeats — even after `git stash push <paths>`, the B-1 hunks re-emerged on the next read. Worked around by committing only files where my changes are localized: `rail-13-force-flat-schedule.ts` and the new spec. The marketCloseAtMs default in `defaultBroker()` is the responsibility of the B-1 commit.
+- `bun test services/ctrader-gateway` reports 10 failures from a sibling-finding spec (`rail-news-staleness.spec.ts`) that the parallel agent dropped untracked — they expect `lastSuccessfulFetchAtMs` but production code is HEAD-shape. Pre-existing, not introduced by this change. Verified my commit's 10 tests (rail-13 spec + force-flat-scheduler spec) all green.
+
+**Adaptations**
+
+- First draft of the spec built the malformed broker via `Partial<BrokerSnapshot>` overrides, but the matrix.spec.ts `defaultBroker()` was being mutated by concurrent edits to add a B-1 default that conflicted. Switched to a self-contained `malformedCtx()` builder inside the rail-13 spec — owns its broker shape end-to-end, doesn't depend on the matrix fixtures.
+
+**Open endings**
+
+- B-1 contract-level commit (still pending, owned by another heartbeat) needs to: tighten `BrokerSnapshot.marketCloseAtMs` to `: number` (no `?`), update `matrix.spec.ts` `defaultBroker()` to set `marketCloseAtMs: NOW + 24h`, update existing rail-13 negative case to drop the redundant override. Once that lands, the rail-13 fail-closed guard becomes belt-and-suspenders, but it stays in place — see "Decisions / Type-system escape hatch".
+- ANKA-19 review findings B-1 (unit renames), B-3+ (news staleness, idempotency timestamp on rail 3/4) remain as in-flight WIP in the working tree. Not in my scope this heartbeat.
+
+## 2026-04-27 23:35 Europe/Amsterdam — v0.4.4 ([ANKA-28](/ANKA/issues/ANKA-28) — rail 9 idempotency record-on-non-reject; parent [ANKA-19](/ANKA/issues/ANKA-19) H-1)
+
+Heartbeat woken with [ANKA-28](/ANKA/issues/ANKA-28) assigned. Surgical bug fix to rail 9 — single-rule semantics, two production-line edits, one new regression spec.
+
+**What was done**
+
+- `services/ctrader-gateway/src/hard-rails/rail-9-idempotency.ts` — dropped `idempotency.record(intent.clientOrderId, broker.nowMs)` from the rail's allow branch. The `has(...)` early-reject check stays where it is. Header comment now states the inversion plainly: `record(...)` lives in `evaluator.ts` and only fires on a non-`reject` composite verdict.
+- `services/ctrader-gateway/src/hard-rails/evaluator.ts` — `evaluateAllRails` now calls `ctx.idempotency.record(intent.clientOrderId, ctx.broker.nowMs)` exactly once, after `composeRailVerdict(...)` produces a non-`reject` outcome. Comment block above the function spells out the rationale (rails 10–14 must be allowed to reject without burning the ULID slot, so operator re-runs after intermittent throttle / force-flat windows succeed at rail 9).
+- `services/ctrader-gateway/src/hard-rails/idempotency-record-on-allow.spec.ts` — new spec, 4 cases / 18 expects:
+  - **Rail 12 reject does NOT consume idempotency.** Drain the bucket at NOW; first `evaluateAllRails` returns reject (tripped by `ea_throttle`); `idempotency.has(CID)` is `false`. One `throttleWindowMs` later (with `marketCloseAtMs` pushed forward so rail 13 doesn't trip on the retry), same `clientOrderId` passes rail 9 and the whole composite allows.
+  - **Rail 13 reject does NOT consume idempotency.** `marketCloseAtMs = NOW + 3min` (inside the 5-min force-flat window); first attempt rejects on `force_flat_schedule`; `has` stays false. With `marketCloseAtMs` pushed beyond the window on a later anchor, retry passes.
+  - **Fully-allowed verdict records.** First call returns allow; immediate replay rejects on rail 9 (the `has(...)` early-reject still works).
+  - **Tighten verdict still records.** Rail 11 tightens the SL → composite outcome `tighten`; ULID is recorded (the non-reject branch is `allow | tighten`, both record).
+
+**Findings**
+
+- The on-disk working tree is mid-flight on a broader ANKA-19 review-findings rename: `bufferDollars` → `bufferFraction` (rail 10's runtime contract has switched but `types.ts` still surfaces the old field), `defensiveSlMaxLossPct` → `defensiveSlMaxLossFraction`, `internalDailyFloorPct` → `internalDailyLossFraction`, `marketCloseAtMs` becoming required, news-staleness API rename (`lastFetchAgeMs(atMs)` → `lastSuccessfulFetchAtMs()`). Rail 13 has been updated to fail-closed when no schedule anchor is present at all; the spec fixture pins `marketCloseAtMs` 24h out as the default to keep rails 1–12 the active surface.
+- The new spec needed both `bufferDollars` (TS surface still asks for it) AND `bufferFraction` (rail 10's runtime contract) on the `profitTarget` literal. Cast to `BrokerSnapshot['profitTarget']` because the partial migration leaves both shapes valid; will be cleaned up when the rename batch lands.
+- Composer short-circuit stops at first reject, so rails 10–14 don't even *run* if rail 9 rejects. The `evaluator.ts` record path is therefore only reached when rail 9 itself allowed (or wasn't on the path at all, which can't happen because it's in `HARD_RAIL_KEYS`). Recording on a non-reject composite is therefore equivalent to "recording iff rail 9 allowed AND no later rail rejected" — which is the issue's stated invariant.
+
+**Decisions**
+
+- Patch-level bumps: umbrella `0.4.3 → 0.4.4`, `@ankit-prop/ctrader-gateway` `0.2.0 → 0.2.1`. Behavioural fix, no contract-surface change.
+- Did not bundle the broader ANKA-19 review-findings work-in-progress into this commit. Those edits belong to a different heartbeat's queue and would muddy the bisect line for ANKA-28 if folded in.
+- Kept the existing rail-9 logging shape unchanged. The allow-path log message still reads "clientOrderId not previously seen" — true at the moment of evaluation, regardless of whether the *composite* verdict ends in allow/tighten/reject. Adding a "recorded?" detail field would be premature; the structured log + matrix spec already cover the visibility need.
+
+**Surprises / contradictions**
+
+- The rail-9 unit test in `matrix.spec.ts` (`scenario: 'negative'`, fresh ULID → allow) used to inadvertently *also* prove the record-on-allow side-effect because the matrix harness inspects only the rail-level decision, not the store. That test stays correct under the fix because the rail's outcome is unchanged — but it is no longer load-bearing for the persistence semantic. The new `idempotency-record-on-allow.spec.ts` is the one that locks down the actual end-to-end invariant going forward.
+- The journal entry at v0.4.0 ("Short-circuit composer ... so a daily-breaker reject won't burn its slot") was correct *for rails 1–8* but silently wrong for rails 10–14, because rail 9 was the source of the side-effect, not the composer. The composer's short-circuit was a partial fix. Fixed end-to-end here.
+- Two earlier attempts at this fix were wiped by `git reset --hard` events visible in `git reflog` (`HEAD@{0..4}: reset: moving to HEAD`). Re-applied from scratch on the third pass; flagging here so subsequent heartbeats know the working-tree may not be the source of truth between runs.
+
+**Open endings**
+
+- The wider ANKA-19 review-findings rename (bufferFraction / loss-fraction / news API) is left in-progress on disk for whichever heartbeat owns that batch. Out of scope for ANKA-28. Six pre-existing test failures in `matrix.spec.ts` (rail-10 cases) and the untracked `rail-news-staleness.spec.ts` belong to that batch and are not introduced by this change.
+
 ## 2026-04-27 23:21 Europe/Amsterdam — v0.4.3 ([ANKA-23](/ANKA/issues/ANKA-23) — Audit-1 follow-up: AGENTS.md, config examples, T003 renumber, README, .tmp cleanup)
 
 Heartbeat woken with [ANKA-23](/ANKA/issues/ANKA-23) assigned (parent [ANKA-22](/ANKA/issues/ANKA-22)). Doc-only batch — five items, all spelled out verbatim in the issue body and cross-referenced into BLUEPRINT §17.
