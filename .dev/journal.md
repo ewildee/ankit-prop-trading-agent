@@ -2,6 +2,48 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-27 18:50 Europe/Amsterdam — v0.2.0
+
+**What was done**
+
+- Closed Phase 3 (ANKA-8): built `pkg:eval-harness` v0.1.0 end-to-end per BLUEPRINT §14, §15, §22 phase 3, §25 `pkg:eval-harness`, §26 acceptance threshold open item.
+- New `pkg:contracts/eval` module (`packages/shared-contracts/src/eval.ts`) with the §14.2 `EvalResult` shape verbatim. `FtmoBreach` covers all 11 §14.3 kinds with `scope ∈ {ftmo, internal}` (authority order: §14.3) plus `account/envelope/timestamp/message/detail`. `WalkForwardSummary` enforces the 12-fold invariant via `z.array(FoldResult).length(12)`. `StageName` is closed-enum `analyst|trader|judge|reflector` so `costBreakdown.perStage` records key into the §13 pipeline canon.
+- New eval-harness sub-modules under `packages/eval-harness/src/`: `ftmo-rules.ts` (canonical simulator), `metrics.ts` (Sortino/dd/PF/winrate/avgRR), `slippage-model.ts` (`max(2 × spread, 0.5 × ATR(14))` + news multiplier + ATR(14) true-range averager), `bar-data-cache.ts` (`bun:sqlite`-backed WAL store of bars per §14.5 schema with injectable `BarFetcher`), `walk-forward.ts` (12-fold orchestrator), `promotion-gate.ts` (§14.4 mechanics + per-fold pass), `cost.ts` (`CostMeter`, ceilings per §14.8), `sim-engine.ts` (bar-granularity strategy runner + intra-bar SL/TP + force-flat at end), `backtest.ts` / `paper-replay.ts` / `live-score.ts` (the three §14.1 entry points), `fixtures/index.ts` (6 golden fixtures).
+- Test coverage: 8 spec files in eval-harness (`metrics.spec.ts`, `slippage-model.spec.ts`, `promotion-gate.spec.ts`, `walk-forward.spec.ts`, `bar-data-cache.spec.ts`, `ftmo-rules.spec.ts`, `golden.spec.ts`) + `eval.spec.ts` in contracts. 95 pass / 172 expect() / 0 fails / 3.5 s on this host. Golden fixtures trip the simulator end-to-end on every bad strategy listed in §14.9.
+- `bun run lint`, `bun run typecheck`, `bun test` all green.
+- Versions: root umbrella → 0.2.0; `@ankit-prop/contracts` 0.1.0 → 0.2.0 (additive, eval module added); `@ankit-prop/eval-harness` 0.0.1 → 0.1.0 (initial public surface). CHANGELOG entry on top.
+
+**Findings**
+
+- `z.array(...).length(N)` works in Zod 4.3.6 — used to encode the 12-fold invariant directly into `WalkForwardSummary` so any caller that hands a non-12 array fails at parse time, before we ever spend tokens on autoresearch.
+- BLUEPRINT §14.2's `costBreakdown.perStage: z.record(StageName, ...)` is interpreted as a closed-enum record (one entry per stage), not a sparse map. `emptyCostBreakdown()` therefore seeds all 4 stage keys with zeros so the schema parses even on backtests with no LLM calls (Phase 3 fixtures don't run LLMs).
+- Bun's `bun:sqlite` is plenty for the bar-data cache and ships natively per BLUEPRINT §5.1; no npm dependency. WAL mode chosen up front so the autoresearch nightly can read while the daily refresh job (§14.5) writes.
+- `consistency_violation` (45% rule) only applies at funded-payout time per FTMO docs. Forcing it during Phase 1/2 backtests would false-positive on every short fixture (single-trade share = 100%). The simulator now defaults `consistencyCheckEnabled` from `account.phase === 'funded'` and gates further on `consistencyMinTrades` (default 10). Keeps the rule canonical without poisoning the golden suite.
+- `weekend_hold` and the rest of FTMO Standard's "swing-only" gates (news SL-in-window, weekend carry) fire only when explicitly configured (`account.weekendCloseTimestamp`, `internalMargins.weekendHoldEnabled`, `enforceNewsBlackout` for the FTMO line). Matches FTMO Standard semantics; Swing accounts will toggle the flags via account config when they exist.
+
+**Decisions**
+
+- Bar-granularity (decision G) is the v1 simulator. Sub-bar tick replay is deferred to the §14.6 mitigation policy review (30 days of live-vs-eval Sortino divergence > 20%).
+- Authority order for FTMO breaches: gateway > simulator > FTMO docs (§14.3). The simulator emits both `internal` and `ftmo` scopes when both are crossed; this is so autoresearch sees the same shape live and offline (a `ftmo`-scope breach in eval = candidate dies; an `internal`-scope breach in eval = candidate also dies because tightening matters).
+- `BarFetcher` is an interface, not a concrete fetch. Live cTrader pulls (`ProtoOAGetTrendbarsReq`) belong to the gateway and arrive in Phase 2 / Phase 4 wiring. Phase 3 ships the cache + a `NoFetcher` default; tests use static prefetch and a synthetic injected fetcher.
+- The promotion-gate decision returns `failed[]` (typed enum) plus `reasons[]` (human strings). Autoresearch logs both; the typed array drives metrics ("60% of mutations failed `too_few_trades`"), the human strings drive the operator-facing dashboard cards.
+- `pragueDayStartFromMs` in sim-engine is currently a UTC-day shim; switching to a proper `Europe/Prague`-anchored DST-aware bucketing belongs in Phase 4 (Q042 — first FTMO server-time observation answers whether we even need it). Documented as a hook so later swap is local.
+
+**Adaptations**
+
+- Initial Trivial fixture tripped `consistency_violation` because a single trade is 100% of total profit — see Findings. Resolved by phase-gating the rule, not by special-casing the fixture.
+- Initial `bad-weekend-hold` fixture didn't fire because `FtmoSimulator.checkWeekend` is only invoked when sim-engine drives it. Wired `weekendCloseTimestampsMs` through `SimEngineCfg` and added an inline check at each bar boundary; the simulator dedupes per-position so the breach fires once per position even if multiple bars overlap the timestamp.
+- Biome `noNonNullAssertion: warn` flagged a few test-only `!` after optional chains (`goodCandidate.walkForward!`); replaced with explicit `if (!wf) throw new Error('test setup error')` guards so the spec compiles cleanly under Biome's stricter view of correctness.
+- `exactOptionalPropertyTypes: true` (Phase 0 choice) bites on `EvalResult.walkForward?: WalkForwardSummary` — assigning `undefined` is fine, but on `BacktestInput → SimEngineCfg.weekendCloseTimestampsMs` we conditionally spread instead of assigning `undefined`.
+
+**Open endings**
+
+- Phase 4 (`svc:trader`): consume `eval-harness.backtest()` from inside the trader's autoresearch wiring, plug the LLM-backed `BarStrategy` (Phase 4 builds the persona executor); cost ledger feeds straight into `CostMeter`.
+- Phase 7 (`svc:autoresearch`): mutation generator → `eval-harness.backtest()` → `paperReplay()` → `liveScore()` → `walk-forward` → `evaluatePromotionGate()`. The whole gate is implemented; the consumer wiring lands in Phase 7.
+- Phase 2 (`svc:gateway`) — once cTrader transport lands, the bar-data-cache `BarFetcher` gets a `CTraderTrendbarsFetcher` implementation that calls `ProtoOAGetTrendbarsReq` (§14.5). The cache itself is ready.
+- BLUEPRINT §26 long-running open: simulator drift vs actual FTMO behaviour is now reviewable — when the first FTMO Free Trial fill produces real-world breach behaviour, fold it back into `ftmo-rules.ts`. The simulator's authority is §14.3 step 4 ("on disagreement, gateway wins; simulator is updated to match").
+- Phase 2 child issues (ANKA-12..15) carried in working tree at heartbeat start; left untouched per the same convention used in v0.0.3 / v0.1.0 — those bumps and files belong to ANKA-7's own commit chain, not ANKA-8.
+
 ## 2026-04-27 18:42 Europe/Amsterdam — Phase 2 breakdown (ANKA-7)
 
 **What was done**

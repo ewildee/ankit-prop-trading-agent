@@ -1,6 +1,21 @@
 export const PHASE_0_SENTINEL = 'phase-0-scaffold' as const;
 export type PhaseSentinel = typeof PHASE_0_SENTINEL;
 
+export type { FtmoBreachKind, FtmoBreachScope } from './eval.ts';
+export {
+  CostBreakdown,
+  EvalMetrics,
+  EvalResult,
+  FoldResult,
+  FTMO_BREACH_KINDS,
+  FTMO_BREACH_SCOPES,
+  FtmoBreach,
+  STAGE_NAMES,
+  StageCost,
+  StageName,
+  WalkForwardFold,
+  WalkForwardSummary,
+} from './eval.ts';
 export type { HealthStatus, SupervisorServiceState } from './health.ts';
 export {
   AggregatedHealth,

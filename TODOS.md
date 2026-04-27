@@ -23,8 +23,8 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
 ## Phase 3 — `eval-harness`
 
-- [ ] **T006** Bar-granularity simulator (decision G).
-- [ ] **T007** Walk-forward 12-fold runner (decision H).
+- [x] **T006** Bar-granularity simulator (decision G). _Closes ANKA-8 (with T007)._
+- [x] **T007** Walk-forward 12-fold runner (decision H). _Closes ANKA-8 (with T006)._
 
 ## Phase 4 — `trader`
 

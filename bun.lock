@@ -19,7 +19,11 @@
     },
     "packages/eval-harness": {
       "name": "@ankit-prop/eval-harness",
-      "version": "0.0.1",
+      "version": "0.1.0",
+      "dependencies": {
+        "@ankit-prop/contracts": "workspace:*",
+        "zod": "4.3.6",
+      },
     },
     "packages/proc-supervisor": {
       "name": "@triplon/proc-supervisor",
