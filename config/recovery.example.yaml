@@ -1,0 +1,20 @@
+# BLUEPRINT §17.4 — recovery.config.yaml
+#
+# Operator-canonical copy lives at ~/.config/ankit-prop/recovery.config.yaml
+# and is gitignored. This in-repo example is the editable template.
+#
+# Schema (BLUEPRINT §17.4 RecoveryCfg, z.strictObject):
+#   on_orphan_position:   'auto_adopt' | 'manual_approve' | 'halt'
+#   on_missing_position:  'auto_close_local' | 'halt_and_alert' | 'adopt_broker_truth'
+#   on_db_unreachable:    'in_memory_fallback' | 'halt'
+#   on_calendar_stale:    'blackout' | 'halt'
+#
+# Consumed at supervisor + gateway boot (decision AA, BLUEPRINT §3.4 /
+# §23.4). Default for any uncertainty is fail-closed: prefer `halt` /
+# `halt_and_alert` / `blackout` in prod over the dev-friendly auto
+# variants.
+
+on_orphan_position:   manual_approve     # auto_adopt | manual_approve | halt
+on_missing_position:  halt_and_alert     # auto_close_local | halt_and_alert | adopt_broker_truth
+on_db_unreachable:    halt               # in_memory_fallback | halt
+on_calendar_stale:    blackout           # blackout | halt

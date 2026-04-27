@@ -17,6 +17,14 @@ bun test
 
 See `BLUEPRINT.md` §17 for the canonical layout. Workspaces live under `packages/*` and `services/*`; runtime state and secrets live under `data/` and `~/.config/ankit-prop/` and are gitignored.
 
+| `packages/*` (libraries) | `services/*` (runtimes) |
+|--------------------------|-------------------------|
+| `proc-supervisor` — `@triplon/proc-supervisor` (lifecycle manager) | `ctrader-gateway` — broker socket + 14 hard rails (port 9201) |
+| `eval-harness` — `@ankit-prop/eval-harness` (backtest, paper-replay, FTMO sim) | `trader` — modular monolith with N account loops (port 9202) |
+| `shared-contracts` — `@ankit-prop/contracts` (Zod schemas) | `news` — FTMO calendar fetcher + endpoints (port 9203) |
+| `ctrader-vendor` — `@ankit-prop/ctrader-vendor` (cTrader client + vendored .proto) | `dashboard` — React 19 + Tailwind 4 cockpit (port 9204) |
+|  | `autoresearch` — scheduled mutation/eval loop (suggest-only) |
+
 ## Operating contract
 
 - **Bun-native first.** Adding an npm package for something Bun ships is a red flag (`BLUEPRINT.md` §5.1, §5.3). Read `https://bun.com/llms.txt` at session start.

@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-27 23:21 Europe/Amsterdam — v0.4.3 ([ANKA-23](/ANKA/issues/ANKA-23) — Audit-1 follow-up: AGENTS.md, config examples, T003 renumber, README, .tmp cleanup)
+
+Heartbeat woken with [ANKA-23](/ANKA/issues/ANKA-23) assigned (parent [ANKA-22](/ANKA/issues/ANKA-22)). Doc-only batch — five items, all spelled out verbatim in the issue body and cross-referenced into BLUEPRINT §17.
+
+**What was done**
+
+- **HIGH-1** — `AGENTS.md` at repo root. Pointer doc to BLUEPRINT §0.2, §22, §25 with one short paragraph per heading. Followed BLUEPRINT §17 line 1770 (`AGENTS.md` is the operating contract for agents). Includes the bun.com/llms.txt mandatory-reading note, the after-every-code-change 7-step checklist, the §25 top-scope tag table, and the CEO-approval bounds. Single source of truth remains BLUEPRINT.md.
+- **HIGH-2** — `config/recovery.example.yaml` and `config/symbol-tag-map.example.yaml`. The symbol-tag-map file is the §17.3 YAML body copied verbatim. The recovery file is derived from the §17.4 Zod schema (which is "schema only" — no full YAML body in the blueprint) using fail-closed defaults: `manual_approve` / `halt_and_alert` / `halt` / `blackout`. Inline enum comments next to each key so the operator can flip to dev variants without re-reading the schema. Patch-level bump (umbrella `0.4.2 → 0.4.3`); CHANGELOG entry attached.
+- **MED-2** — `TODOS.md` `T003` sub-item renumber. `T003.h` (the §19.1 `/health`) was alphabetically out of band relative to `T003.a/.b`, and the `T005` (order-manager) was a top-level peer that actually belongs inside the ANKA-7 split. Renumbered to `T003.a/.b/.c/.d` per the issue body. `T004` (14 hard rails / ANKA-14) retained its number because it's a peer task, not part of the ANKA-7 split.
+- **LOW-1** — `README.md` `Layout` section gained a 2-column workspace listing (packages on the left, services on the right) with public package names and runtime ports. Contributors no longer need to crack BLUEPRINT.md to find the gateway directory.
+- **LOW-3** — `rm -rf .tmp-ctrader-ts-inspect/` at repo root. Pure housekeeping; the directory is gitignored.
+
+**Findings**
+
+- BLUEPRINT §17.4 specifies recovery as schema-only (`z.strictObject` with four flat enum keys), but BLUEPRINT §17.2 `supervisor.config.yaml` embeds a `recovery:` block with a `dev:` / `prod:` split for each key. The two shapes are inconsistent (the `RecoveryCfg` Zod schema cannot accept the dev/prod variant). The example file matches the §17.4 schema (single value per key) since that's the canonical schema; this file ships flat. The supervisor.example.yaml's nested form is a §17.2 quirk that the CEO owns via DOC-BUG-FIXES if it needs reconciling — not in scope for ANKA-23.
+- Symbol-tag-map's `affects: []` entries (EUR / GBP / CAD / AUD / NZD / CHF / Crude Oil) look like deletable noise but they're load-bearing: they tell the validator which calendar tags are recognised-but-not-tracked, distinct from unknown tags. Kept verbatim from §17.3.
+
+**Decisions**
+
+- Patch-level umbrella bump only (`0.4.2 → 0.4.3`). No package code changed, so no per-package version bumps. The bump exists so the dashboard's version-matrix entry has an audit-trail link to the CHANGELOG.
+- Did not bump per-package versions for the AGENTS.md / README / TODOS edits. Those are repo-root docs, not package code; the umbrella version is the right axis.
+- Kept the `T004` numbering for the 14 hard rails (ANKA-14). The issue specifically renumbered the ANKA-7 sub-items only, and ANKA-14 is a Phase 2.3 peer with its own issue identity.
+
+**Surprises / contradictions**
+
+- README's `Layout` table uses Markdown 2-column tables; the columns are uneven (packages: 4 rows, services: 5 rows) which renders fine in GitHub but produces an empty cell in the packages column on row 5. Acceptable — moving `autoresearch` up to balance would imply an ordering claim about which service is the "5th most important", which the blueprint doesn't make.
+- Lost a few seconds confirming the §17.4 schema-vs-supervisor.example.yaml inconsistency; left a note for CEO follow-up rather than fixing the blueprint myself (per the issue: "no blueprint patches; those stay with CEO via DOC-BUG-FIXES").
+
+**Open endings**
+
+- Out-of-scope items HIGH-3 (pino install), HIGH-4 (§25.2 row), MED-1/3/4/5, LOW-4 — all blueprint patches owned by the CEO via DOC-BUG-FIXES. Not my queue.
+- §17.4 RecoveryCfg vs §17.2 supervisor.recovery shape inconsistency — flagged in this entry's Findings; CEO can pick up via DOC-BUG-FIXES if the dev/prod split is intended to land in the schema.
+
 ## 2026-04-27 22:45 Europe/Amsterdam — v0.4.1 + v0.4.2 (ANKA-7 / ANKA-12 prep + §19.1 /health)
 
 Three commits since the v0.4.0 entry below land the rest of ANKA-7's offline-runnable scope. Writing them up together because they came back-to-back and only make sense as a unit.

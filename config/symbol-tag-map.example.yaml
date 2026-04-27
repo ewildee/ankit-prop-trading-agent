@@ -1,0 +1,25 @@
+# BLUEPRINT §17.3 — symbol-tag-map.config.yaml
+#
+# Operator-canonical copy lives at ~/.config/ankit-prop/symbol-tag-map.config.yaml
+# and is gitignored. This in-repo example is the editable template.
+#
+# Schema: { mappings: Record<string, { affects: string[] }> }.
+# Consumed by `svc:news/symbol-tag-mapper` to translate FTMO calendar
+# `instrument` tags into the set of tracked symbols whose restricted /
+# pre-news windows are triggered by the event. Symbols not in any
+# `affects` list are not tracked by the trader and do not block trades.
+
+mappings:
+  USD:                              { affects: [NAS100, XAUUSD] }
+  "USD + US Indices + XAUUSD + DXY": { affects: [NAS100, XAUUSD] }
+  "US Indices":                     { affects: [NAS100] }
+  NAS100:                           { affects: [NAS100] }
+  Gold:                             { affects: [XAUUSD] }
+  XAUUSD:                           { affects: [XAUUSD] }
+  EUR:                              { affects: [] }
+  GBP:                              { affects: [] }
+  CAD:                              { affects: [] }
+  AUD:                              { affects: [] }
+  NZD:                              { affects: [] }
+  CHF:                              { affects: [] }
+  "Crude Oil":                      { affects: [] }
