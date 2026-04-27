@@ -20,6 +20,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
   - [ ] **T003.b** Transport + OAuth + reconciliation — _ANKA-13_; blocked by ANKA-12 (vendor verdict locks once `bun run --cwd packages/ctrader-vendor smoke` reports `pass` for all 7 steps live).
 - [x] **T004** Implement the 14 hard rails (BLUEPRINT §9), each with a `.spec.ts` regression — _ANKA-14_, shipped in `2218862` v0.4.0. Pure decision functions in `services/ctrader-gateway/src/hard-rails/rail-1..14`, mock-driven against a stable broker contract; bun:sqlite-backed idempotency + throttle stores; force-flat scheduler with `NewsClient` seam. 28-case matrix.spec.ts green; live transport wiring deferred to ANKA-13/15.
 - [ ] **T005** Order-manager + execution-stream + persistence; place + close + reconcile against FTMO Free Trial — _ANKA-15_; blocked by ANKA-12, ANKA-13, ANKA-14.
+- [x] **T003.h** §19.1 `/health` endpoint on `:9201` (`HealthSnapshot` JSON, 200/503 by status, SIGTERM-safe). Shipped in v0.4.2; supervisor health-polls now hit a real responder instead of timing out.
 
 ## Phase 3 — `eval-harness`
 

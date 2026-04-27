@@ -1,12 +1,12 @@
 {
   "name": "@ankit-prop/ctrader-gateway",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "cTrader broker socket + 14 hard rails (BLUEPRINT §9). Listens on port 9201. Phase 2 deliverable.",
   "main": "src/index.ts",
   "scripts": {
-    "start": "echo 'ctrader-gateway: transport wiring lands in ANKA-15 — rails available via @ankit-prop/ctrader-gateway/hard-rails'"
+    "start": "bun run src/start.ts"
   },
   "dependencies": {
     "@ankit-prop/contracts": "workspace:*",

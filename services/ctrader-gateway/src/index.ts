@@ -3,3 +3,6 @@
 // manager land in ANKA-13 / ANKA-15.
 
 export * from './hard-rails/index.ts';
+
+export type { DependencyState, HealthDeps, HealthServerOptions } from './health-server.ts';
+export { buildHealthSnapshot, startHealthServer } from './health-server.ts';
