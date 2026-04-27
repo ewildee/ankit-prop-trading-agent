@@ -18,7 +18,7 @@ export class SqliteIdempotencyStore implements IdempotencyStore {
   private readonly hasStmt;
   private readonly recordStmt;
 
-  constructor(private readonly db: Database) {
+  constructor(db: Database) {
     db.exec(`
       CREATE TABLE IF NOT EXISTS rail_idempotency (
         client_order_id TEXT PRIMARY KEY,

@@ -16,9 +16,9 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 ## Phase 2 — `ctrader-gateway` (ANKA-7 split into 4 child issues)
 
 - [~] **T003** Vendor cTrader client + protobuf transport over `wss://*.ctraderapi.com:5035/`.
-  - [ ] **T003.a** §10.3 7-step smoke-test against FTMO Free Trial — _ANKA-12_; blocked by ANKA-5 (creds). ANKA-10 (FTMO pivot) ✓ landed.
-  - [ ] **T003.b** Transport + OAuth + reconciliation — _ANKA-13_; blocked by ANKA-12.
-- [x] **T004** Implement the 14 hard rails (BLUEPRINT §9), each with a `.spec.ts` regression — _ANKA-14_. Pure decision functions in `services/ctrader-gateway/src/hard-rails/rail-1..14`, mock-driven against a stable broker contract; bun:sqlite-backed idempotency + throttle stores; force-flat scheduler with `NewsClient` seam. 28-case matrix.spec.ts green; live transport wiring deferred to ANKA-13/15.
+  - [~] **T003.a** §10.3 7-step smoke-test against FTMO Free Trial — _ANKA-12_; offline scaffold (AES-GCM `RefreshTokenStore`, typed 7-step orchestrator, protobufjs codec on Spotware vendored .proto, smoke runner CLI) shipped in `74913ed` v0.4.1. Live execution gated on _ANKA-16_ (Spotware KYC + one-time browser OAuth code-grant).
+  - [ ] **T003.b** Transport + OAuth + reconciliation — _ANKA-13_; blocked by ANKA-12 (vendor verdict locks once `bun run --cwd packages/ctrader-vendor smoke` reports `pass` for all 7 steps live).
+- [x] **T004** Implement the 14 hard rails (BLUEPRINT §9), each with a `.spec.ts` regression — _ANKA-14_, shipped in `2218862` v0.4.0. Pure decision functions in `services/ctrader-gateway/src/hard-rails/rail-1..14`, mock-driven against a stable broker contract; bun:sqlite-backed idempotency + throttle stores; force-flat scheduler with `NewsClient` seam. 28-case matrix.spec.ts green; live transport wiring deferred to ANKA-13/15.
 - [ ] **T005** Order-manager + execution-stream + persistence; place + close + reconcile against FTMO Free Trial — _ANKA-15_; blocked by ANKA-12, ANKA-13, ANKA-14.
 
 ## Phase 3 — `eval-harness`

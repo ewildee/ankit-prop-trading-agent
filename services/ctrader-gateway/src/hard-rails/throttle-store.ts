@@ -48,7 +48,7 @@ export class SqliteThrottleStore implements ThrottleStore {
   private readonly getStmt;
   private readonly upsertStmt;
 
-  constructor(private readonly db: Database) {
+  constructor(db: Database) {
     db.exec(`
       CREATE TABLE IF NOT EXISTS rail_throttle (
         account_id TEXT PRIMARY KEY,
