@@ -1,0 +1,10 @@
+{
+  "name": "@ankit-prop/trader",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Modular monolith with N account loops; Analyst → Trader → Judge → (Gateway) → Reflector. Port 9202.",
+  "scripts": {
+    "start": "echo 'trader: not yet implemented (Phase 4)'"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@ankit-prop/dashboard",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "React 19 + Tailwind 4 cockpit — Phase 6 deliverable. Port 9204.",
+  "scripts": {
+    "start": "echo 'dashboard: not yet implemented (Phase 6)'"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "@ankit-prop/news",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "FTMO calendar fetcher (Europe/Prague) + endpoints — Phase 5 deliverable. Port 9203.",
+  "scripts": {
+    "start": "echo 'news: not yet implemented (Phase 5)'"
+  }
+}

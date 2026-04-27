@@ -1,0 +1,32 @@
+{
+  "name": "ankit-prop-umbrella",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Autonomous LLM-driven FTMO prop-trading agent — umbrella monorepo (BLUEPRINT.md is the source of truth).",
+  "engines": {
+    "bun": ">=1.3.13"
+  },
+  "workspaces": [
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "start": "bun run --cwd packages/proc-supervisor start",
+    "stop": "bun run --cwd packages/proc-supervisor stop",
+    "status": "bun run --cwd packages/proc-supervisor status",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "db:migrate": "bun run scripts/db-migrate.ts",
+    "backup": "bun run scripts/backup.ts",
+    "restore": "bun run scripts/restore.ts",
+    "secrets:rotate": "bun run scripts/secrets-rotate.ts"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.13",
+    "@types/bun": "1.3.13",
+    "typescript": "6.0.3"
+  }
+}

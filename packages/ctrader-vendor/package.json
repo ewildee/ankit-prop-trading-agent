@@ -1,0 +1,8 @@
+{
+  "name": "@ankit-prop/ctrader-vendor",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Vendored cTrader Open API client (or in-house WSS protobuf) — Phase 2 dependency.",
+  "main": "src/index.ts"
+}

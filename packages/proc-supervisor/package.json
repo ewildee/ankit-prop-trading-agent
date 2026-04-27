@@ -1,0 +1,13 @@
+{
+  "name": "@triplon/proc-supervisor",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Process supervisor with adopt/replace/refuse semantics — Phase 1 deliverable.",
+  "main": "src/index.ts",
+  "scripts": {
+    "start": "echo 'proc-supervisor: not yet implemented (Phase 1)'",
+    "stop": "echo 'proc-supervisor: not yet implemented (Phase 1)'",
+    "status": "echo 'proc-supervisor: not yet implemented (Phase 1)'"
+  }
+}

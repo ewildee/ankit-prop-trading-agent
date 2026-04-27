@@ -1,0 +1,10 @@
+{
+  "name": "@ankit-prop/autoresearch",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "Suggest-only mutation/eval loop, scheduled — Phase 7 deliverable. Port 9205.",
+  "scripts": {
+    "start": "echo 'autoresearch: not yet implemented (Phase 7)'"
+  }
+}

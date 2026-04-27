@@ -1,0 +1,10 @@
+{
+  "name": "@ankit-prop/ctrader-gateway",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "cTrader broker socket + 14 hard rails — Phase 2 deliverable. Listens on port 9201.",
+  "scripts": {
+    "start": "echo 'ctrader-gateway: not yet implemented (Phase 2)'"
+  }
+}

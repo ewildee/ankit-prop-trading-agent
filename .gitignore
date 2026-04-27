@@ -1,0 +1,38 @@
+# Secrets
+.env
+.env.*
+!.env.example
+~/.config/ankit-prop/*.config.yaml
+config/*.config.yaml
+!config/*.example.yaml
+
+# Runtime state
+data/
+**/data/
+!packages/eval-harness/data/.gitkeep
+
+# Build artefacts
+dist/
+build/
+*.tsbuildinfo
+.tscache/
+
+# Bun / Node
+node_modules/
+bun.lockb
+.bun/
+
+# OS / editor
+.DS_Store
+*.swp
+*.swo
+.idea/
+.vscode/
+*.log
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Local agent state (kept project-local but not committed)
+.omc/

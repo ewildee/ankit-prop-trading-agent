@@ -1,0 +1,9 @@
+[install]
+exact = true
+saveTextLockfile = true
+
+[install.lockfile]
+save = true
+
+[test]
+coverage = false
