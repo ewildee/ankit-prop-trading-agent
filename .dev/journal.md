@@ -2,6 +2,48 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 00:25 Europe/Amsterdam — v0.4.10 ([ANKA-32](/ANKA/issues/ANKA-32) — `composeRailVerdict([], …)` fail-closed at the contract surface; parent [ANKA-19](/ANKA/issues/ANKA-19) H-6 HIGH)
+
+Heartbeat woken with [ANKA-32](/ANKA/issues/ANKA-32) assigned. Tiny one-function fix at the `pkg:contracts` boundary — the previous spec at `hard-rails.spec.ts:113-119` literally argued fail-closed was the dispatcher's job, but BLUEPRINT §3.5 demands fail-closed at the contract surface itself. Mechanical fix.
+
+**What was done**
+
+- `packages/shared-contracts/src/hard-rails.ts` — `composeRailVerdict([], decidedAt)` now branches on `decisions.length === 0` BEFORE the `allow`/`tighten`/`reject` aggregation loop and returns `{ outcome: 'reject', decisions: [], decidedAt, reason: 'no rails evaluated — fail-closed' }`. Picked option (2) from the issue body per the explicit recommendation: a synthetic reject is observable in dispatcher dashboards / verdict logs, whereas a `throw` would crash-loop the gateway and obscure the diagnostic trail.
+- `packages/shared-contracts/src/hard-rails.ts` — extended `RailVerdict` with optional `reason: z.string().min(1).optional()`. The new field is populated only on the synthetic fail-closed branch; real verdicts continue to carry per-rail reasons inside `decisions[*].reason`. Header comment spells the split out so the next reader doesn't promote `reason` into a load-bearing top-level field for normal verdicts.
+- `packages/shared-contracts/src/hard-rails.ts` — added `NO_RAILS_EVALUATED_REASON = 'no rails evaluated — fail-closed' as const` so dispatcher code paths can compare against the canonical literal instead of duplicating the string at each consumer site.
+- `packages/shared-contracts/src/index.ts` — re-exports `NO_RAILS_EVALUATED_REASON` from the package barrel.
+- `packages/shared-contracts/src/hard-rails.spec.ts` — rewrote the `empty decision list → allow` case (which was the bug, locked in by spec). New case asserts (a) `outcome === 'reject'`, (b) `decisions.length === 0`, (c) `reason === NO_RAILS_EVALUATED_REASON`, (d) the canonical literal equals the exact issue-specified string `"no rails evaluated — fail-closed"`. Added a sibling case ensuring non-empty verdicts do NOT carry a top-level `reason` (so future refactors can't quietly promote the field). Extended the round-trip case to parse both synthetic and real verdicts through `RailVerdict.parse(...)`. Existing all-allow / any-tighten / any-reject / RailDecision specs untouched per the issue's verification clause.
+
+**Findings**
+
+- Production gateway dispatcher (`evaluateAllRails` / now `evaluatePreSubmitRails` after ANKA-29) always pushes ≥ 1 decision before short-circuit, so the new fail-closed branch is unreachable on the live happy path. It exists exclusively as defense-in-depth against (a) future dispatcher rewrites that might short-circuit before pushing, (b) feature flags that disable the rail loop, (c) test wiring with `RAIL_EVALUATORS = {}`. The issue body called out exactly these classes; the fix matches.
+- The 14-rail catalog is closed: `HARD_RAIL_KEYS.length === 14` is asserted by `hard-rails.spec.ts:13` and load-bearing for the §9 matrix invariants. Adding a synthetic "no_rails_evaluated" rail key would have broken that count. Bolting an optional `reason` onto `RailVerdict` instead is additive and consumer-transparent.
+- Synthetic empty-decisions reject correctly does NOT consume the rail-9 idempotency ULID slot — `evaluatePreSubmitRails` records on the non-reject composite per ANKA-28 / ANKA-29, so the synthetic reject leaves the registry untouched. Operator retry after the dispatcher bug is fixed will succeed at rail 9.
+
+**Decisions**
+
+- Patch-level bumps: `@ankit-prop/contracts` `0.3.1 → 0.3.2` (additive zod field + fail-closed semantic on top of ANKA-30's 0.3.0 → 0.3.1 LossFraction surface), umbrella `0.4.9 → 0.4.10` (lands above ANKA-38's `0.4.9` rail-1 daily-breaker spec entry, which itself sits above ANKA-29's `0.4.8` and ANKA-30's `0.4.7`).
+- Optional `reason` rather than required: keeps every existing `composeRailVerdict([decision, …], at)` callsite identical, avoids forcing every consumer to thread a reason for the normal path. The fail-closed branch sets it; real branches don't.
+- Did not throw (option 1). The issue explicitly recommended option (2) and the rationale holds: a fail-closed reject in the verdict log is more diagnosable than a thrown exception that propagates out of the dispatcher and bubbles up the gateway main loop. Throwing would also defeat the journal's commitment that rail evaluation never crashes the dispatcher.
+
+**Surprises / contradictions**
+
+- The previous spec (`hard-rails.spec.ts:113-119`) explicitly said fail-closed `lives at the caller, not here` — that comment was the journal's documented stance, but it's now wrong. The replacement spec replaces both the assertion AND the rationale comment so the next reader sees BLUEPRINT §3.5's contract-surface fail-closed mandate at the test site.
+- Production-line edits to `hard-rails.ts`, `hard-rails.spec.ts`, and `index.ts` actually landed inside commit `464b3dd` (titled for ANKA-28) due to a concurrent staging race with the parallel ANKA-28 / ANKA-30 batches in the working tree at commit time. This v0.4.10 entry is the official ANKA-32 attribution, version bump, and journal pointer; the diff itself is bundled inside `464b3dd` rather than carrying a standalone commit. Flagging here so future archaeology on `git blame hard-rails.ts` doesn't get confused: the ANKA-32 hunks are the ones touching `composeRailVerdict`, `RailVerdict.reason`, and `NO_RAILS_EVALUATED_REASON`.
+- Concurrent heartbeat traffic during this run was extreme: six existing stashes at session start, then four near-simultaneous bookkeeping waves (ANKA-30 committed at v0.4.7 via `0593eb9`, ANKA-29 prepared v0.4.8 in WT, ANKA-38 prepared v0.4.9 in WT, ANKA-32 mine at v0.4.10). The umbrella version axis became contested faster than I could reserve a slot — settled on 0.4.10 above ANKA-38's 0.4.9 to avoid clobbering any sibling heartbeat's prepared bookkeeping.
+
+**Verification**
+
+- `bun test packages/shared-contracts/src/hard-rails.spec.ts` — 18 / 0, 31 expects (focused spec with the new fail-closed cases).
+- `bun test services/ctrader-gateway/src/hard-rails/idempotency-record-on-allow.spec.ts` — 4 / 0, 18 expects (gateway evaluator regression).
+- Workspace `bun run typecheck` shows only the pre-existing in-flight ANKA-29 / ANKA-30 errors (`bufferDollars`, news-staleness API) documented in v0.4.4 — none introduced by this change.
+- Lint clean on the touched `pkg:contracts` files.
+
+**Open endings**
+
+- ANKA-32 bookkeeping commit (CHANGELOG row + version bumps for `package.json` and `packages/shared-contracts/package.json`) is in WT alongside ANKA-29's v0.4.8 in-flight bookkeeping entries. The next bookkeeping commit can absorb both; my journal entry here is durable regardless.
+- The `LossFraction` zod schema landed via ANKA-30 (commit `464b3dd` code, `0593eb9` bookkeeping) but is not yet wired to a config-loader boundary parse — that comes with ANKA-15 (`accounts.yaml` loader). Unrelated to this issue.
+
 ## 2026-04-27 23:50 Europe/Amsterdam — v0.4.8 ([ANKA-29](/ANKA/issues/ANKA-29) — split pre-submit / post-fill rail evaluation paths; parent [ANKA-19](/ANKA/issues/ANKA-19) H-2 HIGH)
 
 Heartbeat woken via `issue_blockers_resolved` after [ANKA-28](/ANKA/issues/ANKA-28) (H-1 record-on-non-reject) landed in `464b3dd` / `1b9d25a`. The dependency was load-bearing: H-2 only matters if rail 9 already records on the *first* successful evaluation, so a re-run on the post-fill path would re-trigger rail 9's `has()` reject. With H-1 in, H-2 splits the chain so the post-fill path never re-runs rail 9 at all.

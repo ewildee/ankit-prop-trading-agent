@@ -49,13 +49,13 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bunx --bun biome check` clean on the four touched files (`evaluator.ts`, `index.ts`, `idempotency-record-on-allow.spec.ts`, `pre-post-fill-split.spec.ts`). Workspace lint surfaces only pre-existing in-flight infos (`smoke-runner.ts` unused-import warning) unrelated to ANKA-29.
 - Workspace `bun run typecheck` shows only the pre-existing `rail-10-phase-profit-target.spec.ts` `internalDailyFloorPct` error from ANKA-30 in-flight work; no new typecheck errors introduced by this change.
 
-## 0.4.7 — 2026-04-27 23:38 Europe/Amsterdam
+## 0.4.10 — 2026-04-28 00:25 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-32](/ANKA/issues/ANKA-32) (REVIEW-FINDINGS H-6 from [ANKA-19](/ANKA/issues/ANKA-19) — HIGH).
 
 **Why:** `composeRailVerdict([], decidedAt)` was fail-OPEN — it returned `{ outcome: 'allow' }` for an empty decision list. The journal pushed the fail-closed obligation up to the dispatcher, but BLUEPRINT §3.5 requires fail-closed at the contract surface itself. A dispatcher bug, a feature flag short-circuit, or a test wiring with no evaluators would silently produce a green verdict and let an unvetted intent through. Patch-level bumps per §0.2.
 
-**Note on commit topology** — the production-line edits actually landed in commit `464b3dd` (titled `fix(svc:gateway/hard-rails): ANKA-28 rail 9 record-on-non-reject (code + spec)`) due to a concurrent staging race: the ANKA-28 heartbeat swept the staged ANKA-32 work into its commit alongside the rail-9 fixes. This 0.4.7 entry is the official ANKA-32 attribution, version bump, and journal pointer. The diff itself is identifiable inside `464b3dd` as the `RailVerdict.reason` field, the `NO_RAILS_EVALUATED_REASON` export, the `decisions.length === 0` fail-closed branch in `composeRailVerdict`, and the rewritten "empty decision list" spec case.
+**Note on commit topology** — the production-line edits actually landed in commit `464b3dd` (titled `fix(svc:gateway/hard-rails): ANKA-28 rail 9 record-on-non-reject (code + spec)`) due to a concurrent staging race: the ANKA-28 heartbeat swept the staged ANKA-32 work into its commit alongside the rail-9 fixes. This 0.4.10 entry is the official ANKA-32 attribution, version bump, and journal pointer. The diff itself is identifiable inside `464b3dd` as the `RailVerdict.reason` field, the `NO_RAILS_EVALUATED_REASON` export, the `decisions.length === 0` fail-closed branch in `composeRailVerdict`, and the rewritten "empty decision list" spec case. The entry is appended in numeric position 0.4.10 below 0.4.9 (ANKA-38) for write-conflict avoidance during a contested bookkeeping window — the next bookkeeping commit can move it to the top of the CHANGELOG to restore strict newest-first ordering.
 
 **Fixed** — `@ankit-prop/contracts` v0.3.1 (`pkg:contracts/hard-rails`)
 
@@ -67,8 +67,8 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 **Bumped**
 
-- `@ankit-prop/contracts` 0.3.0 → 0.3.1 (patch — additive optional field on `RailVerdict` zod schema, fail-closed semantic correction; no breaking field changes for consumers that don't construct empty decision lists).
-- root `ankit-prop-umbrella` 0.4.5 → 0.4.7 (skipping 0.4.6: the ANKA-26 commit `c6ab121` carried the v0.4.6 CHANGELOG entry but the in-flight heartbeat that initiated it never bumped root `package.json`. Going to 0.4.7 directly resolves the bookkeeping rather than retroactively forcing a 0.4.6 root-version bump that would conflict with the existing ANKA-26 commit. ANKA-30's bookkeeping commit will reconcile separately when it lands).
+- `@ankit-prop/contracts` 0.3.1 → 0.3.2 (patch — additive optional field on `RailVerdict` zod schema, fail-closed semantic correction; ANKA-30's 0.3.0 → 0.3.1 already shipped via commit `0593eb9` and added the `LossFraction` / `EnvelopeFloors` surface, so this row is the ANKA-32 follow-on bump on top).
+- root `ankit-prop-umbrella` 0.4.9 → 0.4.10 (patch — pkg:contracts fail-closed semantic correction). Lands above ANKA-38's `0.4.9` rail-1 daily-breaker spec. The umbrella version axis was contested by four near-simultaneous heartbeats (ANKA-29, ANKA-30, ANKA-32, ANKA-38) during this window — see the journal entry for the full topology trace.
 
 **Verification**
 

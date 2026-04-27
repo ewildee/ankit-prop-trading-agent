@@ -2,12 +2,11 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-27 23:35 Europe/Amsterdam — v0.4.4 ([ANKA-28](/ANKA/issues/ANKA-28) — rail 9 idempotency record-on-non-reject)
+## 2026-04-28 00:25 Europe/Amsterdam — v0.4.10 ([ANKA-32](/ANKA/issues/ANKA-32) — `composeRailVerdict([], …)` fail-closed at the contract surface; parent [ANKA-19](/ANKA/issues/ANKA-19) H-6)
 
-- Fixed [ANKA-19](/ANKA/issues/ANKA-19) H-1: rail 9 (`clientOrderId` ULID registry) was recording on its own allow path, so a rail 12 / rail 13 reject downstream consumed the slot. The operator's same-`clientOrderId` retry after the breaker cleared was being rejected by rail 9.
-- Lifted `idempotency.record(...)` out of `rail-9-idempotency.ts` and into `evaluator.ts evaluateAllRails`, gated on `composeRailVerdict` outcome ≠ `reject`. The rail's `has(...)` early-reject stays put.
-- Added `idempotency-record-on-allow.spec.ts` (4 cases / 18 expects): rail 12 reject + retry; rail 13 reject + retry; happy-path record + immediate replay rejects on rail 9; tighten verdict still records.
-- `bun test services/ctrader-gateway/src/hard-rails/idempotency-record-on-allow.spec.ts` 4 / 0; existing `matrix.spec.ts -t idempotency` 2 / 0; `idempotency-store.spec.ts` 3 / 0.
-- Versions handled by parallel ANKA-27 heartbeat (umbrella `0.4.3 → 0.4.5`, `@ankit-prop/ctrader-gateway` `0.2.0 → 0.2.2`); CHANGELOG carries my v0.4.4 entry below their v0.4.5 entry.
-- Working-tree contains a parallel heartbeat's [ANKA-27](/ANKA/issues/ANKA-27) batch (rail-13 fail-closed) plus the broader ANKA-19 review-findings rename (`bufferDollars` / loss-fraction / news-staleness API). Not bundled into this commit.
-- Next wake (`issue_blockers_resolved`): pick up next ANKA-19 review-finding ticket OR Phase 2 broker work depending on assignment.
+- Fixed `composeRailVerdict([], decidedAt)` returning fail-OPEN `{ outcome: 'allow' }` (BLUEPRINT §3.5 demands fail-closed at the contract surface). Empty-decisions branch now returns synthetic reject `{ outcome: 'reject', decisions: [], reason: 'no rails evaluated — fail-closed' }`. Picked option (2) from the issue body for dispatcher-dashboard observability over option (1) (throw).
+- Added optional `reason: z.string().min(1).optional()` field on `RailVerdict`, `NO_RAILS_EVALUATED_REASON` sentinel const, and re-export from `index.ts` barrel. Spec rewritten to lock `outcome === 'reject'`, `decisions === []`, and the canonical reason string.
+- Production-line edits actually shipped via commit `464b3dd` (titled for ANKA-28) due to a concurrent staging race; this heartbeat lands the v0.4.10 CHANGELOG / journal / version-bump bookkeeping (root `0.4.9 → 0.4.10`, `@ankit-prop/contracts` `0.3.1 → 0.3.2`).
+- Verification: `bun test packages/shared-contracts/src/hard-rails.spec.ts` 18 / 0 (31 expects); gateway evaluator regression `idempotency-record-on-allow.spec.ts` 4 / 0 (18 expects). Workspace typecheck shows only the 5 pre-existing in-flight ANKA-29 / ANKA-30 errors documented in v0.4.4 — none introduced.
+- Working tree carries in-flight bookkeeping for ANKA-29 (v0.4.8) and ANKA-38 (v0.4.9) from sibling heartbeats; the v0.4.10 ANKA-32 entry sits above both. CHANGELOG file order is 0.4.10 inserted in numeric position (between 0.4.8 and 0.4.6, not at the very top); next bookkeeping commit can rearrange without changing content.
+- Next wake (`issue_blockers_resolved` or new assignment): pick up next ANKA-19 review-finding ticket OR Phase 2 broker work (ANKA-13 / 15 / 16 chain) per assignment.
