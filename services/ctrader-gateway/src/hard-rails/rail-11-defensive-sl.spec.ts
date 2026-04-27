@@ -46,9 +46,13 @@ function ctx(broker: Partial<BrokerSnapshot> = {}): RailContext {
     bid: 2400,
     ask: 2400.2,
     phase: 'phase_1',
-    profitTarget: { fractionOfInitial: 0.1, bufferDollars: 50, minDaysComplete: false },
-    envelopeFloors: { internalDailyFloorPct: 0.04, internalOverallFloorPct: 0.08 },
-    defensiveSlMaxLossPct: 0.5,
+    profitTarget: { fractionOfInitial: 0.1, bufferFraction: 0.01, minDaysComplete: false },
+    envelopeFloors: {
+      internalDailyLossFraction: 0.04,
+      internalOverallLossFraction: 0.08,
+    },
+    defensiveSlMaxLossFraction: 0.005,
+    marketCloseAtMs: NOW + 24 * 60 * 60 * 1000,
   };
   return {
     broker: { ...base, ...broker },

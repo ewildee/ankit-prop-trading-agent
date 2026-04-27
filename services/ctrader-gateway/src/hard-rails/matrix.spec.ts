@@ -54,9 +54,15 @@ function defaultBroker(overrides: Partial<BrokerSnapshot> = {}): BrokerSnapshot 
     bid: 2400.0,
     ask: 2400.2,
     phase: 'phase_1',
-    profitTarget: { fractionOfInitial: 0.1, bufferDollars: 50, minDaysComplete: false },
-    envelopeFloors: { internalDailyFloorPct: 0.04, internalOverallFloorPct: 0.08 },
-    defensiveSlMaxLossPct: 0.5,
+    profitTarget: { fractionOfInitial: 0.1, bufferFraction: 0.01, minDaysComplete: false },
+    envelopeFloors: {
+      internalDailyLossFraction: 0.04,
+      internalOverallLossFraction: 0.08,
+    },
+    defensiveSlMaxLossFraction: 0.005,
+    // BLUEPRINT §3.5 — marketCloseAtMs is contractually required (ANKA-27).
+    // 24h ahead so non-rail-13 cases never trip the force-flat lead window.
+    marketCloseAtMs: NOW + 24 * 60 * 60 * 1000,
   };
   return { ...base, ...overrides };
 }
@@ -319,13 +325,16 @@ const CASES: MatrixCase[] = [
     rail: 'phase_profit_target',
     scenario: 'positive',
     expected: 'reject',
-    description: 'closed_balance ≥ target+buffer AND min-days complete',
+    description: 'closed_balance ≥ INITIAL × (1 + target + buffer) AND min-days complete',
     build: () => ({
       intent: defaultIntent(),
+      // INITIAL_CAPITAL=100k × (1 + 0.10 + 0.01) ≈ 111_000. Use a $1 cushion
+      // above to stay clear of FP noise; per-cent boundary is locked in
+      // rail-10-phase-profit-target.spec.ts.
       ctx: buildCtx({
         broker: {
-          closedBalance: 110_100,
-          profitTarget: { fractionOfInitial: 0.1, bufferDollars: 50, minDaysComplete: true },
+          closedBalance: 111_001,
+          profitTarget: { fractionOfInitial: 0.1, bufferFraction: 0.01, minDaysComplete: true },
         },
       }),
     }),
@@ -334,13 +343,15 @@ const CASES: MatrixCase[] = [
     rail: 'phase_profit_target',
     scenario: 'negative',
     expected: 'allow',
-    description: 'below target',
+    description: 'closed_balance below INITIAL × (1 + target + buffer)',
     build: () => ({
       intent: defaultIntent(),
+      // 110_999 < 111_000 → must allow; old flat-$50 path would have tripped at
+      // 110_050 already. Locks the buffer-as-fraction contract.
       ctx: buildCtx({
         broker: {
-          closedBalance: 105_000,
-          profitTarget: { fractionOfInitial: 0.1, bufferDollars: 50, minDaysComplete: true },
+          closedBalance: 110_999,
+          profitTarget: { fractionOfInitial: 0.1, bufferFraction: 0.01, minDaysComplete: true },
         },
       }),
     }),

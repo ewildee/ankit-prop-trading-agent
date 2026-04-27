@@ -1,6 +1,11 @@
 // Rail 9 — `clientOrderId` (ULID) idempotency (BLUEPRINT §9).
-// Registry persisted across restart via SqliteIdempotencyStore. Allow-side of
-// the rail records the id so a retry of the same intent is rejected.
+// Registry persisted across restart via SqliteIdempotencyStore. The rail's
+// `has(...)` check early-rejects when the ULID has already been honoured;
+// the corresponding `record(...)` lives in `evaluator.ts` and only fires when
+// `composeRailVerdict` produces a non-`reject` outcome, so a tripped breaker
+// downstream (rails 10–14) does not consume an idempotency slot. Operator
+// re-runs of the same `clientOrderId` after an intermittent throttle / force-
+// flat reject must succeed (ANKA-28 / ANKA-19 H-1).
 
 import type { RailDecision } from '@ankit-prop/contracts';
 import { logDecision } from './log-decision.ts';
@@ -19,7 +24,6 @@ export function evaluateIdempotency(intent: RailIntent, ctx: RailContext): RailD
       decidedAt,
     });
   }
-  idempotency.record(intent.clientOrderId, broker.nowMs);
   return logDecision(intent, ctx, {
     rail: 'idempotency',
     outcome: 'allow',

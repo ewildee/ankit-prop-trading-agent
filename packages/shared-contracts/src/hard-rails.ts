@@ -55,14 +55,34 @@ export type RailDecision = z.infer<typeof RailDecision>;
 // A composite verdict aggregates per-rail decisions for one gateway action.
 // Final outcome = `reject` if any rail rejected, else `tighten` if any rail
 // tightened, else `allow`. Computed deterministically by `composeRailVerdict`.
+// `reason` is populated only for synthetic verdicts the composer constructs
+// without a per-rail decision to anchor the rationale (today: the fail-closed
+// `[]` path). Real verdicts carry their reasons inside `decisions[*]`.
 export const RailVerdict = z.strictObject({
   outcome: z.enum(RAIL_OUTCOMES),
   decisions: z.array(RailDecision),
   decidedAt: z.string(),
+  reason: z.string().min(1).optional(),
 });
 export type RailVerdict = z.infer<typeof RailVerdict>;
 
+export const NO_RAILS_EVALUATED_REASON = 'no rails evaluated — fail-closed' as const;
+
 export function composeRailVerdict(decisions: RailDecision[], decidedAt: string): RailVerdict {
+  // Fail-closed at the contract surface (BLUEPRINT §3.5, ANKA-32 / ANKA-19
+  // H-6). A dispatcher bug, a feature flag short-circuit, or a test wiring
+  // that produces zero rail decisions must NOT yield a green verdict. Emit a
+  // synthetic reject that surfaces in dispatcher dashboards via `reason`
+  // rather than throwing — operators see WHY the order was blocked without
+  // the gateway crash-looping.
+  if (decisions.length === 0) {
+    return RailVerdict.parse({
+      outcome: 'reject',
+      decisions: [],
+      decidedAt,
+      reason: NO_RAILS_EVALUATED_REASON,
+    });
+  }
   let outcome: RailOutcome = 'allow';
   for (const d of decisions) {
     if (d.outcome === 'reject') {
@@ -73,3 +93,16 @@ export function composeRailVerdict(decisions: RailDecision[], decidedAt: string)
   }
   return RailVerdict.parse({ outcome, decisions, decidedAt });
 }
+
+// FTMO floor + per-trade-cap units are *fractions of INITIAL_CAPITAL* across
+// the rails surface (0.04 = 4%). 0.5 is the hard ceiling: anything above is
+// almost certainly a percent slipped in (4 instead of 0.04) and would silently
+// shift the floor by 100×. Reject at the contract boundary (ANKA-30 H-3/H-4).
+export const LossFraction = z.number().nonnegative().max(0.5);
+export type LossFraction = z.infer<typeof LossFraction>;
+
+export const EnvelopeFloors = z.strictObject({
+  internalDailyLossFraction: LossFraction,
+  internalOverallLossFraction: LossFraction,
+});
+export type EnvelopeFloors = z.infer<typeof EnvelopeFloors>;

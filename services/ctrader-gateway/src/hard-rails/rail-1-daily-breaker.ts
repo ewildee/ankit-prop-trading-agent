@@ -10,7 +10,8 @@ import { isoNow, type RailContext, type RailIntent } from './types.ts';
 export function evaluateDailyBreaker(intent: RailIntent, ctx: RailContext): RailDecision {
   const { broker } = ctx;
   const floor =
-    broker.dayStartBalance - broker.envelopeFloors.internalDailyFloorPct * broker.initialBalance;
+    broker.dayStartBalance -
+    broker.envelopeFloors.internalDailyLossFraction * broker.initialBalance;
   const breached = broker.equity < floor;
   const decision: RailDecision = {
     rail: 'daily_breaker',

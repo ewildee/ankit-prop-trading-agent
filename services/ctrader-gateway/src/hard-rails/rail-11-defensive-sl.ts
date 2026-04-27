@@ -3,7 +3,7 @@
 // floor permits. Two constraints, both enforced; the tighter wins:
 //
 //   (a) per-trade cap from envelope.risk.per_trade_pct[phase]:
-//         maxLossDollars = INITIAL_CAPITAL × defensiveSlMaxLossPct/100
+//         maxLossDollars = INITIAL_CAPITAL × defensiveSlMaxLossFraction
 //   (b) daily-floor headroom (§8.3):
 //         maxLossDollars = max(0, equity − internalDailyFloor)
 //
@@ -25,8 +25,9 @@ export interface DefensiveSlMath {
 export function computeDefensiveSlMath(intent: NewOrderIntent, ctx: RailContext): DefensiveSlMath {
   const { broker } = ctx;
   const internalDailyFloor =
-    broker.dayStartBalance - broker.envelopeFloors.internalDailyFloorPct * broker.initialBalance;
-  const perTradeCapDollars = broker.initialBalance * (broker.defensiveSlMaxLossPct / 100);
+    broker.dayStartBalance -
+    broker.envelopeFloors.internalDailyLossFraction * broker.initialBalance;
+  const perTradeCapDollars = broker.initialBalance * broker.defensiveSlMaxLossFraction;
   const dailyFloorHeadroomDollars = Math.max(0, broker.equity - internalDailyFloor);
   const maxAllowedLossDollars = Math.min(perTradeCapDollars, dailyFloorHeadroomDollars);
   const denom = intent.volume * broker.symbol.dollarsPerPricePerUnit;

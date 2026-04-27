@@ -8,7 +8,7 @@ import { isoNow, type RailContext, type RailIntent } from './types.ts';
 
 export function evaluateOverallBreaker(intent: RailIntent, ctx: RailContext): RailDecision {
   const { broker } = ctx;
-  const floor = (1 - broker.envelopeFloors.internalOverallFloorPct) * broker.initialBalance;
+  const floor = (1 - broker.envelopeFloors.internalOverallLossFraction) * broker.initialBalance;
   const breached = broker.equity < floor;
   const decision: RailDecision = {
     rail: 'overall_breaker',

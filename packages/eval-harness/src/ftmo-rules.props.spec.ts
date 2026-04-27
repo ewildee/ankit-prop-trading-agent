@@ -52,19 +52,17 @@ const NOON = DAY + 12 * 3_600_000;
 describe('FTMO rules — property invariants', () => {
   test('any equity strictly below internal daily floor records internal daily_loss', () => {
     const rand = mulberry32(0xa11ce);
-    const internalFloor = INITIAL * (1 - INTERNAL_DEFAULT_MARGINS.dailyLossPct / 100);
+    const internalFloor = INITIAL * (1 - INTERNAL_DEFAULT_MARGINS.dailyLossFraction);
     for (let i = 0; i < TRIALS; i++) {
       const sim = new FtmoSimulator(cfg());
       sim.setInitialDay(DAY, INITIAL);
       // pick equity in [ftmoFloor, internalFloor) so we never expect ftmo breach
-      const ftmoFloor = INITIAL * (1 - FTMO_DEFAULT_LINE.dailyLossPct / 100);
+      const ftmoFloor = INITIAL * (1 - FTMO_DEFAULT_LINE.dailyLossFraction);
       const span = internalFloor - ftmoFloor;
       const equity = ftmoFloor + rand() * (span - 0.01);
       sim.onEquity(NOON, equity);
       const breaches = sim.getBreaches();
-      const internal = breaches.find(
-        (b) => b.kind === 'daily_loss' && b.scope === 'internal',
-      );
+      const internal = breaches.find((b) => b.kind === 'daily_loss' && b.scope === 'internal');
       const ftmo = breaches.find((b) => b.kind === 'daily_loss' && b.scope === 'ftmo');
       expect(internal, `trial ${i} equity=${equity} should fire internal`).toBeDefined();
       expect(ftmo, `trial ${i} equity=${equity} should NOT fire ftmo`).toBeUndefined();
@@ -73,7 +71,7 @@ describe('FTMO rules — property invariants', () => {
 
   test('any equity at or above internal daily floor never records daily_loss', () => {
     const rand = mulberry32(0xb0b);
-    const internalFloor = INITIAL * (1 - INTERNAL_DEFAULT_MARGINS.dailyLossPct / 100);
+    const internalFloor = INITIAL * (1 - INTERNAL_DEFAULT_MARGINS.dailyLossFraction);
     for (let i = 0; i < TRIALS; i++) {
       const sim = new FtmoSimulator(cfg());
       sim.setInitialDay(DAY, INITIAL);
@@ -89,7 +87,7 @@ describe('FTMO rules — property invariants', () => {
 
   test('crossing FTMO daily floor always records both internal and ftmo breaches', () => {
     const rand = mulberry32(0xc0fee);
-    const ftmoFloor = INITIAL * (1 - FTMO_DEFAULT_LINE.dailyLossPct / 100);
+    const ftmoFloor = INITIAL * (1 - FTMO_DEFAULT_LINE.dailyLossFraction);
     for (let i = 0; i < TRIALS; i++) {
       const sim = new FtmoSimulator(cfg());
       sim.setInitialDay(DAY, INITIAL);
@@ -105,9 +103,9 @@ describe('FTMO rules — property invariants', () => {
     }
   });
 
-  test('overall loss invariant: equity < INITIAL × (1 - internalOverallPct/100) always trips internal overall_loss', () => {
+  test('overall loss invariant: equity < INITIAL × (1 - internalOverallLossFraction) always trips internal overall_loss', () => {
     const rand = mulberry32(0xd00d);
-    const overallFloor = INITIAL * (1 - INTERNAL_DEFAULT_MARGINS.overallLossPct / 100);
+    const overallFloor = INITIAL * (1 - INTERNAL_DEFAULT_MARGINS.overallLossFraction);
     for (let i = 0; i < TRIALS; i++) {
       const sim = new FtmoSimulator(cfg());
       sim.setInitialDay(DAY, INITIAL);
@@ -141,7 +139,7 @@ describe('FTMO rules — property invariants', () => {
         realizedPnl: 1,
         initialRisk: 50,
         rMultiple: 0.02,
-        closeReason: 'manual',
+        closeReason: 'strategy',
       };
       sim.onTradeClose(closedAt, t);
       expect(sim.getBreaches().some((b) => b.kind === 'min_hold')).toBe(true);
@@ -169,7 +167,7 @@ describe('FTMO rules — property invariants', () => {
         realizedPnl: 1,
         initialRisk: 50,
         rMultiple: 0.02,
-        closeReason: 'manual',
+        closeReason: 'strategy',
       };
       sim.onTradeClose(closedAt, t);
       expect(sim.getBreaches().some((b) => b.kind === 'min_hold')).toBe(false);

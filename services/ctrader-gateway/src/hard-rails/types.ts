@@ -70,14 +70,22 @@ export type Phase = 'phase_1' | 'phase_2' | 'funded';
 
 export interface ProfitTarget {
   readonly fractionOfInitial: number;
-  readonly bufferDollars: number;
+  // Fraction of INITIAL_CAPITAL added on top of fractionOfInitial as cushion
+  // before auto-flatten trips (BLUEPRINT §8.2 / §8.4 decision N: closed_balance
+  // >= INITIAL × (1 + target + buffer)). Example: 0.01 = +1.0%.
+  readonly bufferFraction: number;
   readonly minDaysComplete: boolean;
 }
 
 export interface EnvelopeFloors {
-  // Both expressed as positive fractions of INITIAL_CAPITAL per BLUEPRINT §8.3.
-  readonly internalDailyFloorPct: number;
-  readonly internalOverallFloorPct: number;
+  // Both expressed as positive fractions of INITIAL_CAPITAL per BLUEPRINT §8.3
+  // (4% daily, 8% overall ⇒ 0.04, 0.08). Field name reads as "loss" not "floor"
+  // because the rail subtracts these from balance/capital — operators reading
+  // the names should not be tempted to pre-compute the floor (e.g. 0.92).
+  // Validated at the contract boundary by `LossFraction` (≤ 0.5) — see
+  // `@ankit-prop/contracts`.
+  readonly internalDailyLossFraction: number;
+  readonly internalOverallLossFraction: number;
 }
 
 export interface FillReport {
@@ -103,8 +111,15 @@ export interface BrokerSnapshot {
   readonly profitTarget: ProfitTarget;
   readonly envelopeFloors: EnvelopeFloors;
   // Per-trade loss cap from §8.5 (envelope.risk.per_trade_pct[phase]).
-  readonly defensiveSlMaxLossPct: number;
-  readonly marketCloseAtMs?: number;
+  // Expressed as a fraction of INITIAL_CAPITAL (e.g. 0.005 = 0.5%) so the
+  // matrix and eval-harness carry identical units. Validated by `LossFraction`.
+  readonly defensiveSlMaxLossFraction: number;
+  // BLUEPRINT §3.5 fail-closed: marketCloseAtMs is mandatory during a trading
+  // session. Without it rail 13 has no anchor to enforce force_flat_lead_min
+  // (BLUEPRINT §9), so we make this a contract-surface invariant — a dispatcher
+  // bug or partial reconciliation that omitted it would silently fail-OPEN
+  // rail 13. fridayCloseAtMs stays optional (only meaningful on Fridays).
+  readonly marketCloseAtMs: number;
   readonly fridayCloseAtMs?: number;
 }
 

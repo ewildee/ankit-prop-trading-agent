@@ -19,8 +19,11 @@ export {
 export type { HardRailKey, RailOutcome } from './hard-rails.ts';
 export {
   composeRailVerdict,
+  EnvelopeFloors,
   HARD_RAIL_KEYS,
   HARD_RAIL_NUMBER,
+  LossFraction,
+  NO_RAILS_EVALUATED_REASON,
   RAIL_OUTCOMES,
   RailDecision,
   RailVerdict,

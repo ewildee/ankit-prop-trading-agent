@@ -41,6 +41,11 @@ export const RAIL_EVALUATORS: Readonly<Record<HardRailKey, RailEvaluator>> = {
 // the lowest-numbered tripping rail (operationally easier to reason about).
 // Short-circuiting on first reject prevents unintended state consumption by
 // idempotency (rail 9) and throttle (rail 12).
+//
+// Rail 9 idempotency is recorded HERE (not inside the rail itself) once the
+// composite verdict is non-`reject`, so a downstream rail-10..14 reject does
+// not consume the ULID. The operator's same-`clientOrderId` retry after the
+// breaker clears must succeed rail 9 (ANKA-28 / ANKA-19 H-1).
 export function evaluateAllRails(intent: RailIntent, ctx: RailContext): RailVerdict {
   const decisions: RailDecision[] = [];
   for (const key of HARD_RAIL_KEYS) {
@@ -49,5 +54,9 @@ export function evaluateAllRails(intent: RailIntent, ctx: RailContext): RailVerd
     decisions.push(decision);
     if (decision.outcome === 'reject') break;
   }
-  return composeRailVerdict(decisions, isoNow(ctx.broker.nowMs));
+  const verdict = composeRailVerdict(decisions, isoNow(ctx.broker.nowMs));
+  if (verdict.outcome !== 'reject') {
+    ctx.idempotency.record(intent.clientOrderId, ctx.broker.nowMs);
+  }
+  return verdict;
 }

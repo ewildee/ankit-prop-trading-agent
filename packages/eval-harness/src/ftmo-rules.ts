@@ -30,17 +30,20 @@ export type FtmoSimulatorCfg = {
   consistencyMinTrades: number;
 };
 
+// FTMO floor units: every loss number on this surface is a *fraction* of
+// INITIAL_CAPITAL (0.04 = 4%), matching `EnvelopeFloors` in svc:gateway.
+// ANKA-30 unified percent vs fraction across rails / matrix / harness.
 export type FtmoLineMargins = {
-  dailyLossPct: number;
-  overallLossPct: number;
+  dailyLossFraction: number;
+  overallLossFraction: number;
   newsBlackoutHalfWidthMs: number;
   enforceNewsBlackout: boolean;
   eaRequestsPerDay: number;
 };
 
 export type InternalMargins = {
-  dailyLossPct: number;
-  overallLossPct: number;
+  dailyLossFraction: number;
+  overallLossFraction: number;
   newsBlackoutHalfWidthMs: number;
   preNewsBlackoutMs: number;
   minHoldMs: number;
@@ -50,16 +53,16 @@ export type InternalMargins = {
 };
 
 export const FTMO_DEFAULT_LINE: FtmoLineMargins = {
-  dailyLossPct: 5,
-  overallLossPct: 10,
+  dailyLossFraction: 0.05,
+  overallLossFraction: 0.1,
   newsBlackoutHalfWidthMs: 2 * 60 * 1000,
   enforceNewsBlackout: false,
   eaRequestsPerDay: 2000,
 };
 
 export const INTERNAL_DEFAULT_MARGINS: InternalMargins = {
-  dailyLossPct: 4,
-  overallLossPct: 8,
+  dailyLossFraction: 0.04,
+  overallLossFraction: 0.08,
   newsBlackoutHalfWidthMs: 5 * 60 * 1000,
   preNewsBlackoutMs: 2 * 60 * 60 * 1000,
   minHoldMs: 60 * 1000,
@@ -304,9 +307,9 @@ export class FtmoSimulator {
 
   private checkDailyLoss(tsMs: number, equity: number): void {
     const ftmoFloor =
-      this.dayStartBalance - this.cfg.ftmoMargins.dailyLossPct * 0.01 * this.cfg.initialCapital;
+      this.dayStartBalance - this.cfg.ftmoMargins.dailyLossFraction * this.cfg.initialCapital;
     const internalFloor =
-      this.dayStartBalance - this.cfg.internalMargins.dailyLossPct * 0.01 * this.cfg.initialCapital;
+      this.dayStartBalance - this.cfg.internalMargins.dailyLossFraction * this.cfg.initialCapital;
     if (equity < internalFloor) {
       this.pushOnce('daily_loss', 'internal', tsMs, {
         equity,
@@ -325,9 +328,9 @@ export class FtmoSimulator {
   }
 
   private checkOverallLoss(tsMs: number, equity: number): void {
-    const ftmoFloor = this.cfg.initialCapital * (1 - this.cfg.ftmoMargins.overallLossPct * 0.01);
+    const ftmoFloor = this.cfg.initialCapital * (1 - this.cfg.ftmoMargins.overallLossFraction);
     const internalFloor =
-      this.cfg.initialCapital * (1 - this.cfg.internalMargins.overallLossPct * 0.01);
+      this.cfg.initialCapital * (1 - this.cfg.internalMargins.overallLossFraction);
     if (equity < internalFloor) {
       this.pushOnce('overall_loss', 'internal', tsMs, {
         equity,
