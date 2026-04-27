@@ -2,6 +2,93 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-27 19:02 Europe/Amsterdam — v0.3.1 (ANKA-12 — §10.3 7-step harness scaffold)
+
+**What was done**
+
+- Woke on `issue_blockers_resolved` for [ANKA-12](/ANKA/issues/ANKA-12) (§10.3 cTrader vendor 7-step smoke-test). Wake fired on [ANKA-10](/ANKA/issues/ANKA-10) closure but checkout was rejected: [ANKA-5](/ANKA/issues/ANKA-5) is still `in_progress` (its `ask_user_questions` interaction unresolved even though the operator dropped values into `.env` directly), and the genuine §10.3 gate for steps 2–7 is a one-time browser OAuth code-grant that is intrinsically operator-driven. Did the credential-free portion of the scope this heartbeat.
+- New code in `pkg:ctrader-vendor` (left untracked on disk, see "Open endings" for why this was not committed):
+  - `src/secret-store.ts`: AES-GCM `RefreshTokenStore` for refresh-token persistence per BLUEPRINT §10.2 (`data/secrets/<acct>/refresh_token.enc`, mode 0600, layout `iv(12) || ciphertext+tag`). Public surface: `importAesKey`, `encryptString`, `decryptToString`, typed `SecretStoreError` / `DecryptError`. Path-traversal guard on `accountId`. Lazy key import + cached `CryptoKey`. Built on `crypto.subtle` (Bun-native — no npm dep added).
+  - `src/types.ts`: literal-typed 7-step catalog (`SMOKE_STEP_IDS`, `SMOKE_STEP_NUMBERS`, `SMOKE_OUTCOMES`) + `SmokeStepResult` / `SmokeReport` shapes — the evidence shape ADR-0012 will consume once §10.3 runs live.
+  - `src/index.ts`: re-exports.
+  - `smoke/runner.ts`: `runSmoke({ env, secretsRootDir?, clock? })` orchestrator. Each of the 7 steps detects its prerequisites and emits typed evidence (`skipped-no-creds`, `skipped-needs-oauth`, `skipped-needs-prior-step`, `not-implemented`). Live transport (WSS connect, ProtoBuf encode/decode, order place/close, reconnect) lands in ANKA-13/14/15 at the same step boundary.
+  - `smoke/cli.ts`: `bun run --cwd packages/ctrader-vendor smoke`. Exit codes: 0 = pass, 1 = fail, 2 = gated (operator-action alert).
+  - `src/secret-store.spec.ts` + `smoke/runner.spec.ts`: 16 tests / 38 expects covering key validation, round-trip, random-IV, three flavours of `DecryptError` (wrong key / flipped byte / truncated), path-traversal rejection, mode-0600 + no-plaintext-on-disk invariant, and runner gating across no-creds / partial-creds / creds-without-token / creds-with-token.
+- Verification: `bun test packages/ctrader-vendor` 16 pass / 0 fail / 38 expect / 99 ms; `bun run typecheck` clean; `bun run lint` clean (3 pre-existing informational notes from `pkg:eval-harness`, untouched here); ran `bun run --cwd packages/ctrader-vendor smoke` with empty env and got the expected typed `gated` JSON report.
+- Posted a status comment on [ANKA-12](/ANKA/issues/ANKA-12). Tried to cancel duplicate [ANKA-11](/ANKA/issues/ANKA-11) (PATCH and POST-comment both rejected with `Issue run ownership conflict` — another `claudecode` run holds its checkout `cbad3623…`); flagged for CEO/operator manual cleanup.
+
+**Findings**
+
+- Spotware Open API issues account-scoped tokens only via OAuth 2.0 authorization-code grant (browser handshake at `connect.spotware.com`). §10.3 step 1 (`ProtoOAApplicationAuthReq`) is runnable today with `client_id`/`client_secret` alone, but steps 2–7 cannot run until the operator clicks *Authorize* once and the local `127.0.0.1:9210/oauth/callback` listener captures the code. The OAuth CLI lives in ANKA-13 transport; the runner now communicates that gate as a typed `skipped-needs-oauth` instead of hand-waving.
+- TypeScript 6.0.3 + `lib.dom` infers `Uint8Array<ArrayBufferLike>` for `new Uint8Array(N)`, which is *not* assignable to `BufferSource`. Centralised the `asArrayBufferUint8(src)` copy-helper so Web Crypto sees `Uint8Array<ArrayBuffer>` everywhere without `BufferSource` casts at every call site.
+- `issue_blockers_resolved` wakes can fire while *partial* blockers resolve (here: ANKA-10 done, ANKA-5 still in-progress). The checkout endpoint correctly rejected with `unresolvedBlockerIssueIds`, but the wake reason itself is potentially misleading. Lesson: always check `heartbeat-context.blockedBy[].status` before assuming the wake reason is literal.
+- A parallel `claudecode` run is mid-flight on an uncommitted v0.3.0 commit covering ANKA-7-prep work: hard-rails contract surface in `@ankit-prop/contracts`, vendored `packages/ctrader-vendor/proto/` (Spotware .proto files at a pinned commit), `protobufjs@8.0.1` added to `bun.lock`, plus matching CHANGELOG / journal / TODOS / progress / .gitignore changes. Their `packages/ctrader-vendor/package.json` description claims an "ADR-012 verdict" of in-house — premature given §10.3 hasn't run live, but the vendoring step itself is path-agnostic (an in-house client and a `ctrader-ts`-based client both consume the same .proto definitions).
+
+**Decisions**
+
+- **Did not commit this heartbeat** despite all checks green. The parallel run's uncommitted v0.3.0 covers different scope (ANKA-7 hard-rails contract + Spotware .proto vendor) than my v0.3.1 (ANKA-12 secret-store + smoke runner). Committing now would conflate the two scopes into a single commit. Instead: leave my new files on disk, append this journal entry, and let the next heartbeat (after the parallel run's commit lands) make a clean v0.3.1 commit on top.
+- Phase 2.1 deliverable splits cleanly into:
+  - **(a) credential-free contract surface** (this heartbeat's deliverable): AES-GCM secret-store + 7-step typed orchestration + `bun run smoke:ctrader` shell. Always runnable; gates the operator-action alert via exit code 2.
+  - **(b) live execution** (post-OAuth heartbeat): plugs ProtoBuf transport (`@spotware/openapi-proto-messages` + `protobufjs` candidate vs `ctrader-ts@1.0.1` vendor) into the same step boundary; produces ADR-0012's verdict.
+- Step boundary is closed-enum literal-typed (`SMOKE_STEP_IDS`) so the runner cannot drift from BLUEPRINT §10.3 ordering. Adding a step requires a typed source change, not a string edit.
+- Verdict is `gated` (not `fail`) when any step is skipped; CI / supervisor route exit code 2 to an operator-action alert separately from genuine red-status (1). Keeps the operator's response specific: "do the OAuth click" vs "the broker is broken".
+- Path-traversal guard on `RefreshTokenStore.pathFor(accountId)` rejects anything outside `[A-Za-z0-9_-]+` so a malicious `accountId` cannot coerce the AES key + filesystem layout into writing under another account's slot.
+
+**Surprises / contradictions**
+
+- Cancelling and even commenting on [ANKA-11](/ANKA/issues/ANKA-11) was rejected with `Issue run ownership conflict`. POST-comment being non-destructive but rejected feels like a Paperclip API edge case worth raising; not mine to fix.
+- The previous heartbeat journal predicted this exact next step ("start the 7-step harness scaffolding under `packages/ctrader-vendor/smoke/`"). Useful confirmation that the journal-as-handoff pattern is working — so much so that two parallel runs picked up overlapping ANKA-12 scope at the same time.
+
+**Adaptations**
+
+- Initial draft used `override readonly name = 'DecryptError'` on the error subclass; TS rejected because the literal type narrows incompatibly with the parent's `'SecretStoreError'` literal. Replaced with constructor-set `this.name` — looser type, identical runtime, `instanceof` still distinguishes subclasses.
+- Initial test indexed `blob[blob.length - 1] ^= 0xff` directly; under `noUncheckedIndexedAccess: true` the access is `number | undefined` so `^=` doesn't typecheck. Switched to `const last = blob[idx] ?? 0; blob[idx] = last ^ 0xff` — type-clean.
+- Biome's `useImportType` reordered import groups in the four written files post-write; Biome won. Re-read after the auto-fix to make further edits cleanly.
+
+**Open endings**
+
+- **Commit pending.** New files on disk (`packages/ctrader-vendor/src/{secret-store,secret-store.spec,types,index}.ts`, `packages/ctrader-vendor/smoke/{runner,runner.spec,cli}.ts`), umbrella `package.json` bumped to v0.3.1 with `smoke:ctrader` script, CHANGELOG.md gained a v0.3.1 entry, TODOS.md T003.a updated. Next heartbeat verifies the parallel run's v0.3.0 has committed, rebases / replays my doc edits if needed, then `git add` + commit `feat(pkg:ctrader-vendor): scaffold §10.3 7-step harness + AES-GCM RefreshTokenStore (ANKA-12)`.
+- [ANKA-5](/ANKA/issues/ANKA-5) close-out (separate task I'm assigned to): reject the stale `ask_user_questions` interaction (operator answered via `.env`), probe `OPENROUTER_API_KEY`, PATCH ANKA-5 to `done`. That cascade-unblocks ANKA-12 at the system level.
+- ANKA-13 (transport) owns the `bun run ctrader:oauth` CLI: spin a `Bun.serve` listener on `127.0.0.1:9210/oauth/callback`, open `connect.spotware.com/apps/auth?...` in the operator's browser, capture `code`, exchange for `{access_token, refresh_token}` against Spotware's REST endpoint, persist via `RefreshTokenStore.save(BROKER_ACCT_FTMO_TRIAL_1, refresh_token)`. The store is now ready for that consumer.
+- ADR-0012 (vendor vs in-house) cannot be written until §10.3 step 7 (protobuf coverage) actually runs against FTMO Free Trial. Holding. The parallel run's `packages/ctrader-vendor/package.json` description string claiming an in-house verdict is premature and should be reconciled before commit — flag for the run that owns that file.
+- Duplicate [ANKA-11](/ANKA/issues/ANKA-11) needs CEO/operator-side cancellation (run-ownership conflict prevents agent action).
+
+## 2026-04-27 18:59 Europe/Amsterdam — `@ankit-prop/contracts` v0.3.0 (ANKA-7 prep — §9 hard-rails surface)
+
+**What was done**
+
+- Woke on `issue_blockers_resolved` for [ANKA-7](/ANKA/issues/ANKA-7). Diff vs last heartbeat: ANKA-10 landed (commit `d95c786`); ANKA-5 moved `blocked → in_progress`; ANKA-8 (Phase 3 eval-harness) shipped in `2710777`. Working tree clean at start of run.
+- Added `packages/shared-contracts/src/hard-rails.ts` (BLUEPRINT §9): `HARD_RAIL_KEYS` (14 entries, ordered exactly to the §9 table), `HARD_RAIL_NUMBER` lookup, `RAIL_OUTCOMES = ['allow','tighten','reject']`, `RailDecision` and `RailVerdict` strict-Zod schemas, pure `composeRailVerdict` (`reject > tighten > allow`).
+- Added `hard-rails.spec.ts` (11 cases): catalog/numbering invariants, schema accept/reject (empty reason, unknown rail, extra keys), composer (all-allow, any-tighten, any-reject dominates, empty-list, Zod round-trip).
+- Re-exported the new module from `@ankit-prop/contracts/index.ts`.
+- Bumped `@ankit-prop/contracts` 0.2.0 → 0.3.0. **Did not bump root umbrella in this commit:** during this run a parallel session preempted root `package.json` to 0.3.1 and added a `smoke:ctrader` workspace script (clearly ANKA-12 prep). Left their staging untouched; my commit only stages `packages/shared-contracts/**`, `.gitignore`, `.dev/**`, `CHANGELOG.md`, `TODOS.md`. Root version bump and full release entry will land with their commit.
+- Added `.tmp-*/` to `.gitignore` so transient vendor probes (e.g. `.tmp-ctrader-ts-inspect/` left by the same parallel session) stop poisoning `biome` walks.
+- Tried to PATCH ANKA-12's blockers (drop ANKA-10 since it's `done`) but hit `Issue run ownership conflict` — another active checkoutRunId owns ANKA-12 right now (consistent with the parallel session above). No-op; `issue_blockers_resolved` only fires when **all** blockedBy reach `done` anyway, so leaving the list as `[ANKA-5, ANKA-10]` is functionally identical.
+- 106 tests / 185 expect() / 0 fails. `bun run lint` exit 0. `bun run typecheck` clean.
+
+**Findings**
+
+- Composing rail verdicts is a pure aggregator on a list of `RailDecision`s. Fail-closed defaults (BLUEPRINT §3.5) belong **above** the composer, in the rail-dispatcher: an empty decisions array means "no rail evaluated", and the dispatcher should reject by default. The composer itself returns `allow` on empty input (documented in the spec) so the dispatcher's fail-closed semantics aren't double-counted.
+- The §9 catalog ordering is load-bearing: the rails-matrix table-test (ANKA-14) keys positive+negative cases by rail name. Encoded the canonical 1..14 numbering as a `Record<HardRailKey, number>` constant and asserted in tests that the catalog order matches `[1..14]` exactly. If anyone reorders the array literal, the assertion fails before the matrix can drift.
+- Multiple parallel sessions are now live in this working tree (ANKA-12 vendor scaffold is clearly being staged: `packages/ctrader-vendor/{proto,smoke,src}/` appeared mid-heartbeat, plus a `smoke:ctrader` script). My pattern of staging files by explicit path keeps commits clean despite the contention.
+
+**Decisions**
+
+- Hard-rails contracts go in `@ankit-prop/contracts`, not `services/ctrader-gateway`. The judge stage (§6.5) needs to advise on the same rail names without forking strings; the gateway is the binding enforcer (§6.6). Single source of names = single audit-log key namespace = single Pino tag set.
+- Per-rail input shapes (`DailyBreakerInput`, `IdempotencyInput`, etc.) deliberately **not** in contracts. Those bind to `ProtoOA*` types the vendor decision (ANKA-12) hasn't picked yet. Adding them now would force a refactor when ANKA-12 lands. Outcome shape is stable across the vendor decision; inputs aren't.
+- Lint cleanup of `pkg:eval-harness` `useLiteralKeys` infos: **declined** in this commit. Biome marks them unsafe-fix (dot access can fail at runtime if the index signature returns unknown). The owner of ANKA-8 should decide whether to widen `b.detail` to a typed shape or accept the dot rewrite.
+- Don't bump root umbrella in my commit; let the parallel ANKA-12 staging session own that bump and entry. My CHANGELOG entry headers as `0.3.0 — @ankit-prop/contracts` (sub-package release framing) so a 0.3.1 entry can land cleanly above it.
+
+**Surprises / contradictions**
+
+- Wake reason `issue_blockers_resolved` fired on ANKA-7 even though ANKA-5 is still `in_progress` (only ANKA-10 finished). Per docs that wake fires only when **all** blockedBy reach `done`. Possible: harness re-checked ANKA-7 out speculatively after ANKA-10 → done; or my prior PATCH (status `blocked` + same blockers) caused a recompute. Practical outcome (more offline scaffolding shipped) is fine; not chasing the cause.
+- ANKA-7 came back as `in_progress` rather than the `blocked` I set last run. Either harness override (it's the assigned issue for this run) or auto-flip on partial-blocker resolution. Will set it back to `blocked` after committing — deliverable cannot start until ANKA-5 lands.
+
+**Open endings**
+
+- Re-block ANKA-7 on ANKA-5 only (ANKA-10 is `done`).
+- Next durable scaffolding step (offline-runnable, no creds): `services/ctrader-gateway/src/hard-rails/` with pure-function rail implementations of the 7 rails that don't need broker types — idempotency (ULID registry), throttle (token bucket), monotone-SL invariant, defensive-SL policy, daily/overall breakers, symbol whitelist, min-hold. Each gets positive + negative spec. Owned by ANKA-14; park until ANKA-12 settles vendor types.
+
 ## 2026-04-27 18:50 Europe/Amsterdam — v0.2.0
 
 **What was done**

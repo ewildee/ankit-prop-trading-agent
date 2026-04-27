@@ -16,7 +16,7 @@
     "logs": "bun run src/cli.ts logs"
   },
   "dependencies": {
-    "@ankit-prop/contracts": "0.1.0",
+    "@ankit-prop/contracts": "workspace:*",
     "zod": "4.3.6"
   }
 }

@@ -16,6 +16,15 @@ export {
   WalkForwardFold,
   WalkForwardSummary,
 } from './eval.ts';
+export type { HardRailKey, RailOutcome } from './hard-rails.ts';
+export {
+  composeRailVerdict,
+  HARD_RAIL_KEYS,
+  HARD_RAIL_NUMBER,
+  RAIL_OUTCOMES,
+  RailDecision,
+  RailVerdict,
+} from './hard-rails.ts';
 export type { HealthStatus, SupervisorServiceState } from './health.ts';
 export {
   AggregatedHealth,

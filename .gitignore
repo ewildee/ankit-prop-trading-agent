@@ -36,3 +36,6 @@ coverage/
 
 # Local agent state (kept project-local but not committed)
 .omc/
+
+# Transient vendor probes / scratch directories
+.tmp-*/
