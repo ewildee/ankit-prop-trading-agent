@@ -4,9 +4,10 @@ _Durable, repo-tracked task list. Mirror entries into the runtime todo tool whil
 
 Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
-## Phase 0 — Scaffold (ANKA-2)
+## Phase 0 — Scaffold (ANKA-2, ANKA-5)
 
 - [x] **T001** Bootstrap umbrella monorepo skeleton (workspaces, lint/typecheck/test, .dev/, CHANGELOG, env, gitignore, CI gate). _Closes ANKA-2._
+- [~] **T013** Onboarding interview (BLUEPRINT §0.1, ANKA-5). Scaffold + `ask_user_questions` interaction posted; awaiting operator answers + populated `.env` to run OpenRouter probe and cTrader OAuth verification.
 
 ## Phase 1 — `@triplon/proc-supervisor`
 
@@ -45,5 +46,5 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
 ## Cross-cutting
 
-- [ ] **Q001** Choose cTrader Open API app credentials path (operator action — pending CEO approval batch).
+- [~] **Q001** Choose cTrader Open API app credentials path (operator action — folded into ANKA-5 onboarding interaction).
 - [ ] **IDEA-001** Backlog of trading-lab ideas tracked in BLUEPRINT §13.7 (decision CC).

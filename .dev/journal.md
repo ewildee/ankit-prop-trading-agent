@@ -2,6 +2,53 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-27 18:21 Europe/Amsterdam — v0.0.2
+
+**What was done**
+
+- Executed ANKA-5 onboarding scaffold (BLUEPRINT §0.1).
+- Rewrote `.env.example` as the canonical §17.5 + §0.1 template covering
+  cTrader app creds, IC demo account, FTMO slot, OpenRouter, alerting,
+  telemetry, encryption key, and operating mode.
+- Wrote committed templates: `config/accounts.example.yaml` (§17.1) and
+  `config/supervisor.example.yaml` (§17.2). Both use only `*_env`
+  references — secrets never live in YAML.
+- Wrote operator-canonical copies at `~/.config/ankit-prop/accounts.config.yaml`
+  and `~/.config/ankit-prop/supervisor.config.yaml` (gitignored host scope).
+- Generated a fresh `SECRETS_ENCRYPTION_KEY` via
+  `crypto.randomBytes(32).toString('hex')` and seeded `./.env` with
+  it; left every other secret blank for the operator to drop in.
+- Verified gitignore: `.env` and host `*.config.yaml` ignored, in-repo
+  `config/*.example.yaml` whitelisted (via `git check-ignore -v`).
+
+**Findings**
+
+- §0.1 mandates one-pass interview with the operator; the issue
+  description further constrains us to never ask for secret values via
+  comments. Resolved by splitting: ask non-secret config knobs through a
+  single `ask_user_questions` interaction, and use it to confirm the
+  operator has populated the secret slots in `./.env` directly.
+- OpenRouter probe and cTrader `application_auth` flow are deferred to a
+  follow-up heartbeat once the operator returns secret-populated `.env`.
+  They require the actual creds and cannot be shadow-tested.
+
+**Decisions**
+
+- Host-scope configs (`~/.config/ankit-prop/*.config.yaml`) are
+  generated as `*_env`-only references (no inlined secrets); operator
+  edits `.env` to swap real values without touching YAML.
+- Bumped umbrella root to `0.0.2` to mark the onboarding-scaffold
+  release independently of the in-flight `proc-supervisor` /
+  `shared-contracts` work-in-progress.
+
+**Open endings**
+
+- ANKA-5 awaits operator response on the `ask_user_questions`
+  interaction. After response: run OpenRouter health probe + cTrader
+  OAuth verification, mark T-task closed, return ANKA-5 to `done`.
+- Existing untracked supervisor/contracts files (Phase 1 prep, T002) are
+  left for that session to commit; not in scope for ANKA-5.
+
 ## 2026-04-27 18:16 Europe/Amsterdam — v0.0.1
 
 **What was done**

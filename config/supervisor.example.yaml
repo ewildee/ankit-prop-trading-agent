@@ -1,0 +1,53 @@
+# BLUEPRINT §17.2 — supervisor.config.yaml
+#
+# Operator-canonical copy lives at ~/.config/ankit-prop/supervisor.config.yaml
+# and is gitignored. This in-repo example is the editable template.
+
+mode: ${RUNTIME_MODE:-dev}        # dev | prod
+port: 9100
+
+services:
+  - name: news
+    cmd: bun run --cwd services/news start
+    onExisting: refuse
+    health: { url: http://localhost:9203/health, timeoutMs: 30000, runningPollIntervalMs: 5000 }
+    restart: { policy: on-failure, maxCrashes: 3, windowMs: 300000 }
+    shutdown: { timeoutMs: 10000 }
+
+  - name: ctrader-gateway
+    cmd: bun run --cwd services/ctrader-gateway start
+    health: { url: http://localhost:9201/health, timeoutMs: 30000 }
+    restart: { policy: on-failure, maxCrashes: 3, windowMs: 300000 }
+
+  - name: trader
+    cmd: bun run --cwd services/trader start
+    dependsOn: [ctrader-gateway, news]
+    health: { url: http://localhost:9202/health, timeoutMs: 60000 }
+    shutdown: { timeoutMs: 30000 }      # trader flatten before exit
+
+  - name: dashboard
+    cmd: bun run --cwd services/dashboard start
+    health: { url: http://localhost:9204/health }
+
+recovery:
+  on_orphan_position:
+    dev: auto_adopt
+    prod: manual_approve
+  on_missing_position:
+    dev: auto_close_local
+    prod: halt_and_alert
+  on_db_unreachable:
+    dev: in_memory_fallback
+    prod: halt
+  on_calendar_stale:
+    dev: blackout
+    prod: halt
+
+daily_summary:
+  time_env: DAILY_SUMMARY_TIME      # HH:MM Europe/Prague
+  timezone: Europe/Prague
+
+operator:
+  timezone_env: OPERATOR_TIMEZONE
+  alert_handle_env: ALERT_OPERATOR_HANDLE
+  alert_webhook_env: ALERT_WEBHOOK_URL

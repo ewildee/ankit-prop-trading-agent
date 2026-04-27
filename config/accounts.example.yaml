@@ -1,0 +1,94 @@
+# BLUEPRINT §17.1 — accounts.config.yaml
+#
+# Operator-canonical copy lives at ~/.config/ankit-prop/accounts.config.yaml
+# and is gitignored. This in-repo example is the editable template; secrets
+# live ONLY in env vars referenced via `*_env` keys.
+#
+# `@triplon/config` precedence:
+#   ~/.config/ankit-prop/accounts.config.yaml > ./config/accounts.config.yaml
+
+accounts:
+  - id: ic-demo-1
+    enabled: true
+    broker:
+      provider: ctrader-ic-demo
+      ctrader_account_id_env: BROKER_ACCT_IC_DEMO_1
+      ctrader_login_env: BROKER_LOGIN_IC_DEMO_1
+      initial_balance_env: BROKER_INITIAL_BALANCE_IC_DEMO_1
+    currency: USD
+    request_throttle:
+      per_account_per_day: 1800
+
+    envelopes:
+      - id: ic-demo-burn-in
+        enabled: true
+        risk:
+          daily_breaker_pct: 4.0
+          overall_breaker_pct: 8.0
+          profit_target_pct:
+            phase_1: 10.0
+            phase_2: 5.0
+          profit_target_buffer_pct: 1.0
+          per_trade_pct:
+            phase_1: 0.5
+            phase_2: 0.4
+            funded:  0.4
+          min_trading_days: 4
+          max_open_positions: 4
+          max_same_direction_exposure_pct: 4.0
+          slippage_tolerance:
+            mode: max_of
+            multipliers: { typical_spread: 2.0, atr14: 0.5 }
+
+        cost_ceiling:
+          daily_usd: 15.00
+          alert_at_pct_of_ceiling: 80
+
+        force_flat:
+          market_close_lead_min: 5
+          friday_close_lead_min: 5
+          pre_news_flatten_lead_min: 6
+
+        instances:
+          - id: xauusd-ankit-classic
+            enabled: true
+            instrument: XAUUSD
+            bar_timeframe: 5m
+            decision_cadence: 5m
+            action_cadence: bar_close
+            min_hold_seconds: 60
+            strategy_version: v_ankit_classic
+            risk_share_pct: 50
+            pipeline:
+              analyst:    { model: moonshotai/kimi-k2.6,       variant: exacto, thinking: true  }
+              trader:     { model: deepseek/deepseek-v4-flash, variant: exacto, thinking: true  }
+              judge:      { model: deepseek/deepseek-v4-flash, variant: nitro,  thinking: false }
+              reflector:  { model: deepseek/deepseek-v4-flash, variant: nitro,  thinking: false }
+
+          - id: nas100-session-break
+            enabled: true
+            instrument: NAS100
+            bar_timeframe: 5m
+            decision_cadence: 5m
+            action_cadence: bar_close
+            min_hold_seconds: 60
+            strategy_version: v_session_break
+            risk_share_pct: 50
+            pipeline:
+              analyst:    { model: moonshotai/kimi-k2.6,       variant: exacto, thinking: true  }
+              trader:     { model: deepseek/deepseek-v4-flash, variant: exacto, thinking: true  }
+              judge:      { model: deepseek/deepseek-v4-flash, variant: nitro,  thinking: false }
+              reflector:  { model: deepseek/deepseek-v4-flash, variant: nitro,  thinking: false }
+
+  # FTMO 100k 2-step #1 — kept disabled until challenge is purchased.
+  - id: ftmo-2step-100k-1
+    enabled: false
+    broker:
+      provider: ftmo-2step
+      ctrader_account_id_env: BROKER_ACCT_FTMO_1
+      credentials_env: BROKER_CREDS_FTMO_1
+      initial_balance_env: BROKER_INITIAL_BALANCE_FTMO_1
+    currency: USD
+    request_throttle:
+      per_account_per_day: 1800
+    envelopes: []
