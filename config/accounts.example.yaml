@@ -8,19 +8,23 @@
 #   ~/.config/ankit-prop/accounts.config.yaml > ./config/accounts.config.yaml
 
 accounts:
-  - id: ic-demo-1
+  # FTMO Free Trial — Phase 2 smoke-test target and Phase 6.5 burn-in
+  # surface. The trial is operator-resettable: when a guardrail trips
+  # the burn-in dirty, the operator resets the trial in the FTMO
+  # dashboard and we resume on the same `*_env` references.
+  - id: ftmo-trial-1
     enabled: true
     broker:
-      provider: ctrader-ic-demo
-      ctrader_account_id_env: BROKER_ACCT_IC_DEMO_1
-      ctrader_login_env: BROKER_LOGIN_IC_DEMO_1
-      initial_balance_env: BROKER_INITIAL_BALANCE_IC_DEMO_1
+      provider: ctrader-ftmo-trial
+      ctrader_account_id_env: BROKER_ACCT_FTMO_TRIAL_1
+      ctrader_login_env: BROKER_LOGIN_FTMO_TRIAL_1
+      initial_balance_env: BROKER_INITIAL_BALANCE_FTMO_TRIAL_1
     currency: USD
     request_throttle:
       per_account_per_day: 1800
 
     envelopes:
-      - id: ic-demo-burn-in
+      - id: ftmo-trial-burn-in
         enabled: true
         risk:
           daily_breaker_pct: 4.0

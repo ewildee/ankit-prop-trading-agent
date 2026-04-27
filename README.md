@@ -20,7 +20,7 @@ See `BLUEPRINT.md` §17 for the canonical layout. Workspaces live under `package
 ## Operating contract
 
 - **Bun-native first.** Adding an npm package for something Bun ships is a red flag (`BLUEPRINT.md` §5.1, §5.3). Read `https://bun.com/llms.txt` at session start.
-- **No real-money credentials.** IC Markets demo and FTMO challenge demo only.
+- **No real-money credentials.** FTMO Free Trial demo and FTMO challenge demo only.
 - **Audit trail = git history + `CHANGELOG.md` + `.dev/journal.md`.** Every code change ends with version bump + changelog entry + commit + `/health` reflect.
 - Operator clock is **Europe/Amsterdam** for human-readable artefacts; service-runtime is **Europe/Prague** (FTMO server clock). Never mix the two.
 

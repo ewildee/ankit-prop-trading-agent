@@ -53,12 +53,13 @@ The agent presents the prompts below in **one pass** and waits for
    - cTrader app client_secret:            __________
    - cTrader app redirect_uri (loopback):  __________
 
-2. IC Markets demo account (Phase 2 smoke-test target)
+2. FTMO Free Trial account (Phase 2 smoke-test target —
+   operator-resettable when guardrails trip)
    - ctidTraderAccountId (numeric):        __________
    - cTrader account login:                __________
    - Initial demo balance (USD):           __________
 
-3. FTMO 100k 2-step #1 — leave blank until challenge purchased
+3. FTMO 100k 2-step #1 — leave blank until paid challenge purchased
    - ctidTraderAccountId (numeric):        ____ (blank ok)
    - Initial balance (USD):                100000  (default; confirm)
 
@@ -99,16 +100,18 @@ The agent presents the prompts below in **one pass** and waits for
 7. Verifies OpenRouter key works: a single 1-token health probe to
    `models/moonshotai/kimi-k2.6` and `models/deepseek/deepseek-v4-flash`.
 8. Verifies the cTrader app credentials by completing the OAuth
-   `application_auth` flow against IC Markets demo.
+   `application_auth` flow against the FTMO Free Trial account.
 
 ### After this interview
 
 The agent **does not ask Étienne for further credentials** during the
 build. New credentials only become required at:
 
-- Phase 6.5 → buying the FTMO Free Trial (Étienne does this manually,
-  surfaces the new `ctidTraderAccountId`, agent updates the config).
-- Phase FT → buying the paid FTMO 100k 2-step (same flow).
+- Phase P1 → buying the paid FTMO 100k 2-step (Étienne does this
+  manually, surfaces the new `ctidTraderAccountId`, agent updates the
+  config). The Phase 2 / 6.5 / FT smoke + burn-in surface is the FTMO
+  Free Trial, which is free and operator-resettable, so no new creds
+  are needed in those phases beyond the initial intake.
 - Any compliance step that's already out-of-scope (KYC, contract
   signing, payouts).
 
@@ -1085,9 +1088,9 @@ restricted events.
 
 ### 10.3 Adapter strategy (ADR-012)
 
-1. **Smoke-test `ctrader-ts@1.0.1`** on IC Markets demo via the 7-step
-   gate (auth, accounts, symbols, spot, place+close, reconnect,
-   protobuf coverage).
+1. **Smoke-test `ctrader-ts@1.0.1`** on the FTMO Free Trial account via
+   the 7-step gate (auth, accounts, symbols, spot, place+close,
+   reconnect, protobuf coverage).
 2. If any step fails, build the in-house client on `protobufjs@8.0.1` +
    Spotware's `openapi-proto-messages` (vendored at pinned commit).
 
@@ -1556,7 +1559,7 @@ promote = (
 
 ```ts
 type SimSlippageModel = {
-  baseSpreadPipsBySymbol: Record<symbol, number>;   // calibrated against IC demo + FTMO live data
+  baseSpreadPipsBySymbol: Record<symbol, number>;   // calibrated against FTMO Free Trial + paid-challenge live data
   newsSpreadMultiplier: number;                     // default 5.0 inside ±5min of high-impact
   fillLatencyMs: number;                            // FTMO simulates "up to 200 ms"
   worstCaseSlippagePips: number;                    // default 3
@@ -2464,7 +2467,7 @@ Day 12 / Phase 1 / ftmo-2step-100k-1
 ### 21.1 Test pyramid
 
 ```
-e2e (IC demo burn-in)               → 14-day continuous run, golden anchors
+e2e (FTMO Free Trial burn-in)       → 14-day continuous run, golden anchors
 integration (services up)           → cross-service contracts, gateway+news+trader
 eval-replay (deterministic)         → backtest+paperReplay vs golden fixtures
 unit (Bun test)                     → schemas, simulators, indicators, config
@@ -2489,7 +2492,7 @@ Per package and service. Coverage targets:
 - **Supervisor + fake services**: 7 cases per `08-process-supervisor.md` §11.
 - **Gateway + news + trader stub**: hard-rail enforcement matrix; one case per rail; one case per fail-closed default.
 - **News fetcher + Zod validator**: cassette-replay of FTMO JSON over 14-day window; contract-change detector.
-- **`ctrader-ts` smoke test on IC Markets demo**: 7-step gate (auth, accounts, symbols, spot, place+close, reconnect, protobuf coverage).
+- **`ctrader-ts` smoke test on FTMO Free Trial**: 7-step gate (auth, accounts, symbols, spot, place+close, reconnect, protobuf coverage).
 
 ### 21.4 LLM-pipeline tests with VCR cassettes
 
@@ -2516,7 +2519,7 @@ Each row is an integration test with a synthetic bar stream that drives
 the persona to the expected output. Asserted at the trader output and
 at the judge verdict.
 
-### 21.7 IC Markets demo burn-in (Phase 4 → Phase 5 gate)
+### 21.7 FTMO Free Trial burn-in (Phase 4 → Phase 5 gate)
 
 14 calendar days of continuous operation:
 
@@ -2546,12 +2549,12 @@ Before promoting to FTMO Free Trial, exercise:
 |-------|-------------|-----------|-----------|
 | **0** | Scaffold, specs, ADRs (DONE) | n/a | Foundation commit |
 | **1** | `@triplon/proc-supervisor` | Unit + 7 integration cases | `bun run start` brings up fake services with all transitions verified |
-| **2** | `ctrader-gateway` (IC Markets demo) | `ctrader-ts` smoke-test 7 steps; rails matrix | Place + close + reconcile against demo, all 14 hard rails enforced |
+| **2** | `ctrader-gateway` (FTMO Free Trial) | `ctrader-ts` smoke-test 7 steps; rails matrix | Place + close + reconcile against the trial demo, all 14 hard rails enforced |
 | **3** | `eval-harness` + FTMO simulator | Golden fixture suite trips simulator on bad strategies; 12-fold walk-forward harness functional | Library published, regression CI green |
-| **4** | `trader` (modular monolith) | Behavioural anchors §13.5; cassette-replay LLM tests; multi-instance loader test (1 enabled + 3 disabled) | End-to-end through gateway against IC demo for 1 hour |
+| **4** | `trader` (modular monolith) | Behavioural anchors §13.5; cassette-replay LLM tests; multi-instance loader test (1 enabled + 3 disabled) | End-to-end through gateway against FTMO Free Trial for 1 hour |
 | **5** | `news` (FTMO calendar JSON) | Cassette replay + contract-change detector | Endpoints green; 2-h staleness blackout fires |
 | **6** | `dashboard` | Smoke + visual regression | All views render against running stack |
-| **6.5** | **14-day IC demo burn-in** | §21.7 | All §21.7 criteria met |
+| **6.5** | **14-day FTMO Free Trial burn-in** | §21.7 | All §21.7 criteria met |
 | **FT** | **FTMO Free Trial** | Re-run §21.7 against FTMO sim | 14 days zero breaches |
 | **P1** | **FTMO Phase 1 paid challenge** | Live monitoring + daily summary | Phase 1 target hit, breach-free, FTMO-acknowledged |
 | **7** | `autoresearch` (suggest-only) | Mutation generator + golden eval pass | Pre-condition: 30 days paper-live + ≥40 trades |
@@ -2648,7 +2651,7 @@ bun run secrets:rotate              # prompts for new values, re-encrypts refres
 
 ## 24. Pre-launch checklists
 
-### 24.1 Phase 4 done (trader running against IC demo)
+### 24.1 Phase 4 done (trader running against FTMO Free Trial)
 
 - [ ] All 14 hard rails enforced in gateway (§9 matrix tests pass).
 - [ ] Behavioural anchors all green (§13.5 matrix tests pass).
@@ -2659,7 +2662,7 @@ bun run secrets:rotate              # prompts for new values, re-encrypts refres
 - [ ] All alerts route to webhook.
 - [ ] No `node` invocations anywhere (`grep -r "^node " | wc -l == 0`).
 
-### 24.2 14-day IC demo burn-in (Phase 6.5)
+### 24.2 14-day FTMO Free Trial burn-in (Phase 6.5)
 
 - [ ] 14 calendar days of continuous operation.
 - [ ] Zero `ftmoBreaches`.
@@ -2673,10 +2676,11 @@ bun run secrets:rotate              # prompts for new values, re-encrypts refres
 
 ### 24.3 FTMO Free Trial gate (FT)
 
-- [ ] §24.2 complete on IC demo.
+- [ ] §24.2 complete on FTMO Free Trial.
 - [ ] All decisions A–CC verified in code (audit checklist).
 - [ ] No real-money credentials anywhere (`grep`-based audit clean).
-- [ ] FTMO Free Trial credentials configured.
+- [ ] FTMO Free Trial reset & re-armed for the FT 14-day window
+      (operator action — same trial slot, fresh equity).
 - [ ] Internal margins re-verified (4% / 8% / ±5min / 60s / +1% / 1800/day).
 - [ ] Daily-floor math verified against `references/ftmo-rules-comprehensive.md`.
 
@@ -2909,7 +2913,7 @@ These do not block initial build; they are continuously re-evaluated.
 - Whether `v_ankit_classic` Family B's continuous confluence outperforms a discrete bucket scheme.
 - `APROP-Q040` (dynamic risk-share allocator) — pick after Phase 4 has data.
 - `APROP-Q041` (`ctrader-ts` smoke-test outcome) — answered in Phase 2.
-- `APROP-Q042` (FTMO server time vs Europe/Amsterdam) — answered at first IC demo connection.
+- `APROP-Q042` (FTMO server time vs Europe/Amsterdam) — answered at first FTMO Free Trial connection.
 - `APROP-Q043` (multiplexed broker accounts) — only when M > 1.
 - `APROP-Q032b` — collapsed by decision N (auto-flatten).
 
