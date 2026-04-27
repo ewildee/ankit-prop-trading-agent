@@ -1,6 +1,6 @@
 {
   "name": "@ankit-prop/ctrader-gateway",
-  "version": "0.2.4",
+  "version": "0.2.6",
   "private": true,
   "type": "module",
   "description": "cTrader broker socket + 14 hard rails (BLUEPRINT §9). Listens on port 9201. Phase 2 deliverable.",

@@ -2,6 +2,47 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-27 23:50 Europe/Amsterdam — v0.4.8 ([ANKA-29](/ANKA/issues/ANKA-29) — split pre-submit / post-fill rail evaluation paths; parent [ANKA-19](/ANKA/issues/ANKA-19) H-2 HIGH)
+
+Heartbeat woken via `issue_blockers_resolved` after [ANKA-28](/ANKA/issues/ANKA-28) (H-1 record-on-non-reject) landed in `464b3dd` / `1b9d25a`. The dependency was load-bearing: H-2 only matters if rail 9 already records on the *first* successful evaluation, so a re-run on the post-fill path would re-trigger rail 9's `has()` reject. With H-1 in, H-2 splits the chain so the post-fill path never re-runs rail 9 at all.
+
+**What was done**
+
+- **`services/ctrader-gateway/src/hard-rails/evaluator.ts`** — replaced single-entry `evaluateAllRails` with two phase-scoped composers. `evaluatePreSubmitRails(intent, ctx)` iterates `PRE_SUBMIT_RAIL_KEYS` (rails 1–6, 8–14, in §9 catalog order), short-circuits on first reject, and records the ULID iff the composite verdict is non-reject (idempotency record-on-allow from ANKA-28, unchanged). `evaluatePostFillRails(intent, ctx)` iterates `POST_FILL_RAIL_KEYS = ['slippage_guard']` (rail 7 only) and returns the composite verdict directly — no idempotency record, no throttle consumption. Module header comment spells out the dispatcher contract: pre-submit MUST run before broker submit, post-fill MUST run after the broker reports a fill on the same `clientOrderId`. Exported `PRE_SUBMIT_RAIL_KEYS` / `POST_FILL_RAIL_KEYS` so dispatcher and tests share one source of truth.
+- **`services/ctrader-gateway/src/hard-rails/index.ts`** — barrel re-exports `evaluatePreSubmitRails`, `evaluatePostFillRails`, `PRE_SUBMIT_RAIL_KEYS`, `POST_FILL_RAIL_KEYS` in place of `evaluateAllRails`. The old name is now intentionally unexported — no in-tree consumer (gateway socket dispatcher lands in ANKA-15) so removing it cleanly avoids the H-2 footgun returning via a stale import.
+- **`services/ctrader-gateway/src/hard-rails/idempotency-record-on-allow.spec.ts`** — migrated all four ANKA-28 regression cases from `evaluateAllRails` → `evaluatePreSubmitRails`. Semantics identical (rail 9 is in the pre-submit set), but the spec now reflects the post-split API. Header comment updated to reference `evaluatePreSubmitRails`.
+- **`services/ctrader-gateway/src/hard-rails/pre-post-fill-split.spec.ts`** (new, 4 cases) — locks the H-2 invariants:
+  - **Catalog partition.** `PRE_SUBMIT_RAIL_KEYS` has 13 entries, none equal `'slippage_guard'`. `POST_FILL_RAIL_KEYS` is exactly `['slippage_guard']`. Intersection is empty.
+  - **Idempotency once.** Pre-submit allow → idempotency.has(CID) is true → post-fill (with broker.fill within cap) returns rail-7 allow as a single-decision verdict; idempotency.has(CID) remains true. Critically, this verifies the post-fill path does NOT re-evaluate rail 9 — the old `evaluateAllRails` would have rejected here on the now-recorded ULID.
+  - **Throttle untouched.** Probe-consume deltas: after pre-submit + 1 probe consume → remaining = capacity − 2 (one token from rail 12, one from probe). Run post-fill. Second probe consume → remaining = capacity − 3. If post-fill had re-run rail 12 it would be capacity − 4. Picked probe-consume rather than reading internal bucket state because `ThrottleStore.consume` is the only public surface and the assertion stays implementation-agnostic.
+  - **Slippage reject is single-decision.** Out-of-cap fill (slippage 5 > cap 3) returns `decisions.length === 1` with rail 7 reject so the reject log identifies rail 7 unambiguously.
+- **Versions** — `@ankit-prop/ctrader-gateway` 0.2.4 → 0.2.5 (patch — API-additive split with one removed export `evaluateAllRails`; no in-tree consumer outside this package). Root `ankit-prop-umbrella` 0.4.7 → 0.4.8. (Concurrent ANKA-38 heartbeat bumped on top to 0.2.6 / 0.4.9 mid-flight; let that stand — my CHANGELOG entry remains attributed to v0.4.8 because that's the version the gateway was at when the split landed.)
+
+**Findings**
+
+- **Why rail 7 is the *only* post-fill rail.** Walked the §9 catalog: rail 5 (min-hold) reads `lastTradeBySymbol` not `broker.fill`, so a fill report doesn't make it re-runnable; rails 11 (defensive SL) and 14 (monotone SL) operate on `intent.{stopLossPrice, prevStopLossPrice}` from the original NEW/AMEND, not on the fill price. Rail 7 alone needs the fill report to compute slippage. So `POST_FILL_RAIL_KEYS = ['slippage_guard']` is the correct partition, not the start of a longer list.
+- **Rail 7's existing `broker.fill === undefined` early-allow stays put.** The post-fill function still goes through rail 7's evaluator, which returns `allow` with reason "not a post-fill check" when `broker.fill` is missing. That's the soft fail-closed: a malformed reconciliation that calls post-fill without a fill returns `allow` (the safe direction post-fill — the action gated is "close immediately because slippage exceeded cap"; absence of a fill cannot trigger a close). The dispatcher invariant is asserted in tests, not by throwing in production code.
+- **`HARD_RAIL_KEYS.filter(...)` is a static partition.** `PRE_SUBMIT_RAIL_KEYS` is computed at module load via filter, but `HARD_RAIL_KEYS` is a `const` literal tuple from `pkg:contracts`, so the partition is effectively static. Catalog-partition test verifies length 13 and no `slippage_guard` overlap to lock the partition shape against a future contracts rename.
+
+**Surprises**
+
+- **First Write of `evaluator.ts` mis-reported as reverted.** The post-bash-test `<system-reminder>` notes claimed `evaluator.ts`, `index.ts`, and `idempotency-record-on-allow.spec.ts` had been reverted to the pre-split form, but the bun-test "4 pass" output came from the migrated spec running its existing 4 cases — meaning the first Write *did* land before the test ran, and the post-test reminders mis-reported the file as old. Logged here in case it recurs: trust the file as actually inspected with Read, not the reminder text.
+- **Concurrent ANKA-38 heartbeat raced my version bumps.** Mid-write of progress.md / journal.md, ANKA-38 finished, bumped root → 0.4.9 and gateway → 0.2.6 on top of mine, and replaced progress.md with their own entry. ANKA-38 also wrote my v0.4.8 CHANGELOG entry into the file (the v0.4.8 section is intact — they appended their v0.4.9 entry above mine, not over mine). Same concurrent-worktree contention pattern the v0.4.7 entry called out.
+- **Pre-existing typecheck error in `rail-10-phase-profit-target.spec.ts`** (`internalDailyFloorPct` does not exist) is a stale fixture left by ANKA-26's mid-flight rail-10 work conflicting with ANKA-30's rename. Not in scope for ANKA-29.
+
+**Decisions**
+
+- **Removed `evaluateAllRails` from the export surface entirely** rather than leaving a deprecation shim. Reason: the H-2 footgun is the dispatcher reflexively calling `evaluateAllRails` on the post-fill path. A deprecation shim that still works keeps the footgun loaded; deleting the export turns it into a compile error the moment someone tries it. Acceptable cost: one in-tree consumer to migrate (the existing `idempotency-record-on-allow.spec.ts`), no out-of-tree consumers (gateway socket dispatcher is ANKA-15 future work).
+- **Asserted "post-fill does not consume throttle" via probe-consume rather than reading bucket state.** `ThrottleStore.consume` is the only public surface; reading internal bucket state would couple the test to `InMemoryThrottleStore`'s implementation and break when the SQLite store gets exercised.
+- **Did not refactor rail 7 to remove its `broker.fill === undefined` early-allow.** The early-allow is the soft fail-closed for malformed reconciliation; removing it would make the post-fill function throw on a dispatcher invariant violation. BLUEPRINT §3.5 says fail-closed at the contract surface, but rail 7's safe direction post-fill *is* allow (the action gated is a close-immediately, and "no fill" is not the trigger). Throwing would crash the gateway on a dispatcher bug rather than logging and continuing — net-worse outcome for the operator.
+- **Did not include the staged rail-10 / news-staleness / ANKA-32 bookkeeping changes in this commit.** Each belongs to its own heartbeat. Mixing them would rerun the ANKA-30 commit-topology surprise (someone else's changes attributed to ANKA-29).
+
+**Open endings**
+
+- **Pre-existing typecheck error in `rail-10-phase-profit-target.spec.ts`.** References `internalDailyFloorPct` (old name) instead of `internalDailyLossFraction` (ANKA-30 rename in v0.4.7). Out of ANKA-29 scope; whoever lands the next rail-10 commit picks it up.
+- **Dispatcher integration in ANKA-15.** The gateway socket layer that calls these two composers in the right order doesn't exist yet. ANKA-15 will need: (1) call `evaluatePreSubmitRails` before any `ProtoOANewOrderReq`; (2) on `ProtoOAExecutionEvent` carrying a fill, build a `BrokerSnapshot` with `fill` populated and the same `clientOrderId`, then call `evaluatePostFillRails`; (3) on rail 7 reject, immediately queue `ProtoOAClosePositionReq` against the just-filled position. The header comment on `evaluator.ts` is the spec for that integration.
+- **Post-fill API for AMEND/CLOSE intents.** Rail 7 today returns `allow` for non-NEW intents. AMEND/CLOSE don't have meaningful slippage semantics. Today the dispatcher invariant covers this implicitly (rail 7 fail-closes-soft to allow), but ANKA-15 should make it explicit: only NEW with a fill report walks the post-fill path. Fold into ANKA-15 design.
+
 ## 2026-04-28 00:10 Europe/Amsterdam — v0.4.7 ([ANKA-30](/ANKA/issues/ANKA-30) — unify FTMO floor units to fractions, rename Pct→LossFraction; parent [ANKA-19](/ANKA/issues/ANKA-19) H-3 + H-4 HIGH)
 
 Heartbeat woken with [ANKA-30](/ANKA/issues/ANKA-30) assigned. Mechanical rename: `internalDailyFloorPct → internalDailyLossFraction`, `internalOverallFloorPct → internalOverallLossFraction`, `defensiveSlMaxLossPct → defensiveSlMaxLossFraction` (and remove the `/100` in rail 11), eval-harness `INTERNAL_DEFAULT_MARGINS` → fractions, plus a Zod refinement rejecting `> 0.5` to catch percent-as-fraction wiring crossovers at the contract boundary.
@@ -34,6 +75,41 @@ Heartbeat woken with [ANKA-30](/ANKA/issues/ANKA-30) assigned. Mechanical rename
 - The `LossFraction` zod schema is not yet wired to a config-loader boundary parse — `accounts.yaml` ingestion lands in ANKA-15. Today the schema is correct-but-unused. Once ANKA-15 wires it, a typo of `4` instead of `0.04` will fail at boundary parse rather than silently shifting the floor by 100×. No follow-up child issue — already part of ANKA-15 scope.
 - 6 in-flight test failures elsewhere in `services/ctrader-gateway` (rail-10 expects `bufferFraction` after parallel work; rail-news-staleness depends on `lastSuccessfulFetchAtMs` API rename) are owned by their issuing heartbeats. Not introduced by ANKA-30 and out of scope.
 - BLUEPRINT was internally consistent on units throughout (§8.3 / §8.5 / §17 all use fractions). No BlueprintAuditor escalation needed — the spec was right; the code drifted.
+
+## 2026-04-27 23:51 Europe/Amsterdam — v0.4.9 ([ANKA-38](/ANKA/issues/ANKA-38) — rail 1 daily-breaker per-rail regression coverage)
+
+Heartbeat woken with [ANKA-38](/ANKA/issues/ANKA-38) assigned and already checked out by the harness. The issue is surgical and explicitly forbids changes to `rail-1-daily-breaker.ts`, so this heartbeat stayed test-only for rail logic.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 2026-04-27 23:47 Europe/Amsterdam before writing Bun test code, per BLUEPRINT §0.2 / §5.
+- Added `services/ctrader-gateway/src/hard-rails/rail-1-daily-breaker.spec.ts`.
+- Covered equity above floor (`allow`), equity strictly below floor (`reject` with `equity` / `dayStartBalance` / `initialBalance` / `internalDailyFloor` detail), equality at the floor (`allow`), non-default floor formula (`98_500 - 0.04 * 100_000 = 94_500`), and intent neutrality across NEW / CLOSE / AMEND for both healthy and breached envelopes.
+- Bumped current workspace versions: root `0.4.8 → 0.4.9`, `@ankit-prop/ctrader-gateway` `0.2.5 → 0.2.6`.
+- Updated the stale fixture field names in `rail-10-phase-profit-target.spec.ts` (`internalDailyFloorPct` / `defensiveSlMaxLossPct`) to the current fraction names so `bun run typecheck` could run cleanly.
+
+**Findings**
+
+- The working tree already contained ANKA-29 pre-submit/post-fill evaluator WIP before this heartbeat. ANKA-38 changes avoided `rail-1-daily-breaker.ts` and unrelated hard-rail implementation files.
+- The current on-disk `RailIntent` discriminants are `NEW`, `CLOSE`, and `AMEND`; the issue text's lower-case intent-shape wording maps to those local types.
+- The first `bun run typecheck` failed on the pre-existing rail-10 fixture rename drift, not on the new rail-1 spec. The minimal fixture update removed that blocker and the second typecheck was clean.
+
+**Decisions**
+
+- Used a self-contained context builder in the new rail-1 spec instead of importing matrix helpers, matching the local per-rail spec style and keeping the file independent of matrix fixture churn.
+- Treated the current workspace package versions as the baseline for this heartbeat because root and gateway package manifests were already bumped by sibling work before ANKA-38 began.
+
+**Unexpected behaviour**
+
+- None in rail 1; current `<` semantics match BLUEPRINT §8.3 and the issue's boundary request.
+
+**Adaptations**
+
+- Kept verification targeted to the new spec plus gateway hard-rail sanity, as requested, because unrelated WIP is present in the broader tree.
+
+**Open endings**
+
+- No ANKA-38 follow-up expected if verification and commit succeed. Sibling ANKA-29 WIP remains owned by its originating heartbeat.
 
 ## 2026-04-27 23:55 Europe/Amsterdam — v0.4.6 ([ANKA-26](/ANKA/issues/ANKA-26) — rail 10 profit-target buffer is fraction of INITIAL, not flat dollars; parent [ANKA-19](/ANKA/issues/ANKA-19) B-1 BLOCKING)
 

@@ -1,11 +1,11 @@
 // Rail 9 idempotency record-on-non-reject regression (ANKA-28 / ANKA-19 H-1).
-// `idempotency.record(...)` lives in `evaluateAllRails`, not in the rail
+// `idempotency.record(...)` lives in `evaluatePreSubmitRails`, not in the rail
 // itself. A composite verdict that ends in `reject` (rails 10..14 vote down
 // after rail 9 already allowed) must NOT consume the ULID, so an operator
 // retry of the same `clientOrderId` after the breaker clears succeeds rail 9.
 
 import { describe, expect, test } from 'bun:test';
-import { evaluateAllRails } from './evaluator.ts';
+import { evaluatePreSubmitRails } from './evaluator.ts';
 import { InMemoryIdempotencyStore } from './idempotency-store.ts';
 import { silentLogger } from './logger.ts';
 import { InMemoryNewsClient } from './news-client.ts';
@@ -122,7 +122,7 @@ describe('rail 9 idempotency — record only on non-reject composite verdict', (
     }
 
     // Attempt #1: rail 12 rejects; rail 9 allowed but must NOT have recorded.
-    const v1 = evaluateAllRails(intent(), makeCtx({ idempotency, throttle }));
+    const v1 = evaluatePreSubmitRails(intent(), makeCtx({ idempotency, throttle }));
     expect(v1.outcome).toBe('reject');
     const tripped1 = v1.decisions.find((d) => d.outcome === 'reject');
     expect(tripped1?.rail).toBe('ea_throttle');
@@ -132,7 +132,7 @@ describe('rail 9 idempotency — record only on non-reject composite verdict', (
     // must pass rail 9 and the whole composite must allow. Push the market
     // close anchor forward so rail 13 doesn't trip on the retry timestamp.
     const later = NOW + DEFAULT_RAIL_CONFIG.throttleWindowMs;
-    const v2 = evaluateAllRails(
+    const v2 = evaluatePreSubmitRails(
       intent({ intendedAtMs: later }),
       makeCtx({
         broker: { nowMs: later, marketCloseAtMs: later + 24 * 60 * 60 * 1000 },
@@ -151,7 +151,7 @@ describe('rail 9 idempotency — record only on non-reject composite verdict', (
 
     // Attempt #1: market close 3 minutes ahead → inside the 5-min force-flat
     // window → rail 13 rejects. Rail 9 ran first and allowed.
-    const v1 = evaluateAllRails(
+    const v1 = evaluatePreSubmitRails(
       intent(),
       makeCtx({ broker: { marketCloseAtMs: NOW + 3 * 60 * 1000 }, idempotency }),
     );
@@ -163,7 +163,7 @@ describe('rail 9 idempotency — record only on non-reject composite verdict', (
     // Attempt #2: market close pushed beyond the lead-min window; same ULID
     // must pass rail 9 and the whole composite must allow.
     const later = NOW + 30 * 60 * 1000;
-    const v2 = evaluateAllRails(
+    const v2 = evaluatePreSubmitRails(
       intent({ intendedAtMs: later }),
       makeCtx({
         broker: { nowMs: later, marketCloseAtMs: later + 60 * 60 * 1000 },
@@ -179,11 +179,11 @@ describe('rail 9 idempotency — record only on non-reject composite verdict', (
   test('a fully-allowed verdict records the ULID; the immediate replay rejects on rail 9', () => {
     const idempotency = new InMemoryIdempotencyStore();
 
-    const v1 = evaluateAllRails(intent(), makeCtx({ idempotency }));
+    const v1 = evaluatePreSubmitRails(intent(), makeCtx({ idempotency }));
     expect(v1.outcome).toBe('allow');
     expect(idempotency.has(CID)).toBe(true);
 
-    const v2 = evaluateAllRails(intent(), makeCtx({ idempotency }));
+    const v2 = evaluatePreSubmitRails(intent(), makeCtx({ idempotency }));
     expect(v2.outcome).toBe('reject');
     const tripped = v2.decisions.find((d) => d.outcome === 'reject');
     expect(tripped?.rail).toBe('idempotency');
@@ -193,7 +193,7 @@ describe('rail 9 idempotency — record only on non-reject composite verdict', (
     const idempotency = new InMemoryIdempotencyStore();
 
     // From matrix.spec.ts case 11-positive: SL distance 10 → tightened to 5.
-    const v = evaluateAllRails(
+    const v = evaluatePreSubmitRails(
       intent({ entryPrice: 2400, stopLossPrice: 2390 }),
       makeCtx({ idempotency }),
     );

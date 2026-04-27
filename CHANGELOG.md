@@ -2,6 +2,85 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.9 — 2026-04-27 23:51 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executed by CodexExecutor for [ANKA-38](/ANKA/issues/ANKA-38) under the [ANKA-35](/ANKA/issues/ANKA-35) precise-delegation pattern.
+
+**Why:** Rail 1 already had matrix coverage, but lacked a dedicated per-rail regression file pinning the daily-breaker boundary and floor formula from BLUEPRINT §8.3 / §9.
+
+**Added** — `svc:gateway/hard-rails`
+
+- `services/ctrader-gateway/src/hard-rails/rail-1-daily-breaker.spec.ts` — dedicated coverage for `evaluateDailyBreaker`: equity above floor allows, equity strictly below floor rejects with computed detail, equality at the floor allows, non-default `dayStartBalance - internalDailyLossFraction * initialBalance` formula computes `94_500`, and NEW/CLOSE/AMEND intent shapes produce identical outcomes for healthy and breached envelopes.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.8 → 0.4.9 (patch — test-only hard-rail regression coverage).
+- `@ankit-prop/ctrader-gateway` 0.2.5 → 0.2.6 (patch — rail 1 per-rail spec).
+
+**Verification**
+
+- `bun test services/ctrader-gateway/src/hard-rails/rail-1-daily-breaker.spec.ts` — 5 / 0, 18 expects.
+- `bun test services/ctrader-gateway/src/hard-rails/` — 74 / 0, 493 expects across 10 spec files.
+- `bun run typecheck` — clean.
+- `bun run lint:fix` — exit 0. Biome reported only pre-existing unsafe suggestions / the existing `packages/ctrader-vendor/smoke/runner.ts` unused import warning outside this issue's touched files; scoped Biome check on ANKA-38 files was clean.
+- `services/ctrader-gateway/src/hard-rails/rail-10-phase-profit-target.spec.ts` — fixture field names updated from the stale `internalDailyFloorPct` / `defensiveSlMaxLossPct` names to current `internalDailyLossFraction` / `defensiveSlMaxLossFraction` so the workspace typecheck could prove this change.
+
+## 0.4.8 — 2026-04-27 23:50 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-29](/ANKA/issues/ANKA-29) (REVIEW-FINDINGS H-2 from [ANKA-19](/ANKA/issues/ANKA-19) — HIGH).
+
+**Why:** Rail 7 (slippage guard) only fires post-fill (`broker.fill !== undefined`). The previous `evaluateAllRails` re-ran the entire 14-rail catalog on every call — so a dispatcher that re-evaluated the same intent after the broker reported a fill would (a) trip rail 9 idempotency on the now-recorded ULID and (b) burn another rail 12 throttle token. ANKA-15 would have hit this on the first live fill. Patch-level bump per §0.2.
+
+**Changed** — `@ankit-prop/ctrader-gateway` v0.2.5 (`pkg:gateway/hard-rails`)
+
+- `services/ctrader-gateway/src/hard-rails/evaluator.ts` — replaced single-entry `evaluateAllRails` with two phase-scoped composers: `evaluatePreSubmitRails(intent, ctx)` runs rails 1–6, 8–14 (idempotency record-on-non-reject lives here, unchanged from ANKA-28) and `evaluatePostFillRails(intent, ctx)` runs rail 7 only with zero idempotency / throttle side-effects. Header comment documents the dispatcher contract: pre-submit MUST run before broker submit; post-fill MUST run after the broker reports a fill on the same `clientOrderId`. Exported partition constants `PRE_SUBMIT_RAIL_KEYS` / `POST_FILL_RAIL_KEYS` so dispatcher and tests share one source of truth.
+- `services/ctrader-gateway/src/hard-rails/index.ts` — barrel re-exports `evaluatePreSubmitRails`, `evaluatePostFillRails`, `PRE_SUBMIT_RAIL_KEYS`, `POST_FILL_RAIL_KEYS` in place of `evaluateAllRails`.
+- `services/ctrader-gateway/src/hard-rails/idempotency-record-on-allow.spec.ts` — migrated all four rail-9 record-on-allow regressions onto `evaluatePreSubmitRails`. The semantics are identical (rail 9 sits in the pre-submit set), but the spec now reflects the post-split API.
+- `services/ctrader-gateway/src/hard-rails/pre-post-fill-split.spec.ts` (new) — locks in the H-2 invariants: (1) catalogs partition cleanly into 13 + 1 with no overlap; (2) pre-submit + post-fill traversal of the same `clientOrderId` records idempotency exactly once and the post-fill phase emits only the rail-7 decision; (3) post-fill does NOT consume a throttle token (asserted via probe-consume deltas: capacity−2 after pre-submit, capacity−3 after a post-fill round, never capacity−4); (4) out-of-cap slippage on the post-fill phase rejects with exactly one `slippage_guard` decision.
+
+**Bumped**
+
+- `@ankit-prop/ctrader-gateway` 0.2.4 → 0.2.5 (patch — API-additive split with one removed export `evaluateAllRails`; no in-tree consumer outside this package). Other in-flight package bumps in the working tree (root 0.4.5 → 0.4.7, contracts 0.3.0 → 0.3.1, eval-harness 0.1.0 → 0.1.1) belong to ANKA-32 / earlier heartbeats and are not part of this commit.
+- root `ankit-prop-umbrella` 0.4.7 → 0.4.8.
+
+**Verification**
+
+- `bun test services/ctrader-gateway/src/hard-rails/` — 69 / 0, 475 expects across 9 spec files. Includes the four new pre-post-fill-split cases and the four migrated rail-9 record-on-allow cases.
+- `bunx --bun biome check` clean on the four touched files (`evaluator.ts`, `index.ts`, `idempotency-record-on-allow.spec.ts`, `pre-post-fill-split.spec.ts`). Workspace lint surfaces only pre-existing in-flight infos (`smoke-runner.ts` unused-import warning) unrelated to ANKA-29.
+- Workspace `bun run typecheck` shows only the pre-existing `rail-10-phase-profit-target.spec.ts` `internalDailyFloorPct` error from ANKA-30 in-flight work; no new typecheck errors introduced by this change.
+
+## 0.4.7 — 2026-04-27 23:38 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-32](/ANKA/issues/ANKA-32) (REVIEW-FINDINGS H-6 from [ANKA-19](/ANKA/issues/ANKA-19) — HIGH).
+
+**Why:** `composeRailVerdict([], decidedAt)` was fail-OPEN — it returned `{ outcome: 'allow' }` for an empty decision list. The journal pushed the fail-closed obligation up to the dispatcher, but BLUEPRINT §3.5 requires fail-closed at the contract surface itself. A dispatcher bug, a feature flag short-circuit, or a test wiring with no evaluators would silently produce a green verdict and let an unvetted intent through. Patch-level bumps per §0.2.
+
+**Note on commit topology** — the production-line edits actually landed in commit `464b3dd` (titled `fix(svc:gateway/hard-rails): ANKA-28 rail 9 record-on-non-reject (code + spec)`) due to a concurrent staging race: the ANKA-28 heartbeat swept the staged ANKA-32 work into its commit alongside the rail-9 fixes. This 0.4.7 entry is the official ANKA-32 attribution, version bump, and journal pointer. The diff itself is identifiable inside `464b3dd` as the `RailVerdict.reason` field, the `NO_RAILS_EVALUATED_REASON` export, the `decisions.length === 0` fail-closed branch in `composeRailVerdict`, and the rewritten "empty decision list" spec case.
+
+**Fixed** — `@ankit-prop/contracts` v0.3.1 (`pkg:contracts/hard-rails`)
+
+- `packages/shared-contracts/src/hard-rails.ts` — `composeRailVerdict([], decidedAt)` now returns a synthetic reject (`outcome: 'reject', decisions: [], reason: 'no rails evaluated — fail-closed'`) instead of `{ outcome: 'allow' }`. Picked option (2) from the issue body — the reason string surfaces in dispatcher dashboards / verdict logs so operators can diagnose WHY a NEW intent was blocked, rather than throwing and crash-looping the gateway. The production dispatcher (`evaluateAllRails` in `services/ctrader-gateway/src/hard-rails/evaluator.ts`) always pushes ≥ 1 decision before short-circuit, so the new branch is unreachable on the live happy path; it exists exclusively as defense-in-depth against future dispatcher / feature-flag / test-wiring regressions.
+- `packages/shared-contracts/src/hard-rails.ts` — added optional `reason: z.string().min(1).optional()` field on `RailVerdict`. Populated only by the synthetic fail-closed branch; real verdicts continue to carry per-rail rationales inside `decisions[*].reason`. Header comment on the schema spells out the split so future readers don't promote `reason` into a load-bearing top-level field for normal verdicts.
+- `packages/shared-contracts/src/hard-rails.ts` — exported `NO_RAILS_EVALUATED_REASON = 'no rails evaluated — fail-closed' as const` so dispatcher code paths can compare against the canonical string instead of duplicating the literal at each consumer.
+- `packages/shared-contracts/src/index.ts` — re-exports `NO_RAILS_EVALUATED_REASON` from the package barrel.
+- `packages/shared-contracts/src/hard-rails.spec.ts` — replaced the obsolete `empty decision list → allow` case with three locked-down assertions: empty list yields `outcome: 'reject'`, `decisions: []`, and `reason === NO_RAILS_EVALUATED_REASON` whose value is the exact issue-specified string `"no rails evaluated — fail-closed"`. Added a sibling case asserting non-empty verdicts do NOT carry a top-level `reason` (reason lives on `decisions[*]` for the normal path). Round-trip spec extended to cover both synthetic and real verdicts through `RailVerdict.parse(...)`. Existing all-allow / any-tighten / any-reject cases untouched per the issue's "existing composeRailVerdict specs untouched" verification clause.
+
+**Bumped**
+
+- `@ankit-prop/contracts` 0.3.0 → 0.3.1 (patch — additive optional field on `RailVerdict` zod schema, fail-closed semantic correction; no breaking field changes for consumers that don't construct empty decision lists).
+- root `ankit-prop-umbrella` 0.4.5 → 0.4.7 (skipping 0.4.6: the ANKA-26 commit `c6ab121` carried the v0.4.6 CHANGELOG entry but the in-flight heartbeat that initiated it never bumped root `package.json`. Going to 0.4.7 directly resolves the bookkeeping rather than retroactively forcing a 0.4.6 root-version bump that would conflict with the existing ANKA-26 commit. ANKA-30's bookkeeping commit will reconcile separately when it lands).
+
+**Verification**
+
+- `bun test packages/shared-contracts/src/hard-rails.spec.ts` — 18 / 0, 31 expects. Includes the new fail-closed cases.
+- `bun test services/ctrader-gateway/src/hard-rails/idempotency-record-on-allow.spec.ts` — 4 / 0, 18 expects. The gateway evaluator's record-on-non-reject path remains correct under the new contract semantics (the dispatcher always supplies ≥ 1 decision; the synthetic `reason` field is opt-in).
+- `bun run lint` clean on the touched files. Workspace-level `bun run typecheck` shows only the 5 pre-existing in-flight ANKA-29 / ANKA-30 errors (`bufferDollars`, news-staleness API rename) documented in v0.4.4 — none introduced by this change.
+
+**Notes**
+
+- The schema-level approach (extending `RailVerdict` with an optional `reason`) was preferred over adding a synthetic `RailDecision` because the 14-rail catalog is closed (`HARD_RAIL_KEYS.length === 14` is asserted by `hard-rails.spec.ts:13` and load-bearing for the §9 matrix). Adding a sentinel "no_rails_evaluated" rail would have broken that invariant; bolting an optional reason onto the verdict shape is additive and consumer-transparent.
+- The `evaluateAllRails` dispatcher in `services/ctrader-gateway` still records the idempotency ULID only on a non-reject composite (per ANKA-28). A synthetic empty-decisions reject therefore correctly does NOT consume the ULID slot — the operator's retry after the dispatcher bug is fixed will succeed at rail 9.
+
 ## 0.4.6 — 2026-04-27 23:55 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-26](/ANKA/issues/ANKA-26) (REVIEW-FINDINGS B-1 from [ANKA-19](/ANKA/issues/ANKA-19) — BLOCKING).
