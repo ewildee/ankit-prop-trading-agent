@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-27 22:45 Europe/Amsterdam — v0.4.1 + v0.4.2 (ANKA-7 / ANKA-12 prep + §19.1 /health)
+
+Three commits since the v0.4.0 entry below land the rest of ANKA-7's offline-runnable scope. Writing them up together because they came back-to-back and only make sense as a unit.
+
+**What was done**
+
+- **`74913ed` v0.4.1** — landed the `pkg:ctrader-vendor` offline scaffold that had been sitting untracked across multiple heartbeats: `RefreshTokenStore` (AES-GCM at rest, mode-0600, path-traversal-guarded), the typed §10.3 7-step orchestrator, `protobufjs@8.0.1` codec backed by Spotware's vendored `OpenApi*.proto` files at a pinned commit (with `PROVENANCE.md`), the `protobuf-coverage` boot-time check, and the `bun run --cwd packages/ctrader-vendor smoke` CLI. Live execution still gates on [ANKA-16](/ANKA/issues/ANKA-16) (Spotware KYC + browser OAuth code-grant), but the scaffold is what the live path plugs into.
+- **`49596ee`** — small lint chore: dropped the unused `private readonly db: Database` parameter-property modifier on the SQLite stores (`idempotency-store.ts`, `throttle-store.ts`). The prepared `Statement` handles still close over `db` so runtime is identical; biome's `noUnusedPrivateClassMembers` rule is happy. Refreshed TODOS to reflect the current blocker tree (T003.a → ANKA-16, not ANKA-5).
+- **`b13cdfa` v0.4.2** — shipped the §19.1 `/health` endpoint on `:9201`, the last item from ANKA-7's listed scope that didn't already need a live broker. New `health-server.ts` (`buildHealthSnapshot` + `Bun.serve startHealthServer`), `start.ts` process entrypoint with structured boot log + SIGTERM/SIGINT graceful shutdown, `health-server.spec.ts` (4 cases / 16 expects). Default `status: 'degraded'` while transport is `not-connected` per BLUEPRINT §3.5 fail-closed; flips to `'healthy'` once ANKA-13 wires a `transport()` accessor that reports `'connected'`. End-to-end smoke verified: ephemeral-port boot, `GET /health` returns the expected JSON, unknown path 404s, `SIGTERM` cleanly stops.
+
+**Findings**
+
+- The codec fix that unblocked v0.4.1 was a one-line trap: `decodeFrame()` used `env.clientMsgId !== undefined` to decide whether to surface the field, but protobufjs's `decode()` leaves unset proto3 string fields as the default `""`, not `undefined`. So a frame that never carried a `clientMsgId` produced `clientMsgId: ""` in the decoded record, which the spec correctly flagged. Switched to a truthy check; that was the only failing test in the workspace at the time.
+- `services/ctrader-gateway/package.json`'s description claimed "ADR-012 verdict" of in-house. That's premature — §10.3 hasn't run live yet. Softened to "scaffold; ADR-012 sealed once §10.3 step 7 runs live against the FTMO Free Trial socket". The codec / proto vendor / smoke runner are path-agnostic and support both the in-house and `ctrader-ts@1.0.1` paths if the live smoke surfaces a regression that prefers the latter.
+- The `/health` endpoint reports `degraded` until ANKA-13 lands transport, even though every Phase 2.3 piece is healthy in isolation. That's fail-closed honesty: an operator querying the endpoint today gets a literal answer ("transport not-connected"), not a falsely-green health ribbon. The supervisor's threshold logic (port 9100, `health.timeoutMs: 30000`) treats `degraded` as still-up but flagged.
+
+**Decisions**
+
+- Land the vendor scaffold (`74913ed`) on my own run rather than wait for the parallel session that originally authored it. They explicitly authorized "let the next heartbeat make a clean v0.4.1 commit on top" in their journal entry; the scaffold had been on disk for several heartbeats and the codec test failure was blocking commit. Co-authored attribution kept (`Co-Authored-By: Paperclip`).
+- Bump `@ankit-prop/ctrader-gateway` to `0.2.0` for the /health addition (additive minor — rails surface from `0.1.0` untouched). Root umbrella `0.4.1 → 0.4.2`.
+- Keep `transport()` and `rails()` as injected accessors on `HealthDeps` rather than reaching into module-level singletons. ANKA-13 will pass real WSS state via `transport`, ANKA-15 will pass dispatcher state via `rails`. No global mutable state in the health server.
+
+**Surprises / contradictions**
+
+- The runtime fired the `plan_only` flag against an earlier heartbeat that had described future work but didn't commit it (the codec fix was made on disk, then I exited without staging). Lesson: edit-without-commit reads as plan from the runtime's view. The retry that committed `74913ed` cleared the flag.
+- `bun run start` on the gateway used to be a placeholder echo. Now it brings up a real server — that's the first time the supervisor's `health.url: http://localhost:9201/health` line in `config/supervisor.example.yaml:21` actually has a responder behind it.
+
+**Open endings**
+
+- Phase 2 offline-runnable scope: complete across `4979fdd` → `2218862` → `74913ed` → `49596ee` → `b13cdfa`. Working tree clean.
+- ANKA-12 (live §10.3 smoke), ANKA-13 (transport + OAuth + reconciliation), ANKA-15 (order-manager + execution-stream + persistence) all chain through [ANKA-16](/ANKA/issues/ANKA-16). ADR-012 verdict locks once `bun run --cwd packages/ctrader-vendor smoke` reports `pass` for all 7 steps live.
+- `bun run lint` carries 1 warning + 10 infos — the warning is the codec `noUnusedPrivateClassMembers` (also fixable when ANKA-13 wires the dispatch path); the infos are `useLiteralKeys` notes biome marks unsafe-fix in `pkg:eval-harness/ftmo-rules` (ANKA-8 scope) and `pkg:ctrader-vendor/codec`. Not blocking; left for the owning PRs.
+
 ## 2026-04-27 19:23 Europe/Amsterdam — v0.4.0 (ANKA-14 — Phase 2.3 the 14 hard rails)
 
 **What was done**

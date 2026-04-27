@@ -2,13 +2,10 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-27 19:23 Europe/Amsterdam — v0.4.0 (ANKA-14 — Phase 2.3 the 14 hard rails)
+## 2026-04-27 22:45 Europe/Amsterdam — Phase 2 offline scope complete (ANKA-7)
 
-- `@ankit-prop/ctrader-gateway` 0.1.0: 14 pure rail evaluators under `services/ctrader-gateway/src/hard-rails/rail-1..14`, broker contract surface in `types.ts`, `evaluator.ts` composer that short-circuits on first reject, plus persisted SQLite stores for rails 9 (idempotency ULID registry) and 12 (per-account 1,800/day token bucket).
-- §11.6 force-flat scheduler implemented as a separate `force-flat-scheduler.ts` state machine with a `NewsClient` seam (real svc:news client lands with ANKA-9). Earliest of {market_close, friday_close, restricted_event} wins.
-- §8.3 / §8.5 defensive-SL math is unit-anchored: per-trade cap vs daily-floor headroom, tighter wins; wrong-side rejects; loose tightens to entry ± requiredSlDistance.
-- `matrix.spec.ts` covers the full 28-case acceptance grid (14 × {positive, negative}); each row asserts outcome + presence of every §9 logger key. Persistence specs reopen the SQLite DB to prove restart survival.
-- Bumps: root umbrella 0.3.0 → 0.4.0; `@ankit-prop/ctrader-gateway` 0.0.1 → 0.1.0.
-- 54 tests / 0 fails in `services/ctrader-gateway`; lint + typecheck green.
-- Status: ANKA-14 deliverables complete and ready for `done`. ANKA-13/15 (live transport + order manager) still gated on the cTrader OAuth handshake; rails contract is stable for that integration.
-- Next wake (`issue_blockers_resolved` once ANKA-12 / ANKA-13 land): pick up ANKA-15 — wire `BrokerSnapshot` from the live cTrader event stream, bind a real pino logger to `RailContext`, ship the order manager.
+- v0.3.0 → v0.4.2 across 5 commits closed every offline-runnable item in ANKA-7's scope: §9 contract surface (`4979fdd`), 14 hard rails + dispatcher + matrix (`2218862`), ctrader-vendor scaffold + codec fix (`74913ed`), lint cleanup (`49596ee`), §19.1 /health endpoint (`b13cdfa`).
+- `services/ctrader-gateway` now runs as a real Bun process: `bun run --cwd services/ctrader-gateway start` opens `:9201` with a `HealthSnapshot` responder; supervisor's `health.url: http://localhost:9201/health` line in `config/supervisor.example.yaml` finally has a responder behind it.
+- 195 tests / 0 fails / 728 expects across the workspace. `bun run typecheck` clean. `bun run lint` is 1 warning + 10 infos (codec / eval-harness `useLiteralKeys`, owning PRs).
+- ANKA-14 marked `done`. ANKA-7 stays `in_progress` per CEO direction; broker-dependent legs (ANKA-12 / 13 / 15) chain through [ANKA-16](/ANKA/issues/ANKA-16) (Spotware KYC + browser OAuth code-grant).
+- Next wake (`issue_blockers_resolved` when ANKA-16 lands): start ANKA-12 — run `bun run --cwd packages/ctrader-vendor smoke` live against the FTMO Free Trial socket, capture step-by-step evidence into `SmokeReport`, lock ADR-012 verdict.
