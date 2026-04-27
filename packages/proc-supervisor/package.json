@@ -1,13 +1,22 @@
 {
   "name": "@triplon/proc-supervisor",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Process supervisor with adopt/replace/refuse semantics — Phase 1 deliverable.",
+  "description": "Process supervisor with adopt/replace/refuse semantics, topo-sorted boot, restart-policy with circuit-break, and aggregated /health on port 9100. BLUEPRINT §3, §17, §22 phase 1.",
   "main": "src/index.ts",
+  "bin": {
+    "proc-supervisor": "src/cli.ts"
+  },
   "scripts": {
-    "start": "echo 'proc-supervisor: not yet implemented (Phase 1)'",
-    "stop": "echo 'proc-supervisor: not yet implemented (Phase 1)'",
-    "status": "echo 'proc-supervisor: not yet implemented (Phase 1)'"
+    "start": "bun run src/cli.ts start",
+    "stop": "bun run src/cli.ts stop",
+    "status": "bun run src/cli.ts status",
+    "restart": "bun run src/cli.ts restart",
+    "logs": "bun run src/cli.ts logs"
+  },
+  "dependencies": {
+    "@ankit-prop/contracts": "0.1.0",
+    "zod": "4.3.6"
   }
 }

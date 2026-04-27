@@ -11,13 +11,13 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
 ## Phase 1 — `@triplon/proc-supervisor`
 
-- [ ] **T002** Implement supervisor adopt/replace/refuse semantics with `/health` aggregator on port 9100. Exit gate: `bun run start` brings up fake services with all transitions verified. _BLUEPRINT §22 phase 1._
+- [x] **T002** Implement supervisor adopt/replace/refuse semantics with `/health` aggregator on port 9100. Exit gate: `bun run start` brings up fake services with all transitions verified. _Closes ANKA-6._
 
 ## Phase 2 — `ctrader-gateway`
 
 - [ ] **T003** Vendor cTrader client + protobuf transport over `wss://*.ctraderapi.com:5035/`.
 - [ ] **T004** Implement the 14 hard rails (BLUEPRINT §9), each with a `.spec.ts` regression.
-- [ ] **T005** Place + close + reconcile against IC Markets demo.
+- [ ] **T005** Place + close + reconcile against the FTMO Free Trial account.
 
 ## Phase 3 — `eval-harness`
 
@@ -38,7 +38,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
 ## Phase 6.5 — Burn-in
 
-- [ ] **T011** 14-day IC demo burn-in; meet all §21.7 criteria.
+- [ ] **T011** 14-day FTMO Free Trial burn-in; meet all §21.7 criteria.
 
 ## Phase 7 — `autoresearch`
 
