@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 00:10 Europe/Amsterdam — v0.4.7 ([ANKA-30](/ANKA/issues/ANKA-30) — unify FTMO floor units to fractions, rename Pct→LossFraction; parent [ANKA-19](/ANKA/issues/ANKA-19) H-3 + H-4 HIGH)
+
+Heartbeat woken with [ANKA-30](/ANKA/issues/ANKA-30) assigned. Mechanical rename: `internalDailyFloorPct → internalDailyLossFraction`, `internalOverallFloorPct → internalOverallLossFraction`, `defensiveSlMaxLossPct → defensiveSlMaxLossFraction` (and remove the `/100` in rail 11), eval-harness `INTERNAL_DEFAULT_MARGINS` → fractions, plus a Zod refinement rejecting `> 0.5` to catch percent-as-fraction wiring crossovers at the contract boundary.
+
+**What was done**
+
+- **`pkg:contracts` zod surface (additive)** — `packages/shared-contracts/src/hard-rails.ts` exports `LossFraction = z.number().nonnegative().max(0.5)` and `EnvelopeFloors = z.strictObject({ internalDailyLossFraction, internalOverallLossFraction })`. The `0.5` ceiling is the smoking-gun catch — anything above is almost certainly a percent slipped in (4 instead of 0.04). 7 new spec cases / 14 expects: accepts 0, 0.04, 0.08, 0.5; rejects 0.51, 4, 8, 100; rejects negatives; `EnvelopeFloors` accepts BLUEPRINT defaults, rejects percent-shaped values, rejects extra keys.
+- **`svc:gateway/hard-rails` types.ts renames** — `EnvelopeFloors.internal{Daily,Overall}FloorPct` → `internal{Daily,Overall}LossFraction`. `BrokerSnapshot.defensiveSlMaxLossPct` → `defensiveSlMaxLossFraction`. Header comments cite `LossFraction` (≤ 0.5) and the §8.3 / §8.5 anchors. Rationale for "Loss" rather than "Floor": rail 2 computes `floor = (1 − X) × initialBalance`, so naming it `*FloorPct` invites operators to pre-compute the floor as `0.92` and silently breach.
+- **Rail call-site renames + math fix** — rail 1 (daily breaker) and rail 2 (overall breaker) read the renamed fields, math unchanged. Rail 11 (defensive SL) renames the field AND drops the `/100` divide: `perTradeCapDollars = initialBalance × defensiveSlMaxLossFraction`. Matrix fixture's `0.5` (interpreted as percent) becomes `0.005` (fraction); dollar outcome on a $100k account is the same `$500` per-trade cap.
+- **`pkg:eval-harness`** — `FtmoLineMargins` and `InternalMargins`: `{daily,overall}LossPct` → `{daily,overall}LossFraction`. `FTMO_DEFAULT_LINE`: 5 → 0.05, 10 → 0.1. `INTERNAL_DEFAULT_MARGINS`: 4 → 0.04, 8 → 0.08. `checkDailyLoss` / `checkOverallLoss` math drops `× 0.01` and multiplies the fraction directly. Cross-package check now passes: harness and gateway carry identical FTMO numbers in identical units.
+- **Spec fixture updates** — `matrix.spec.ts`, `rail-11-defensive-sl.spec.ts`, `idempotency-record-on-allow.spec.ts`, `rail-news-staleness.spec.ts`, `rail-13-force-flat-schedule.spec.ts`, `rail-10-phase-profit-target.spec.ts` carry the renamed fields and `defensiveSlMaxLossFraction: 0.005`.
+- **Pre-existing typecheck regression fixed in passing** — `ftmo-rules.props.spec.ts` lines 142/170 used `closeReason: 'manual'`, not in the `ClosedTrade.closeReason` union (`'sl' | 'tp' | 'strategy' | 'force_flat' | 'eod'`). Pre-existing bug from ANKA-20 that the issue's "typecheck clean" line forced into scope. Changed to `'strategy'` — property tests are about min-hold semantics, not close reason.
+
+**Surprises**
+
+- **Concurrent worktree contention.** This issue overlapped four other in-flight ANKA-19 review-finding heartbeats running in the same workspace ([ANKA-26](/ANKA/issues/ANKA-26) B-1, [ANKA-27](/ANKA/issues/ANKA-27) B-2, [ANKA-28](/ANKA/issues/ANKA-28) H-1, [ANKA-29](/ANKA/issues/ANKA-29) news-staleness). Edits to `types.ts`, `matrix.spec.ts`, and `hard-rails.spec.ts` were repeatedly reverted/rebased between Edit calls. Reflog showed multiple `reset: moving to HEAD` events and `git stash list` carried multiple "WIP from concurrent work" entries. Workaround: edit-then-immediately-stage to lock changes into the index.
+- **Commit topology surprise.** The actual production-line edits ended up landing in commit `464b3dd` whose message attributes everything to ANKA-28. The race: ANKA-28's heartbeat ran `git add` over staged files including my then-staged ANKA-30 work, then committed. The diff in `464b3dd` is unambiguously identifiable as ANKA-30 work (LossFraction, EnvelopeFloors, the field renames, eval-harness rename + math) — but the commit *message* doesn't say so. This v0.4.7 changelog/journal entry is the official ANKA-30 attribution.
+- **Pre-existing typecheck dirt.** ANKA-20's `closeReason: 'manual'` slipped past CI somehow. Surfaced when the rest of typecheck went green and only the pre-existing errors remained.
+
+**Decisions**
+
+- **Zod schema in `pkg:contracts`, not in the gateway.** `EnvelopeFloors` is a TS interface in `svc:gateway/hard-rails/types.ts` (not in `pkg:contracts`), but the `LossFraction` ceiling is a cross-package invariant — eval-harness, gateway, and the future `accounts.yaml` loader all need the same boundary. Putting the schema in `pkg:contracts` makes it reusable and gives the package a clean additive minor bump. The TS interface in the gateway stays for ergonomics; the boundary parse will use `EnvelopeFloors.parse(...)` from contracts when the YAML loader lands in ANKA-15.
+- **Did not unify `FtmoLineMargins` / `InternalMargins` into `pkg:contracts`.** Eval-harness internals, not a cross-package contract — only `FtmoSimulator` consumes them. Keeping local avoids a fake "contract" that would just re-export.
+- **`defensiveSlMaxLossFraction: 0.005` in fixtures.** Verified dollar outcome unchanged: $100k × 0.005 = $500 per-trade cap = same as prior $100k × (0.5 / 100). All rail-11 spec assertions (perTradeCapDollars, requiredSlDistance) pass without value adjustment.
+- **Bumped `@ankit-prop/contracts` to 0.3.1** rather than 0.4.0. Change is *additive* — existing `RailDecision` / `RailVerdict` schemas are untouched, no consumer broken, and `LossFraction` / `EnvelopeFloors` are net-new exports.
+- **Did not retroactively rewrite the 464b3dd commit message** to mention ANKA-30. Commit landed; rewriting `main` history under a parallel-heartbeat workspace would invite worse races. CHANGELOG + journal are the authoritative attribution.
+
+**Open endings**
+
+- The `LossFraction` zod schema is not yet wired to a config-loader boundary parse — `accounts.yaml` ingestion lands in ANKA-15. Today the schema is correct-but-unused. Once ANKA-15 wires it, a typo of `4` instead of `0.04` will fail at boundary parse rather than silently shifting the floor by 100×. No follow-up child issue — already part of ANKA-15 scope.
+- 6 in-flight test failures elsewhere in `services/ctrader-gateway` (rail-10 expects `bufferFraction` after parallel work; rail-news-staleness depends on `lastSuccessfulFetchAtMs` API rename) are owned by their issuing heartbeats. Not introduced by ANKA-30 and out of scope.
+- BLUEPRINT was internally consistent on units throughout (§8.3 / §8.5 / §17 all use fractions). No BlueprintAuditor escalation needed — the spec was right; the code drifted.
+
 ## 2026-04-27 23:55 Europe/Amsterdam — v0.4.6 ([ANKA-26](/ANKA/issues/ANKA-26) — rail 10 profit-target buffer is fraction of INITIAL, not flat dollars; parent [ANKA-19](/ANKA/issues/ANKA-19) B-1 BLOCKING)
 
 Heartbeat woken with [ANKA-26](/ANKA/issues/ANKA-26) assigned. The issue body is exhaustive — it cites BLUEPRINT §8.2 line 957 (buffer = `+1.0%` exact), §8.4 decision N line 1001 (`closed_balance >= INITIAL_CAPITAL × (1 + target + buffer)`), §17 `accounts.yaml` example (`profit_target_buffer_pct: 1.0`), and pins the bug to `services/ctrader-gateway/src/hard-rails/rail-10-phase-profit-target.ts:24-26` plus the matrix fixture at `matrix.spec.ts:57`. No discovery work needed; the fix is mechanical.
