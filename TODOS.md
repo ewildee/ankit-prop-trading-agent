@@ -18,7 +18,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 - [~] **T003** Vendor cTrader client + protobuf transport over `wss://*.ctraderapi.com:5035/`.
   - [ ] **T003.a** §10.3 7-step smoke-test against FTMO Free Trial — _ANKA-12_; blocked by ANKA-5 (creds). ANKA-10 (FTMO pivot) ✓ landed.
   - [ ] **T003.b** Transport + OAuth + reconciliation — _ANKA-13_; blocked by ANKA-12.
-- [~] **T004** Implement the 14 hard rails (BLUEPRINT §9), each with a `.spec.ts` regression — _ANKA-14_; blocked by ANKA-12. _Contract surface (`HARD_RAIL_KEYS`, `RailDecision`, `RailVerdict`, `composeRailVerdict`) shipped in `@ankit-prop/contracts` v0.3.0._
+- [x] **T004** Implement the 14 hard rails (BLUEPRINT §9), each with a `.spec.ts` regression — _ANKA-14_. Pure decision functions in `services/ctrader-gateway/src/hard-rails/rail-1..14`, mock-driven against a stable broker contract; bun:sqlite-backed idempotency + throttle stores; force-flat scheduler with `NewsClient` seam. 28-case matrix.spec.ts green; live transport wiring deferred to ANKA-13/15.
 - [ ] **T005** Order-manager + execution-stream + persistence; place + close + reconcile against FTMO Free Trial — _ANKA-15_; blocked by ANKA-12, ANKA-13, ANKA-14.
 
 ## Phase 3 — `eval-harness`

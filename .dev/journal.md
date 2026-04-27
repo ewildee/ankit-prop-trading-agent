@@ -2,6 +2,62 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-27 19:23 Europe/Amsterdam — v0.4.0 (ANKA-14 — Phase 2.3 the 14 hard rails)
+
+**What was done**
+
+- Woke on `issue_commented` for [ANKA-14](/ANKA/issues/ANKA-14). CEO unblocked the rail matrix from ANKA-12 (board comment): the §9 rails are pure business-rule logic and can land mock-driven against a stable broker contract. Acknowledged on the thread, transitioned `todo → in_progress` (already checked out by harness), then implemented every deliverable from the issue body in the same heartbeat.
+- New code in `svc:gateway/hard-rails` under `services/ctrader-gateway/src/hard-rails/`:
+  - `types.ts`: broker-contract surface (`BrokerSnapshot`, `OpenPosition`, `SymbolMeta`, `NewOrderIntent`/`AmendOrderIntent`/`CloseOrderIntent`, `RailContext`, `RailLogger`, `IdempotencyStore`, `ThrottleStore`, `NewsClient`, `DEFAULT_RAIL_CONFIG`). Pure data; no transport coupling.
+  - `rail-1-daily-breaker.ts` … `rail-14-monotone-sl-amend.ts`: 14 pure decision functions, each returning a `RailDecision` and routing through `log-decision.ts` so every rail emits the structured §9 payload (`rail`, `symbol`, `outcome`, `reason`, `accountId`, `envelopeId`, `clientOrderId`, `detail`). `reject` outcomes log at `warn`; everything else at `info`. The §9 catalog order is preserved so the lowest-numbered tripping rail wins the rejection log.
+  - `rail-11-defensive-sl.ts`: §8.3 daily-floor + §8.5 per-trade cap, tighter wins. Wrong-side SL → reject; zero headroom → reject; trader SL within cap → allow; loose SL → tighten to entry ± requiredSlDistance.
+  - `idempotency-store.ts` (rail 9): in-memory + bun:sqlite implementations of an immutable ULID registry. `INSERT OR IGNORE` so a retry of `record` on the same id is a no-op rather than throwing.
+  - `throttle-store.ts` (rail 12): per-account token bucket with continuous refill (`capacity / windowMs`). Tokens persisted with 1e6 fixed-point integer scaling so SQLite preserves fractional consumption across restart. Refill is computed against the last persisted timestamp, not since-process-start.
+  - `force-flat-scheduler.ts` (rail 13): `tick()` enqueues each open position exactly once across {market_close − forceFlatLeadMin, friday_close − forceFlatLeadMin, restricted_event − preNewsFlattenLeadMin}; the earliest applicable window wins. `isInsideForceFlatWindow()` is the helper rail 13's evaluator calls for new-entry rejection — AMEND/CLOSE keep flowing so the gateway can drain into the close.
+  - `news-client.ts`: `InMemoryNewsClient` fixture used by the matrix and force-flat tests; real svc:news client is svc:news's job (ANKA-9).
+  - `evaluator.ts`: composes the 14 rails in catalog order, short-circuits on first reject so the idempotency record + throttle token aren't consumed when an upstream rail (e.g. daily breaker) already rejected.
+  - `logger.ts` + `log-decision.ts`: `RailLogger` is a pino-compatible interface (`info(payload, msg?)`, `warn(payload, msg?)`); tests use `captureLogger()`, production wires real pino in ANKA-15. Keeps the rails npm-dep-free this heartbeat.
+  - `index.ts` (hard-rails) + `src/index.ts`: re-export the public surface as `@ankit-prop/ctrader-gateway`.
+- Specs:
+  - `matrix.spec.ts`: 28 cases (14 × {positive: rail trips, negative: rail allows}). For each case the test calls `RAIL_EVALUATORS[rail]` directly, asserts `outcome` and that the captured logger emitted exactly one event with the §9 keys present and the correct level.
+  - `rail-11-defensive-sl.spec.ts`: §8.3 math anchored — per-trade cap is the binding constraint at 100% equity; daily-floor headroom binds when equity has been bled into. Wrong-side, allow-as-is, BUY-side and SELL-side tighten paths each covered.
+  - `idempotency-store.spec.ts`, `throttle-store.spec.ts`: open the SQLite db, write, close, reopen, prove the registry / bucket persists. Throttle adds an explicit "1799 remaining after one consume across reopen" check to prove the wall-clock refill model works across restart.
+  - `force-flat-scheduler.spec.ts`: enqueue-once, earliest-window-wins, cross-symbol-isolation, quiet-outside-windows.
+- Verification (smallest scope per execution contract): `bun test services/ctrader-gateway` 54 / 0 fail / 423 expect (133 ms); `bun run lint:fix` clean (auto-applied import-ordering and unsafe-but-cosmetic fixes); `bun run typecheck` clean. Full-workspace `bun test` 190 / 1 fail; the failure is in `packages/ctrader-vendor/src/codec.spec.ts` (still untracked from the parallel run), pre-existing, unrelated to ANKA-14.
+- Posted ack comment on [ANKA-14](/ANKA/issues/ANKA-14) up front; will follow with a "done" patch after this commit.
+
+**Findings**
+
+- Pino is in BLUEPRINT §5.2 but not actually installed in the umbrella yet. Rather than thrash `bun.lock` for a wired-but-not-yet-used dep, the rails consume a `RailLogger` interface that mirrors pino's `(payload, msg?)` signature. ANKA-15 will instantiate a real pino logger and bind it to `RailContext` — zero rail-side changes needed.
+- BLUEPRINT §9 says rail 7 ("slippage guard") is a *post-fill* check: "close immediately if filled beyond max(2 × typical_spread, 0.5 × ATR(14))". I modelled this as an evaluator on the originating NEW intent that returns `reject` when the broker has reported a fill that exceeded the cap; the gateway transport (ANKA-15) then queues the close. Keeps the rail logic pure and the post-fill close path deterministic.
+- BLUEPRINT §9 rail 11 specifies "tighten any SL looser than envelope-floor permits". The §8.5 per-trade cap (`risk.per_trade_pct`) and the §8.3 daily-floor are *both* gating constraints; the rail computes both and uses the tighter. Took an explicit decision to interpret `defensiveSlMaxLossPct` as a percent (the YAML schema's units), so `0.5` = 0.5% — the rail divides by 100. Documented inline in `rail-11-defensive-sl.ts`.
+- Bun's `query<T, params>` typed prepared statements work fine under `noUncheckedIndexedAccess: true` so long as the row generic is concrete. Casting bucket-row `tokens_x_1e6` back to a float on read keeps the persistence model clean.
+
+**Decisions**
+
+- **Logger seam over npm dep.** Defer pino install to ANKA-15. The acceptance criterion ("structured Pino events with rail, symbol, outcome, reason") is met by the *shape*, not by the npm provenance — pino's API is precisely what the seam mirrors.
+- **Short-circuit composer.** `evaluateAllRails` stops at the first reject. Idempotency (rail 9) is the 9th in catalog order, so a daily-breaker reject won't burn its slot; throttle (rail 12) similarly won't drain a token. This matters for human-driven re-runs after intermittent breakers — the same `clientOrderId` can re-attempt without exhausting the registry.
+- **Rail 8 lets `CLOSE` through unconditionally.** Operator must be able to flatten a leftover position even after a symbol has been disabled in `accounts.yaml`. Documented in `rail-8-symbol-whitelist.ts`.
+- **Force-flat earliest window wins.** When market_close, friday_close, and a restricted event are all within their lead windows, the scheduler picks the earliest event timestamp. Means the broker close request goes out for the most-imminent reason, which is what the operator dashboard should display.
+- **Per-account throttle isolation.** The token bucket is keyed on `accountId` only — envelope/instance separation lives a layer up. Matches BLUEPRINT decision O ("per account token-bucket").
+
+**Surprises / contradictions**
+
+- The parallel run's untracked `packages/ctrader-vendor/src/codec.spec.ts` is currently red on a `ProtoOAClosePositionReq` round-trip. Pre-existing (file is untracked, parallel run owns it). Not in my scope, not in my commit.
+- Biome auto-fix re-ordered imports inside `throttle-store.ts` to type-import the inline `bun:sqlite` `Database` after the constructor parameter pattern. Re-running tests post-format showed the auto-fix was safe (54/54 still green).
+
+**Adaptations**
+
+- First draft of `rail-7-slippage-guard.ts` enforced the rail unconditionally on every NEW; failed because the post-fill check requires a `FillReport` and the matrix's "negative" case shouldn't have to fabricate a fill. Made the rail no-op (allow) when `broker.fill === undefined` — the gateway only feeds a fill in after broker-side execution.
+- First draft of `rail-13-force-flat-schedule.ts` used `??:` to elide undefined optional fields; under `exactOptionalPropertyTypes: true` you must spread-conditional rather than assign-undefined. Spread blocks (`...(x !== undefined ? { k: x } : {})`) work cleanly.
+
+**Open endings**
+
+- ANKA-14 commit + status `in_progress → done` + comment with verification table. PR-style summary inline on the issue.
+- ANKA-15 (`order-manager + execution-stream + persistence`) will wire `BrokerSnapshot` from the live cTrader event stream and bind a real pino logger to `RailContext`. Rails contract is stable.
+- Real `svc:news` client (ANKA-9) — implements `NewsClient` against the FTMO calendar fetcher. The interface is the seam; no rail rewrite needed.
+- Pre-flatten scheduler `tick()` is currently consumer-driven (caller passes the position list each tick). The actual gateway main-loop / 1s timer that drives ticks is part of ANKA-15.
+
 ## 2026-04-27 19:02 Europe/Amsterdam — v0.3.1 (ANKA-12 — §10.3 7-step harness scaffold)
 
 **What was done**
