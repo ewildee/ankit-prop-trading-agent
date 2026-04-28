@@ -2,10 +2,11 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 13:15 Europe/Amsterdam — [ANKA-78](/ANKA/issues/ANKA-78) shared news calendar contracts
+## 2026-04-28 13:14 Europe/Amsterdam — [ANKA-79](/ANKA/issues/ANKA-79) `svc:news/symbol-tag-mapper`
 
-- BLUEPRINT §0.2 Bun-runtime proof: fetched `https://bun.com/llms.txt` at 13:14 Europe/Amsterdam (33,157 bytes) before editing Bun-runtime TypeScript.
-- Re-read BLUEPRINT §0.2, §5.1–§5.3, §11.2, §17, and §25 before changing `pkg:contracts`.
-- Implemented `packages/shared-contracts/src/news.ts` with calendar schemas from §11.2 plus issue-scoped `RestrictedReply` / `NextRestrictedReply`.
-- Added `news.spec.ts` parse coverage for minimal item, unknown `eventType`, tier-1 routes, restricted replies, closed rule enum, next-restricted nullable item, and impact enum.
-- Bumped `@ankit-prop/contracts` to v0.4.0 and root to v0.4.22; verification passed and no service restart is required.
+- Wake payload had no pending comments; task is scoped and already checked out by the harness.
+- BLUEPRINT §0.2 Bun-runtime proof: fetched `https://bun.com/llms.txt` at 13:14 Europe/Amsterdam (33,157 bytes) before editing Bun-runtime code.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §17, §22, §25 plus issue context. §5 says YAML is Bun-native and forbids adding `yaml` / `js-yaml`; existing supervisor loader uses `Bun.YAML.parse`.
+- Implemented `services/news/src/symbol-tag-mapper.ts` + `.spec.ts`: default operator config with example fallback, structured load errors, multi-tag split on `" + "`, deterministic dedupe, unknown-tag warnings.
+- Verification: `bun run lint:fix`, `bun test services/news/src/symbol-tag-mapper.spec.ts`, `bun test`, `bun run typecheck`; fixed the concurrent [ANKA-78](/ANKA/issues/ANKA-78) duplicate export so root typecheck could run.
+- Remaining: commit, push, and move [ANKA-79](/ANKA/issues/ANKA-79) to CodeReviewer.
