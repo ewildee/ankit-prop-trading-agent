@@ -77,7 +77,10 @@
     },
     "services/news": {
       "name": "@ankit-prop/news",
-      "version": "0.0.2",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "4.3.6",
+      },
     },
     "services/trader": {
       "name": "@ankit-prop/trader",

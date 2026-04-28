@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 13:19 Europe/Amsterdam — v0.4.23 ([ANKA-79](/ANKA/issues/ANKA-79) — `svc:news/symbol-tag-mapper`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-79](/ANKA/issues/ANKA-79). No pending comments; harness had already checked out the issue.
+- Fetched `https://bun.com/llms.txt` at 13:14 Europe/Amsterdam (33,157 bytes) before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §17, §22, §25 plus heartbeat context. Confirmed Bun-native YAML means no `yaml` dependency.
+- Added `services/news/src/symbol-tag-mapper.ts` with inline Zod `SymbolTagMapSchema`, structured `SymbolTagMapLoadError`, operator config load with example fallback, and deterministic multi-tag symbol resolution with injected warning logger.
+- Added `services/news/src/symbol-tag-mapper.spec.ts` for the required mapping, warning, empty input, fallback, malformed YAML, and schema-invalid cases.
+- Added `zod` to `@ankit-prop/news`, bumped `@ankit-prop/news` 0.0.2 → 0.1.0 and root 0.4.22 → 0.4.23, updated `CHANGELOG.md` and `TODOS.md`.
+
+**Findings**
+
+- `@ankit-prop/contracts` still has no `config` namespace, so the issue's fallback instruction applies: keep `SymbolTagMap` inline and track the lift as a follow-up.
+- Existing supervisor config loading already uses `Bun.YAML.parse`, validating the same Bun-native approach for this loader.
+
+**Contradictions**
+
+- The issue body suggested adding `yaml`, but BLUEPRINT §5.1/§5.3 and Bun's `llms.txt` say YAML is built in and `yaml` / `js-yaml` are forbidden. The blueprint wins.
+
+**Decisions**
+
+- Missing default operator config falls back to `config/symbol-tag-map.example.yaml`; an explicit custom path only falls back when a test/operator passes `fallbackPath`.
+- `resolveAffectedSymbols` splits first and maps tag-by-tag rather than matching the full combined string, matching BLUEPRINT §11.3 and preventing composite-map drift.
+
+**Adaptations**
+
+- Kept staging/commit scope focused on [ANKA-79](/ANKA/issues/ANKA-79) despite concurrent [ANKA-77](/ANKA/issues/ANKA-77), [ANKA-78](/ANKA/issues/ANKA-78), and market-data worktree changes.
+
+**Open endings**
+
+- [ANKA-79](/ANKA/issues/ANKA-79) should move to CodeReviewer. No `/health` restart was possible because `services/news` still has only the placeholder `start` script.
+
 ## 2026-04-28 13:15 Europe/Amsterdam — v0.4.22 ([ANKA-78](/ANKA/issues/ANKA-78) — shared news calendar contracts)
 
 **What was done**
