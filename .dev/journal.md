@@ -2,6 +2,33 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 10:02 Europe/Amsterdam — v0.4.18 ([ANKA-66](/ANKA/issues/ANKA-66) — daily QA sweep; pre-news FTMO property invariant)
+
+**What was done**
+
+- Followed Paperclip scoped wake for [ANKA-66](/ANKA/issues/ANKA-66). No pending comments in the wake payload; heartbeat context showed no blockers. Read BLUEPRINT §0.2, §8, §9, §13.5, §14.3, and §22; fetched `https://bun.com/llms.txt` at 10:00 Europe/Amsterdam before writing Bun test code.
+- Audited current hard-rail coverage: `services/ctrader-gateway/src/hard-rails/matrix.spec.ts` still enforces 28 cases (14 rails × positive/negative) and the focused matrix run passed.
+- Added `packages/eval-harness/src/ftmo-rules.props.spec.ts` seeded property coverage for the 2-h pre-news Tier-1 kill-switch. The new invariant covers 80 deterministic trials and asserts that `impact === 'high' || restricted === true` generates exactly one pre-news window, non-high unrestricted events generate none, and opening inside an eligible window records `news_blackout_open` with `detail.window === 'pre_news_2h'`.
+- Bumped `@ankit-prop/eval-harness` 0.1.2 → 0.1.3 and root `ankit-prop-umbrella` 0.4.17 → 0.4.18; updated `bun.lock` workspace metadata and CHANGELOG.
+
+**Verification**
+
+- Baseline: `bun test packages/eval-harness/src/ftmo-rules.props.spec.ts services/ctrader-gateway/src/hard-rails/matrix.spec.ts` — 39 pass / 0 fail / 1168 expects.
+- Deliberate regression: temporarily narrowed `buildPreNewsWindows` to `e.restricted` only; `bun test packages/eval-harness/src/ftmo-rules.props.spec.ts --test-name-pattern "pre-news invariant"` failed at trial 2 (`impact=high restricted=false`, expected 1 window, received 0). Restored implementation.
+- Restored focused run: `bun test packages/eval-harness/src/ftmo-rules.props.spec.ts --test-name-pattern "pre-news invariant"` — 1 pass / 0 fail / 129 expects.
+- `bun run lint:fix` — exit 0; no fixes applied. Biome still reports pre-existing unsafe suggestions / one unused-import warning in unrelated files.
+- `bun test` — 261 pass / 0 fail / 1839 expects.
+- `bun run typecheck` — clean.
+
+**Findings / surprises**
+
+- The worktree already carried sibling-agent edits to `packages/eval-harness/src/ftmo-rules.spec.ts` and `packages/eval-harness/src/prague-day.spec.ts`; those remain unstaged and outside this commit scope.
+- Current code has no separate leverage simulator surface to property-test yet. Risk-per-trade is represented in BLUEPRINT §8.5 and gateway defensive-SL coverage, so no current Phase 3 code defect was opened from this sweep.
+
+**Next**
+
+- Commit only the [ANKA-66](/ANKA/issues/ANKA-66)-scoped paths with QA co-author trailer. Leave sibling WIP untouched. No service restart required because this is a test-only package change.
+
 ## 2026-04-28 09:38 Europe/Amsterdam — v0.4.17 docs-only ([ANKA-65](/ANKA/issues/ANKA-65) — apply BlueprintAuditor [ANKA-64](/ANKA/issues/ANKA-64) §9/§10.4a/§22 rail-7 malformed-fill patches; forward-fix for 0.4.15 false claim)
 
 **What was done**

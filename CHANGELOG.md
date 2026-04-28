@@ -2,6 +2,35 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.18 — 2026-04-28 10:02 Europe/Amsterdam
+
+**Initiated by:** QAEngineer (agent), executing [ANKA-66](/ANKA/issues/ANKA-66) (Daily test coverage & regression audit).
+
+**Why:** The daily QA sweep found that gateway hard-rail coverage still has the required 28-case matrix (14 rails × breach/permit), and eval-harness FTMO property coverage already pins daily loss, max loss, ±5-min news blackout, min hold, and EA throttle. The remaining current Phase 3 semantics gap was the 2-h pre-news Tier-1 kill-switch in the property suite: sibling WIP has an example test, but no seeded invariant protecting `impact === 'high' OR restricted === true` plus the simulator breach path.
+
+**Added** — `@ankit-prop/eval-harness` v0.1.3 (`pkg:eval-harness/ftmo-rules`)
+
+- `packages/eval-harness/src/ftmo-rules.props.spec.ts` — new seeded property invariant for the 2-h pre-news kill-switch. Across 80 deterministic trials it asserts that every high-impact or restricted event creates exactly one pre-news window, non-high unrestricted events create none, and opening inside an eligible generated window records `news_blackout_open` with `detail.window === 'pre_news_2h'`.
+
+**Bumped**
+
+- `@ankit-prop/eval-harness` 0.1.2 → 0.1.3 (patch — test-only FTMO property coverage).
+- root `ankit-prop-umbrella` 0.4.17 → 0.4.18 (patch — workspace package version move).
+
+**Verification**
+
+- `bun test packages/eval-harness/src/ftmo-rules.props.spec.ts services/ctrader-gateway/src/hard-rails/matrix.spec.ts` — pre-change audit baseline: 39 pass / 0 fail / 1168 expects.
+- Deliberate regression check: temporarily changed `buildPreNewsWindows` to `e.restricted` only; `bun test packages/eval-harness/src/ftmo-rules.props.spec.ts --test-name-pattern "pre-news invariant"` failed at trial 2 (`impact=high restricted=false`, expected 1 window, received 0). Restored implementation.
+- `bun test packages/eval-harness/src/ftmo-rules.props.spec.ts --test-name-pattern "pre-news invariant"` — 1 pass / 0 fail / 129 expects after restore.
+- `bun run lint:fix` — exit 0; no fixes applied. Biome still reports pre-existing unsafe suggestions / one unused-import warning in unrelated files.
+- `bun test` — 261 pass / 0 fail / 1839 expects.
+- `bun run typecheck` — clean.
+
+**Notes**
+
+- Existing sibling-agent edits in `packages/eval-harness/src/ftmo-rules.spec.ts` and `packages/eval-harness/src/prague-day.spec.ts` were left unstaged and untouched by this commit scope.
+- No service restart required: test-only package change, no running service package changed.
+
 ## 0.4.17 — 2026-04-28 09:38 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-65](/ANKA/issues/ANKA-65) (apply BlueprintAuditor [ANKA-64](/ANKA/issues/ANKA-64) audit patches; forward-fix for the false-claim in the 0.4.15 entry below and commit `c6c2247` body paragraph 4).

@@ -7,6 +7,7 @@
 import { describe, expect, test } from 'bun:test';
 import {
   buildBlackoutWindows,
+  buildPreNewsWindows,
   FTMO_DEFAULT_LINE,
   FtmoSimulator,
   type FtmoSimulatorCfg,
@@ -228,6 +229,47 @@ describe('FTMO rules — property invariants', () => {
       };
       sim.onTradeOpen(openedAt, pos);
       expect(sim.getBreaches().some((b) => b.kind === 'news_blackout_open')).toBe(false);
+    }
+  });
+
+  test('pre-news invariant: every high-impact or restricted event generates a 2-h kill-switch breach', () => {
+    const rand = mulberry32(0x71e21);
+    const preWidth = INTERNAL_DEFAULT_MARGINS.preNewsBlackoutMs;
+    const impacts = ['low', 'medium', 'high'] as const;
+
+    for (let i = 0; i < TRIALS; i++) {
+      const eventTs = DAY + 12 * 3_600_000 + i * 600_000;
+      const impact = impacts[Math.floor(rand() * impacts.length)] ?? 'low';
+      const restricted = rand() < 0.35;
+      const symbol = rand() < 0.5 ? 'XAUUSD' : 'NAS100';
+      const eligible = restricted || impact === 'high';
+      const windows = buildPreNewsWindows(
+        [{ tsMs: eventTs, symbols: [symbol], restricted, impact }],
+        preWidth,
+      ).map((w) => ({ symbols: new Set(w.symbols), startMs: w.startMs, endMs: w.endMs }));
+
+      expect(windows.length, `trial ${i} impact=${impact} restricted=${restricted}`).toBe(
+        eligible ? 1 : 0,
+      );
+      if (!eligible) continue;
+
+      const openAt = eventTs - 1 - Math.floor(rand() * (preWidth - 1));
+      const sim = new FtmoSimulator(cfg({ preNewsBlackoutWindows: windows }));
+      sim.setInitialDay(openAt - 60_000, INITIAL);
+      sim.onTradeOpen(openAt, {
+        id: `pre-news-${i}`,
+        symbol,
+        side: 'long',
+        sizeLots: 0.1,
+        openedAt: openAt,
+        openPrice: 2050,
+        stopLoss: 2045,
+      });
+
+      const breach = sim.getBreaches().find((b) => b.kind === 'news_blackout_open');
+      expect(breach?.detail.window, `trial ${i} impact=${impact} restricted=${restricted}`).toBe(
+        'pre_news_2h',
+      );
     }
   });
 
