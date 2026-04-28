@@ -1,0 +1,35 @@
+#!/bin/sh
+
+set -u
+
+required_footer='Co-Authored-By: Paperclip <noreply@paperclip.ing>'
+message_file=${1:-}
+
+if [ -z "$message_file" ] || [ ! -f "$message_file" ]; then
+  echo 'commit-msg hook: expected path to an existing commit message file.' >&2
+  exit 1
+fi
+
+first_line=$(sed -n '1p' "$message_file")
+
+case "$first_line" in
+  Merge\ * | fixup\!* | squash\!*)
+    exit 0
+    ;;
+esac
+
+merge_msg_path=$(git rev-parse --git-path MERGE_MSG 2>/dev/null || true)
+if [ -n "$merge_msg_path" ] && [ -f "$merge_msg_path" ]; then
+  exit 0
+fi
+
+if grep -Fxq "$required_footer" "$message_file"; then
+  exit 0
+fi
+
+cat >&2 <<EOF
+commit-msg hook: missing required footer line:
+$required_footer
+EOF
+
+exit 1

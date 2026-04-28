@@ -54,6 +54,7 @@ Never overwrite `AGENTS.md`, `BLUEPRINT.md`, `TODOS.md`,
 then targeted edits.
 
 Commits include `Co-Authored-By: Paperclip <noreply@paperclip.ing>`.
+The repo-local `.githooks/commit-msg` hook enforces this footer.
 Never skip pre-commit hooks (`--no-verify`) without explicit operator
 permission. Never commit secrets or `*.config.yaml` files containing
 credentials.

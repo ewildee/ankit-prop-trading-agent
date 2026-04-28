@@ -29,6 +29,35 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bun test services/ctrader-gateway` — 107 pass / 0 fail / 606 expects.
 - Gateway-scoped `tsc --ignoreConfig ... services/ctrader-gateway/src/**/*.ts` — exit 0.
 
+## 0.4.23 — 2026-04-28 17:14 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-102](/ANKA/issues/ANKA-102) as follow-up from [ANKA-101](/ANKA/issues/ANKA-101).
+
+**Why:** The Paperclip co-author footer was required by BLUEPRINT §0.2 and AGENTS.md but only enforced by agent diligence. The ANKA-101 governance decision kept `main` history intact and delegated a repo-local hook so future commits fail before landing without the audit footer.
+
+**Added**
+
+- `.githooks/commit-msg` — pure POSIX shell hook that allows merge, `fixup!`, and `squash!` commits, and rejects normal commit messages missing the exact `Co-Authored-By: Paperclip <noreply@paperclip.ing>` line.
+- `.githooks/commit-msg.spec.ts` — Bun regression coverage for missing-footer rejection, valid-footer acceptance, merge commit bypass, and `fixup!`/`squash!` bypass.
+- Root `postinstall` wiring sets `core.hooksPath` to `.githooks` when `bun install` runs inside a git work tree.
+
+**Changed**
+
+- `AGENTS.md` now points at `.githooks/commit-msg` as the enforcement surface for the existing footer rule.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.22 → 0.4.23 (patch — tooling enforcement).
+
+**Verification**
+
+- `bun install` — exit 0; `postinstall` set `git config core.hooksPath` to `.githooks`.
+- `bun test --filter commit-msg` — 4 pass / 0 fail / 6 expects.
+- `bun run lint:fix` — exit 0; existing warnings only, no fixes applied.
+- `bun test` — 322 pass / 0 fail / 2051 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `git commit --allow-empty -m "chore: test"` — failed as expected and named the missing `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer.
+- Re-run after [ANKA-103](/ANKA/issues/ANKA-103) blocker resolution at 17:50 Europe/Amsterdam: same commands pass on current `main`; `bun run lint:fix` exits 0 with existing unrelated warnings only.
 
 ## Governance — 2026-04-28 17:08 Europe/Amsterdam — [ANKA-101](/ANKA/issues/ANKA-101)
 

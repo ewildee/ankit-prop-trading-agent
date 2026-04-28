@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 17:50 Europe/Amsterdam — v0.4.23 ([ANKA-102](/ANKA/issues/ANKA-102) — blocker resolved, commit-msg hook re-verified)
+
+**What was done**
+
+- Resumed [ANKA-102](/ANKA/issues/ANKA-102) after `issue_blockers_resolved`; [ANKA-103](/ANKA/issues/ANKA-103) and follow-up [ANKA-104](/ANKA/issues/ANKA-104) commits had landed on `main`, leaving only ANKA-102 files dirty and no staged sibling work.
+- Re-ran the ANKA-102 verification gates on current `main`: `bun install`, `bun test --filter commit-msg`, `bun run lint:fix`, full `bun test`, `bun run typecheck`, and the direct no-footer `git commit --allow-empty -m "chore: test"` rejection.
+- Refreshed `.dev/progress.md` for the resume heartbeat. No service restart was needed because this is root tooling, not a long-running service package.
+
+**Findings**
+
+- `git status --short --branch` showed `main...origin/main` with only ANKA-102 files modified and no staged changes after the blocker resolved.
+- `bun run lint:fix` still exits 0 with pre-existing warnings in unrelated packages; no fixes were applied.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Keep the root `commit-msg.spec.ts` bridge so the exact requested `bun test --filter commit-msg` command keeps discovering the hook tests despite `.githooks/` being a dot-directory.
+
+**Unexpected behaviour**
+
+- None in this resume.
+
+**Adaptations**
+
+- Re-verified against the advanced `main` base before committing instead of relying only on the previous blocked-heartbeat results.
+
+**Open endings**
+
+- Commit, push, and route [ANKA-102](/ANKA/issues/ANKA-102) to [CodeReviewer](/ANKA/agents/codereviewer) and [SecurityReviewer](/ANKA/agents/securityreviewer).
+
 ## 2026-04-28 17:43 Europe/Amsterdam — [ANKA-104](/ANKA/issues/ANKA-104) — append-only journal correction + gateway /health re-proof
 
 **What was done**

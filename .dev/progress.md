@@ -2,11 +2,10 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 17:19 Europe/Amsterdam — [ANKA-103](/ANKA/issues/ANKA-103) rail 3/4 news timestamp fail-closed
+## 2026-04-28 17:50 Europe/Amsterdam — [ANKA-102](/ANKA/issues/ANKA-102) commit-msg Paperclip footer enforcement
 
-- Wake reason: issue assigned; no pending comment in the scoped payload. Work stayed on the [ANKA-100](/ANKA/issues/ANKA-100) child fix.
-- Fetched and read `https://bun.com/llms.txt` at 2026-04-28 17:19 Europe/Amsterdam before finalising Bun-runtime edits.
-- Rails 3/4 now reject non-finite `lastSuccessfulFetchAtMs` and strict future timestamps before stale-age arithmetic, with fail-closed reasons and `{ lastSuccessfulFetchAtMs, nowMs, newsStaleMaxMs }` detail.
-- `InMemoryNewsClient` omitted freshness now fails closed unless a fixture supplies `nowMs`; cascade hard-rail specs now declare freshness explicitly.
-- Verification green: `bun run lint:fix` (exit 0; pre-existing warnings remain), `bun test services/ctrader-gateway/src/hard-rails/news-staleness.spec.ts` (16 pass), `bun test services/ctrader-gateway` (107 pass), gateway-scoped `tsc` (exit 0).
-- Next: commit `@ankit-prop/ctrader-gateway` 0.2.12, push, restart gateway, verify `/health` reports 0.2.12, then route back to FoundingEngineer for review gate.
+- Wake reason: `issue_blockers_resolved`; [ANKA-103](/ANKA/issues/ANKA-103) has landed and the index is clean, so ANKA-102 is no longer blocked.
+- ANKA-102 diff remains scoped to `.githooks/commit-msg`, `.githooks/commit-msg.spec.ts`, root `commit-msg.spec.ts` bridge, root `package.json` postinstall/version, AGENTS note, CHANGELOG, TODOS, and this audit trail.
+- Fresh verification on current `main`: `bun install`, `bun test --filter commit-msg` (4 pass), `bun run lint:fix` (exit 0; existing warnings only), `bun test` (322 pass), `bun run typecheck` (clean), and no-footer `git commit --allow-empty -m "chore: test"` rejection.
+- No service package changed for [ANKA-102](/ANKA/issues/ANKA-102); no `/health` restart required.
+- Next: commit `feat(infra:tooling): enforce Paperclip co-author footer via commit-msg hook`, push, then route to CodeReviewer + SecurityReviewer.
