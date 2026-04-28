@@ -59,6 +59,26 @@ Never skip pre-commit hooks (`--no-verify`) without explicit operator
 permission. Never commit secrets or `*.config.yaml` files containing
 credentials.
 
+## PR merge protocol
+
+Repo: `ewildee/ankit-prop-trading-agent`. The default agent merge path
+(MCP `_merge_pull_request` / GitHub App) returns
+`403 Resource not accessible by integration` because the App
+installation lacks `Pull requests: write` on this repo.
+
+Until the App permissions are widened, use `gh` (authed as the operator
+with admin) as the canonical merge path:
+
+1. Verify the head: `gh pr view <N> --json headRefOid,mergeable,mergeStateStatus,state`.
+2. Confirm it matches the QA-reviewed SHA recorded on the issue.
+3. Merge: `gh pr merge <N> --merge --match-head-commit <sha>` (or
+   `--squash` / `--rebase` per the PR's stated strategy).
+4. Record the merge commit SHA on the corresponding Paperclip issue.
+
+Do not retry the MCP merge tool on 403 — fall through to `gh`
+immediately. If `gh` is also unavailable in the agent's environment,
+escalate to the board via comment.
+
 ## Build phases (BLUEPRINT §22)
 
 Move strictly in order. Phases 1→2→3 are sequential; phase 4 may
