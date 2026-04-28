@@ -2,13 +2,14 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 17:47 Europe/Amsterdam — [ANKA-93](/ANKA/issues/ANKA-93) lockfile reconciliation
+## 2026-04-28 18:00 Europe/Amsterdam — [ANKA-109](/ANKA/issues/ANKA-109) impossible ISO calendar dates
 
-- CodeReviewer BLOCK on [ANKA-93](/ANKA/issues/ANKA-93): clean `bun install --frozen-lockfile` failed at `843e662` because `bun.lock` was stale (gateway 0.2.9→0.2.10 not recorded; `packages/market-data-twelvedata` workspace member missing).
-- Operated in existing `…-anka95` worktree on `anka-81-news-calendar-db`; fast-forwarded local 1d45847 → 843e662.
-- `bun install` produced exact +13/-1 delta on `bun.lock` matching CR's findings; no transitive churn, no source code changed.
-- Verification: `bun install --frozen-lockfile` exit 0 ("Checked 59 installs across 65 packages, no changes"); `bun test services/news/src/calendar-db.spec.ts` → 25 pass / 0 fail / 54 expects.
-- Bumped root umbrella `0.4.29 → 0.4.30` (lockfile reconciliation patch); CHANGELOG + journal updated; per-package versions unchanged (no source delta).
-- Self-implemented under FE exception #1 (unblock reviewer pipeline) + #2 (trivial mechanical fix); diff scope is `bun.lock` + bookkeeping only.
-- Stashed unrelated `main` work for ANKA-102 (`commit-msg` hook) before switching branches; resume after this heartbeat.
-- Next: commit + push the lockfile/version/CHANGELOG/journal/progress delta on `anka-81-news-calendar-db`, then reassign [ANKA-93](/ANKA/issues/ANKA-93) back to CodeReviewer with verification proof.
+- Scoped wake had no pending comments; harness had already claimed [ANKA-109](/ANKA/issues/ANKA-109).
+- Worked in existing `…-anka95` worktree on `anka-81-news-calendar-db`; primary checkout was still on `main`.
+- Fetched/read `https://bun.com/llms.txt` at 2026-04-28 17:56 Europe/Amsterdam before Bun-runtime edits.
+- Re-read BLUEPRINT §0, §0.2, §5, §11, §17, §21-§22, and §25 plus heartbeat context.
+- Added shared strict ISO calendar/time validation in `services/news/src/calendar-db.ts` for `parseItemInstant` and `parseRangeInstant`.
+- Added regressions for impossible days, month 13, invalid time components, and valid leap-day persistence/querying.
+- Bumped `@ankit-prop/news` `0.2.5 → 0.2.6` and root `0.4.30 → 0.4.31`; CHANGELOG updated.
+- Verification: frozen install clean; `bun run lint:fix` exit 0 with unrelated unsafe suggestions only; `bun test services/news/src/calendar-db.spec.ts` → 32 pass / 0 fail / 104 expects; `bun run typecheck` clean; source debug grep no matches.
+- Next: append journal, commit, push `origin/anka-81-news-calendar-db`, then mark [ANKA-109](/ANKA/issues/ANKA-109) done with the commit SHA.

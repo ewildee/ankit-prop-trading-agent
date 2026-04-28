@@ -2,6 +2,35 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.31 — 2026-04-28 18:00 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-109](/ANKA/issues/ANKA-109) under parent [ANKA-93](/ANKA/issues/ANKA-93).
+
+**Why:** CodeReviewer found that `svc:news/calendar-db` still relied on `Date.parse` after shape validation, letting Bun normalize impossible dates such as non-leap February 29/30 into later calendar days. Calendar DB timestamps feed news blackout and pre-news rails, so impossible ISO instants must fail closed before persistence or range queries.
+
+**Changed** — `@ankit-prop/news` v0.2.5 → v0.2.6
+
+- `services/news/src/calendar-db.ts` — adds a shared strict ISO calendar/time validator for item and range instants. It rejects impossible day-of-month values, out-of-range months, and out-of-range hour/minute/second components before `Date.parse`.
+- `services/news/src/calendar-db.spec.ts` — adds write and query regressions for impossible days, month 13, invalid time components, and valid leap-day persistence/querying.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.2.5 → 0.2.6 (patch — fail-closed calendar instant validation).
+- root `ankit-prop-umbrella` 0.4.30 → 0.4.31 (patch — workspace package version move).
+
+**Verification**
+
+- `bun install --frozen-lockfile` — exit 0, "Checked 59 installs across 65 packages (no changes)".
+- `bun run lint:fix` — exit 0; no files changed, pre-existing unrelated unsafe suggestions remain outside `svc:news/calendar-db`.
+- `bun test services/news/src/calendar-db.spec.ts` — 32 pass / 0 fail / 104 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/calendar-db.ts services/news/src/calendar-db.spec.ts` — no matches.
+
+**Notes**
+
+- The issue brief listed older target versions (`@ankit-prop/news` 0.2.3 → 0.2.4, root 0.4.27 → 0.4.28), but this branch had already advanced through ANKA-95, ANKA-96, and ANKA-93 lockfile reconciliation. This entry advances from the actual branch tip versions.
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
 ## 0.4.30 — 2026-04-28 17:47 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, addressing CodeReviewer BLOCK on [ANKA-93](/ANKA/issues/ANKA-93).

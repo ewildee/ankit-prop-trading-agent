@@ -2,6 +2,46 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 18:00 Europe/Amsterdam — v0.4.31 ([ANKA-109](/ANKA/issues/ANKA-109) — `svc:news/calendar-db`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-109](/ANKA/issues/ANKA-109). No pending comments; harness had already claimed the issue.
+- Worked in the existing `…-anka95` worktree on `anka-81-news-calendar-db`; the primary checkout was still on `main`.
+- Fetched/read `https://bun.com/llms.txt` at 2026-04-28 17:56 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0, §0.2, §5, §11, §17, §21-§22, and §25 plus heartbeat context.
+- Added shared strict ISO calendar/time validation used by `parseItemInstant` and `parseRangeInstant`.
+- Added regressions for impossible days, month 13, invalid time components, and valid leap-day persistence/querying.
+- Bumped `@ankit-prop/news` 0.2.5 → 0.2.6 and root `ankit-prop-umbrella` 0.4.30 → 0.4.31.
+
+**Findings**
+
+- The branch had already advanced past the issue brief's listed versions through ANKA-95, ANKA-96, and the [ANKA-93](/ANKA/issues/ANKA-93) lockfile reconciliation, so this patch advances from the actual branch tip versions.
+- `bun install --frozen-lockfile` remained clean after the package version bump; `bun install` saved no dependency churn.
+
+**Decisions**
+
+- Kept the stricter calendar validity helper local to `services/news/src/calendar-db.ts` per the issue scope; did not touch `pkg:contracts`.
+- Preserved the existing `value.trim()` matching behaviour before `Date.parse`, because the review explicitly left whitespace semantics out of scope.
+
+**Unexpected behaviour**
+
+- Bun's frozen install did not require lockfile changes for the news workspace version bump in this branch state.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — exit 0, no changes.
+- `bun run lint:fix` — exit 0; only pre-existing unrelated unsafe suggestions outside `svc:news/calendar-db`.
+- `bun test services/news/src/calendar-db.spec.ts` — 32 pass / 0 fail / 104 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- Source debug grep (`console.log|debugger|TODO|HACK`) — no matches in `services/news/src/calendar-db.ts` or `.spec.ts`.
+
+**Open endings**
+
+- No code open endings for [ANKA-109](/ANKA/issues/ANKA-109) after commit/push.
+- FoundingEngineer owns rerouting parent [ANKA-93](/ANKA/issues/ANKA-93) back to CodeReviewer after this child issue closes.
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
 ## 2026-04-28 17:47 Europe/Amsterdam — v0.4.30 ([ANKA-93](/ANKA/issues/ANKA-93) — lockfile reconciliation)
 
 **What was done**

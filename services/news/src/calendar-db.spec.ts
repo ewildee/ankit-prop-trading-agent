@@ -28,6 +28,14 @@ const BASE_ITEM: CalendarItem = {
   youtubeLink: null,
   articleLink: null,
 };
+const IMPOSSIBLE_DAYS = [
+  '2026-02-29',
+  '2026-02-30',
+  '2026-04-31',
+  '2026-06-31',
+  '2026-09-31',
+  '2026-11-31',
+];
 
 describe('calendar-db', () => {
   test('openCalendarDb creates the table and indices in WAL mode', async () => {
@@ -188,6 +196,69 @@ describe('calendar-db', () => {
     });
   });
 
+  test('upsertItems rejects impossible day-of-month', async () => {
+    await withTempDb((db) => {
+      for (const date of IMPOSSIBLE_DAYS) {
+        const value = `${date}T14:30:00Z`;
+
+        expect(() => upsertItems(db, [item({ date: value })])).toThrow(CalendarDbWriteError);
+        expect(() => upsertItems(db, [item({ date: value })])).toThrow(
+          expect.objectContaining({
+            name: 'CalendarDbWriteError',
+            code: 'invalid_instant',
+            path: 'date',
+            value,
+          }),
+        );
+      }
+    });
+  });
+
+  test('upsertItems rejects out-of-range month components', async () => {
+    await withTempDb((db) => {
+      const value = '2026-13-01T00:00:00Z';
+
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(CalendarDbWriteError);
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbWriteError',
+          code: 'invalid_instant',
+          path: 'date',
+          value,
+        }),
+      );
+    });
+  });
+
+  test('upsertItems accepts valid leap-day instants', async () => {
+    await withTempDb((db) => {
+      const leapDay = item({ date: '2024-02-29T14:30:00Z' });
+
+      expect(upsertItems(db, [leapDay])).toEqual({ inserted: 1, updated: 0 });
+      expect(queryRange(db, '2024-02-29T00:00:00Z', '2024-03-01T00:00:00Z')).toEqual([leapDay]);
+    });
+  });
+
+  test('upsertItems rejects out-of-range time components', async () => {
+    await withTempDb((db) => {
+      for (const value of [
+        '2026-03-01T24:00:00Z',
+        '2026-03-01T12:60:00Z',
+        '2026-03-01T12:00:60Z',
+      ]) {
+        expect(() => upsertItems(db, [item({ date: value })])).toThrow(CalendarDbWriteError);
+        expect(() => upsertItems(db, [item({ date: value })])).toThrow(
+          expect.objectContaining({
+            name: 'CalendarDbWriteError',
+            code: 'invalid_instant',
+            path: 'date',
+            value,
+          }),
+        );
+      }
+    });
+  });
+
   test('upsertItems fails closed on offsetless datetime', async () => {
     await withTempDb((db) => {
       const value = '2026-04-28T14:30:00';
@@ -302,6 +373,67 @@ describe('calendar-db', () => {
           code: 'invalid_range',
           path: 'toIso',
           value: 'garbage',
+        }),
+      );
+    });
+  });
+
+  test('queryRange rejects impossible day-of-month for fromIso', async () => {
+    await withTempDb((db) => {
+      for (const date of IMPOSSIBLE_DAYS) {
+        const value = `${date}T14:30:00Z`;
+
+        expect(() => queryRange(db, value, '2026-12-01T00:00:00Z')).toThrow(CalendarDbQueryError);
+        expect(() => queryRange(db, value, '2026-12-01T00:00:00Z')).toThrow(
+          expect.objectContaining({
+            name: 'CalendarDbQueryError',
+            code: 'invalid_range',
+            path: 'fromIso',
+            value,
+          }),
+        );
+      }
+    });
+  });
+
+  test('queryRange rejects impossible day-of-month for toIso', async () => {
+    await withTempDb((db) => {
+      for (const date of IMPOSSIBLE_DAYS) {
+        const value = `${date}T14:30:00Z`;
+
+        expect(() => queryRange(db, '2026-01-01T00:00:00Z', value)).toThrow(CalendarDbQueryError);
+        expect(() => queryRange(db, '2026-01-01T00:00:00Z', value)).toThrow(
+          expect.objectContaining({
+            name: 'CalendarDbQueryError',
+            code: 'invalid_range',
+            path: 'toIso',
+            value,
+          }),
+        );
+      }
+    });
+  });
+
+  test('queryRange rejects out-of-range month components', async () => {
+    await withTempDb((db) => {
+      const value = '2026-13-01T00:00:00Z';
+
+      expect(() => queryRange(db, value, '2026-12-01T00:00:00Z')).toThrow(CalendarDbQueryError);
+      expect(() => queryRange(db, value, '2026-12-01T00:00:00Z')).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbQueryError',
+          code: 'invalid_range',
+          path: 'fromIso',
+          value,
+        }),
+      );
+      expect(() => queryRange(db, '2026-01-01T00:00:00Z', value)).toThrow(CalendarDbQueryError);
+      expect(() => queryRange(db, '2026-01-01T00:00:00Z', value)).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbQueryError',
+          code: 'invalid_range',
+          path: 'toIso',
+          value,
         }),
       );
     });

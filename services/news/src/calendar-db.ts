@@ -73,7 +73,7 @@ export interface UpsertResult {
 const INIT_SQL_PATH = join(import.meta.dir, '..', 'sql', 'init.sql');
 const CLOSED_DATABASES = new WeakSet<Database>();
 const ISO_INSTANT_WITH_OFFSET_RE =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:?\d{2})$/;
+  /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d{1,9})?(?:Z|[+-]\d{2}:?\d{2})$/;
 
 export function openCalendarDb(path: string): Database {
   try {
@@ -254,7 +254,7 @@ function assertSchemaCanInitialize(db: Database, path: string): void {
 }
 
 function parseItemInstant(value: string): number {
-  if (!isIsoInstantWithOffset(value)) {
+  if (!isStrictIsoInstantWithOffset(value)) {
     throw new CalendarDbWriteError({
       code: 'invalid_instant',
       path: 'date',
@@ -276,7 +276,7 @@ function parseItemInstant(value: string): number {
 }
 
 function parseRangeInstant(path: 'fromIso' | 'toIso', value: string): number {
-  if (!isIsoInstantWithOffset(value)) {
+  if (!isStrictIsoInstantWithOffset(value)) {
     throw new CalendarDbQueryError({
       code: 'invalid_range',
       path,
@@ -297,8 +297,39 @@ function parseRangeInstant(path: 'fromIso' | 'toIso', value: string): number {
   return instantMs;
 }
 
-function isIsoInstantWithOffset(value: string): boolean {
-  return ISO_INSTANT_WITH_OFFSET_RE.test(value.trim());
+function isStrictIsoInstantWithOffset(value: string): boolean {
+  const match = ISO_INSTANT_WITH_OFFSET_RE.exec(value.trim());
+  if (match === null) {
+    return false;
+  }
+
+  const [, yearRaw, monthRaw, dayRaw, hourRaw, minuteRaw, secondRaw] = match;
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  const second = Number(secondRaw);
+
+  if (month < 1 || month > 12 || day < 1) {
+    return false;
+  }
+  if (hour > 23 || minute > 59 || second > 59) {
+    return false;
+  }
+
+  return day <= daysInMonth(year, month);
+}
+
+function daysInMonth(year: number, month: number): number {
+  if (month === 2) {
+    const leap = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+    return leap ? 29 : 28;
+  }
+  if (month === 4 || month === 6 || month === 9 || month === 11) {
+    return 30;
+  }
+  return 31;
 }
 
 export function closeCalendarDb(db: Database): void {
