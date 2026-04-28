@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 14:55 Europe/Amsterdam — v0.4.29 ([ANKA-96](/ANKA/issues/ANKA-96) — `svc:news/calendar-db`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-96](/ANKA/issues/ANKA-96). No pending comments; the issue was already in progress for CodexExecutor.
+- Fetched `https://bun.com/llms.txt` at 14:21 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0.2, §11.2-§11.8, §17, §22, and §25 plus heartbeat context.
+- Initial push of detached commit `993a9be` failed because `origin/anka-81-news-calendar-db` advanced with [ANKA-95](/ANKA/issues/ANKA-95); the push failure was reported on [ANKA-96](/ANKA/issues/ANKA-96) before continuing.
+- Rebased the ANKA-96 correction conceptually by creating detached `/tmp/anka96-ff` from the new remote tip, then made a fast-forward corrective commit.
+- Narrowed `ISO_INSTANT_WITH_OFFSET_RE` to ANKA-96's exact full ISO instant contract and removed the permissive minute-precision acceptance test.
+- Bumped `@ankit-prop/news` 0.2.4 → 0.2.5 and root `ankit-prop-umbrella` 0.4.28 → 0.4.29.
+
+**Findings**
+
+- [ANKA-95](/ANKA/issues/ANKA-95) already added most locale-string regressions but kept a regex that allowed `YYYY-MM-DDTHH:MM` without seconds. [ANKA-96](/ANKA/issues/ANKA-96) requires seconds in the full instant shape.
+
+**Contradictions**
+
+- The original [ANKA-96](/ANKA/issues/ANKA-96) body expected 0.4.28 / 0.2.4, but the remote branch reached those versions before this commit. The corrective commit therefore uses 0.4.29 / 0.2.5 to preserve BLUEPRINT §0.2 version discipline.
+
+**Decisions**
+
+- Did not force-push over [ANKA-95](/ANKA/issues/ANKA-95). Landed a new fast-forward correction instead.
+
+**Unexpected behaviour**
+
+- A concurrent Codex run wrote to the same local branch/worktree during the heartbeat, so final work was isolated in a detached worktree.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; `bun test services/news/src/calendar-db.spec.ts` 25 pass / 0 fail / 54 expects; `bun run typecheck` clean; modified-code debug grep clean.
+- No `/health` restart is possible yet because `services/news` still has only the placeholder `start` script.
+
 ## 2026-04-28 14:44 Europe/Amsterdam — v0.4.28 ([ANKA-95](/ANKA/issues/ANKA-95) — `svc:news/calendar-db`)
 
 **What was done**

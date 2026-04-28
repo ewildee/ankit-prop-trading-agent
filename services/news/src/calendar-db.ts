@@ -72,9 +72,8 @@ export interface UpsertResult {
 
 const INIT_SQL_PATH = join(import.meta.dir, '..', 'sql', 'init.sql');
 const CLOSED_DATABASES = new WeakSet<Database>();
-// ANKA-93: full ISO grammar keeps rails #3/#4 fail-closed; Bun rejects second-precision offsets.
 const ISO_INSTANT_WITH_OFFSET_RE =
-  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{3})?)?(?:Z|[+-]\d{2}:?\d{2})$/;
+  /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,9})?(?:Z|[+-]\d{2}:?\d{2})$/;
 
 export function openCalendarDb(path: string): Database {
   try {

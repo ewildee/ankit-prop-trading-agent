@@ -220,15 +220,6 @@ describe('calendar-db', () => {
     });
   });
 
-  test('upsertItems accepts minute-precision ISO instants with compact numeric offsets', async () => {
-    await withTempDb((db) => {
-      const event = item({ title: 'Minute precision', date: '2026-04-28T14:30+0200' });
-
-      expect(upsertItems(db, [event])).toEqual({ inserted: 1, updated: 0 });
-      expect(queryRange(db, '2026-04-28T12:00Z', '2026-04-28T13:00Z')).toEqual([event]);
-    });
-  });
-
   test('upsertItems fails closed on RFC-2822-style locale string with GMT offset', async () => {
     await withTempDb((db) => {
       const value = 'Tue Apr 28 2026 14:30:00 GMT+0200';

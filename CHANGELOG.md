@@ -2,6 +2,33 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.29 — 2026-04-28 14:55 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-96](/ANKA/issues/ANKA-96) under parent [ANKA-89](/ANKA/issues/ANKA-89).
+
+**Why:** `origin/anka-81-news-calendar-db` advanced with [ANKA-95](/ANKA/issues/ANKA-95) while this heartbeat was running, but that implementation still allowed minute-precision ISO-like strings. [ANKA-96](/ANKA/issues/ANKA-96) requires the exact full ISO 8601 instant shape from the review request: seconds are mandatory, fractional seconds may be 1-9 digits, and offsets are limited to `Z`, `±HH:MM`, or `±HHMM`.
+
+**Changed** — `@ankit-prop/news` v0.2.4 → v0.2.5
+
+- `services/news/src/calendar-db.ts` — narrows `ISO_INSTANT_WITH_OFFSET_RE` to the exact ANKA-96 full-match contract.
+- `services/news/src/calendar-db.spec.ts` — removes the permissive minute-precision acceptance regression so the spec matches the required full instant shape.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.2.4 → 0.2.5 (patch — corrective full ISO instant shape).
+- root `ankit-prop-umbrella` 0.4.28 → 0.4.29 (patch — workspace package version move).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; no files changed, pre-existing unrelated unsafe suggestions remain outside `svc:news/calendar-db`.
+- `bun test services/news/src/calendar-db.spec.ts` — 25 pass / 0 fail / 54 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/calendar-db.ts services/news/src/calendar-db.spec.ts` — no matches.
+
+**Notes**
+
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
 ## 0.4.28 — 2026-04-28 14:44 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-95](/ANKA/issues/ANKA-95) under parent [ANKA-89](/ANKA/issues/ANKA-89).
