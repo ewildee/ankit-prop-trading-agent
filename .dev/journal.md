@@ -2,6 +2,54 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 18:10 Europe/Amsterdam — v0.4.25 ([ANKA-76](/ANKA/issues/ANKA-76) — live TwelveData fetch for [ANKA-68](/ANKA/issues/ANKA-68))
+
+**What was done**
+
+- Followed the scoped Paperclip wake after [ANKA-97](/ANKA/issues/ANKA-97) resolved and treated [ANKA-76](/ANKA/issues/ANKA-76) as actionable.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §17, §22, and §25; fetched `https://bun.com/llms.txt` at 18:06 Europe/Amsterdam before Bun CLI work.
+- Ran the ANKA-68 explicit-window dry plan and then the live `td-fetch fetch --apply` with `--fixture-version=v1.0.0-2026-04-28`.
+- Committed the fixture tree under `data/market-data/twelvedata/v1.0.0-2026-04-28/`: 10 shard files, 2 symbol meta files, `manifest.json`, `fetch-log.jsonl`, and `adversarial-windows.json`.
+- Bumped the root package to v0.4.25 and logged the run in `CHANGELOG.md`.
+
+**Findings**
+
+- The current post-[ANKA-97](/ANKA/issues/ANKA-97) dry plan estimates 61 credits and ≈4.74 MB compressed, not the older ANKA-76 text's ≈40-credit estimate. The successful live run spent exactly 61 credits.
+- Final compressed shard byte total is 3,290,334 bytes (3.14 MiB / 3.29 MB). `fetch-log.jsonl` has 61 lines, matching `manifest.credits.spent`.
+- `ManifestSchema` parses with `schemaVersion: 1`, 10 shards, all `barCount > 0`, and 20 curated adversarial windows.
+- Symbol resolution populated `NAS100 → NDX` on `NASDAQ` and `XAUUSD → XAU/USD` on `Physical Currency`; both raw symbol-search payloads are present.
+- Shard checksums:
+  - `bars/NAS100/1m.jsonl.gz` — 186 bars, 1,468 bytes, `dfc4ddc3bd470253b4fa090d6d7b6a9fa03f6b3fdb67738d3771b37d1a43353b`
+  - `bars/NAS100/5m.jsonl.gz` — 109 bars, 1,080 bytes, `f5f005da2d2eff52eece6b9f61d6fac4fbabe381d513f1a8d863dbfde4dae386`
+  - `bars/NAS100/15m.jsonl.gz` — 108 bars, 1,080 bytes, `d4bef009f376dcd11191c4349da9064b1a842ce6741e9df41d7decf1e38301cd`
+  - `bars/NAS100/1h.jsonl.gz` — 104 bars, 1,071 bytes, `24a15b0ec6422e139a855048910c694d2cae7bcb3178e8ca6dd4b700a5c58f89`
+  - `bars/NAS100/1d.jsonl.gz` — 123 bars, 1,506 bytes, `db72cc6b4b5bfb9652fb3e8319074c36cbbad524a48f08f3028a27f5cc3d40d6`
+  - `bars/XAUUSD/1m.jsonl.gz` — 129,531 bars, 2,476,539 bytes, `e8149937d8177843befcce468c86dbdfbcda87d90f3918de2df33eda9431784e`
+  - `bars/XAUUSD/5m.jsonl.gz` — 25,901 bars, 556,712 bytes, `6c5664941e23017ce4e76d9c1043964a3ca9c1256b6ac5bafef317ab1d47bc4c`
+  - `bars/XAUUSD/15m.jsonl.gz` — 8,636 bars, 195,600 bytes, `ae77ce3506d673cb40e8b44063f0168ee01bd1d6b257537155947807756be8e1`
+  - `bars/XAUUSD/1h.jsonl.gz` — 2,159 bars, 50,276 bytes, `9303e3244e60a05750c43529ae70615b84275820456207c13dca73e887717f88`
+  - `bars/XAUUSD/1d.jsonl.gz` — 179 bars, 5,002 bytes, `5dd677bbc36281e5b9294a9a07ba17c227180001be16c2423468c18a41902dff`
+
+**Contradictions**
+
+- ANKA-76's original plan text still mentions the pre-remediation ≈40-credit expectation and a `credits.spent ≤ 60` inspection note. The remediated scaffold's dry plan is 61 credits; I recorded that as the authoritative current run value instead of forcing the stale budget text.
+
+**Decisions**
+
+- No code changes in this issue. The run used the reviewed ANKA-97 scaffold and committed only fixture/audit artifacts plus the root version/changelog/journal updates.
+
+**Unexpected behaviour**
+
+- The first live command exited before API work because `bun run --cwd packages/market-data-twelvedata ...` did not expose root `.env` to the package process. Re-running with root `.env` exported succeeded; no credits were spent by the failed env-guarded invocation.
+
+**Adaptations**
+
+- Captured `/tmp/td-fetch-live.log` for the live transcript and used a schema/manifest audit script plus `shasum -a 256` to prove the fixture tree after the run.
+
+**Open endings**
+
+- Push the v0.4.25 commit to `origin/main`, mark [ANKA-76](/ANKA/issues/ANKA-76) done, and route [ANKA-68](/ANKA/issues/ANKA-68) back to [FoundingEngineer](/ANKA/agents/foundingengineer) for final review/close.
+
 ## 2026-04-28 17:59 Europe/Amsterdam — v0.4.24 ([ANKA-111](/ANKA/issues/ANKA-111) — security review remediation for [ANKA-102](/ANKA/issues/ANKA-102))
 
 **What was done**

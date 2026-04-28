@@ -1,0 +1,316 @@
+{
+  "symbol": "XAUUSD",
+  "twelveDataAlias": "XAU/USD",
+  "exchange": "Physical Currency",
+  "instrumentType": "Forex",
+  "currency": "USD",
+  "timezone": "UTC",
+  "sessionCalendar": "forex-24x5",
+  "dstHandling": "exchange-local-tz",
+  "fetchedAt": "2026-04-28T16:08:23.270Z",
+  "rawSymbolSearch": {
+    "data": [
+      {
+        "symbol": "XAU/USD",
+        "instrument_name": "Gold Spot / US Dollar",
+        "exchange": "COMMODITY",
+        "mic_code": "COMMODITY",
+        "exchange_timezone": "Australia/Sydney",
+        "instrument_type": "Precious Metal",
+        "country": "",
+        "currency": "USD"
+      },
+      {
+        "symbol": "F72676",
+        "instrument_name": "Vontobel Call Warrant on XAU/USD",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72671",
+        "instrument_name": "Vontobel Warrant on XAU/USD",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72665",
+        "instrument_name": "Vontobel Warrant CW26 Gold (XAU/USD)",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72670",
+        "instrument_name": "Vontobel Warrant on Gold (XAU/USD)",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72673",
+        "instrument_name": "Vontobel Warrant on XAU/USD",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F78167",
+        "instrument_name": "Vontobel Warrant on Gold Spot XAU/USD",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72664",
+        "instrument_name": "Vontobel Warrant on Gold (XAU/USD)",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72674",
+        "instrument_name": "Vontobel Warrant on XAU/USD",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72666",
+        "instrument_name": "Vontobel Warrant on Gold (XAU/USD)",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F77673",
+        "instrument_name": "Vontobel Certificate Warrant on XAU/USD",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72669",
+        "instrument_name": "Vontobel CW26 XAU/USD Warrant",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72675",
+        "instrument_name": "Vontobel CW26 XAU/USD Warrant",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F77670",
+        "instrument_name": "Vontobel PW26 XAU/USD Warrant",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F77219",
+        "instrument_name": "Vontobel CW26 XAU/USD Warrant",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F76407",
+        "instrument_name": "Vontobel PW26 XAU-USD Warrant",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F77217",
+        "instrument_name": "Vontobel PW26 XAU-USD Warrant",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F78162",
+        "instrument_name": "Vontobel XAU/USD Warrant (F78162)",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F78165",
+        "instrument_name": "Vontobel Call Warrant on Gold XAU/USD 2,600.00 USD 20/03/2026",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F78164",
+        "instrument_name": "Vontobel Call Warrant on Gold XAU/USD 2600.00 USD Strike, expiring March 20, 2026",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F78166",
+        "instrument_name": "Vontobel Call Warrant on Gold (XAU/USD) 2600 USD Strike 20 March 2026",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F78171",
+        "instrument_name": "Bank Vontobel AG Call Warrant on Gold (XAU/USD) 2,600 USD Strike, Maturity 20 Mar 2026",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72667",
+        "instrument_name": "Vontobel Warrant on XAU/USD Exchange Rate",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F76735",
+        "instrument_name": "Vontobel Warrant on XAU/USD Exchange Rate",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F78170",
+        "instrument_name": "Vontobel Call Warrant on Gold XAU/USD, Expiring March 2026",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F78155",
+        "instrument_name": "Vontobel Call Warrant on Gold (XAU/USD) expiring March 2026",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72692",
+        "instrument_name": "Vontobel PW26 XAU-USD Call Warrant",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F78163",
+        "instrument_name": "Vontobel AG XAU/USD Call Warrant, expiry March 20, 2026",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F72693",
+        "instrument_name": "Vontobel Gold (XAU/USD) Call Warrant with Knock-Out",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      },
+      {
+        "symbol": "F78157",
+        "instrument_name": "Vontobel Warrant on Gold (XAU/USD), Call, USD 2,600 Strike, Matures March 20, 2026",
+        "exchange": "MTA",
+        "mic_code": "XMIL",
+        "exchange_timezone": "Europe/Rome",
+        "instrument_type": "Warrant",
+        "country": "Italy",
+        "currency": "EUR"
+      }
+    ],
+    "status": "ok"
+  }
+}

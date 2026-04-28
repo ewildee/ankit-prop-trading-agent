@@ -2,13 +2,13 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 18:00 Europe/Amsterdam — [ANKA-111](/ANKA/issues/ANKA-111) security review of [ANKA-102](/ANKA/issues/ANKA-102)
+## 2026-04-28 18:10 Europe/Amsterdam — [ANKA-76](/ANKA/issues/ANKA-76) live TwelveData fetch
 
-- Wake reason: `issue_assigned`; security review target is commit `f1f2c05` for `.githooks/commit-msg` and guarded root `postinstall`.
-- Re-read BLUEPRINT §0, §0.1, §0.2, §17, §22, §25 before edits.
-- Fetched `https://bun.com/llms.txt` at 17:57 Europe/Amsterdam before touching Bun test coverage.
-- Findings under remediation: subject-line bypass for `Merge`/`fixup!`/`squash!`, and `postinstall` mutating a parent consumer repo from nested package paths.
-- Remediation tightens merge bypass to the actual Git `MERGE_MSG` file, moves install wiring to `.githooks/install.sh`, and adds regression coverage.
-- Verification: `bun install`, `bun test --filter commit-msg` (7 pass), `bun run lint:fix` (exit 0; existing unrelated warnings), `bun test` (325 pass), `bun run typecheck` (clean).
+- Wake reason: `issue_blockers_resolved`; blocker [ANKA-97](/ANKA/issues/ANKA-97) is done, so ANKA-76 is actionable.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §17, §22, §25 before running the fetch.
+- Fetched `https://bun.com/llms.txt` at 18:06 Europe/Amsterdam before Bun CLI work.
+- Live `td-fetch fetch --apply` succeeded: 61 credits, 10 shards, 3,290,334 compressed shard bytes, 63 seconds.
+- Manifest/schema audit clean: 10 shards, 61 fetch-log lines, 20 adversarial windows, populated NAS100/XAUUSD symbol meta, shasums match.
+- Verification: `bun run lint:fix`, `bun test --cwd packages/market-data-twelvedata` (41 pass), `bun run typecheck` (clean).
 - No service package changed; no `/health` restart required.
-- Next: commit the v0.4.24 remediation and close [ANKA-111](/ANKA/issues/ANKA-111) with residual risk.
+- Next: force-add ignored fixture tree, commit v0.4.25 with Paperclip footer, push `origin/main`, update ANKA-76/ANKA-68.

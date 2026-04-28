@@ -2,6 +2,55 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.25 — 2026-04-28 18:10 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-76](/ANKA/issues/ANKA-76) as the live operational follow-through for [ANKA-68](/ANKA/issues/ANKA-68).
+
+**Why:** ANKA-68's TwelveData scaffold had shipped and passed review, leaving the two operational acceptance bullets open: commit the live fixture tree with manifest/checksums, and log the real `td-fetch fetch --apply` spend and final byte size.
+
+**Added**
+
+- `data/market-data/twelvedata/v1.0.0-2026-04-28/` — live TwelveData fixture tree for explicit ANKA-68 windows:
+  - intraday: `2026-01-28T00:00:00.000Z` → `2026-04-28T00:00:00.000Z`
+  - daily tail: `2025-10-28T00:00:00.000Z` → `2026-04-28T00:00:00.000Z`
+  - symbols: `NAS100`, `XAUUSD`
+  - timeframes: `1m`, `5m`, `15m`, `1h`, `1d`
+- `manifest.json` and `fetch-log.jsonl` for the run. `ManifestSchema` parses, all 10 shards are present, `fetch-log.jsonl` has 61 entries, and `adversarial-windows.json` has 20 windows.
+
+**Shard manifest**
+
+| Shard | Bars | Bytes gz | SHA-256 |
+|-------|------|----------|---------|
+| `bars/NAS100/1m.jsonl.gz` | 186 | 1,468 | `dfc4ddc3bd470253b4fa090d6d7b6a9fa03f6b3fdb67738d3771b37d1a43353b` |
+| `bars/NAS100/5m.jsonl.gz` | 109 | 1,080 | `f5f005da2d2eff52eece6b9f61d6fac4fbabe381d513f1a8d863dbfde4dae386` |
+| `bars/NAS100/15m.jsonl.gz` | 108 | 1,080 | `d4bef009f376dcd11191c4349da9064b1a842ce6741e9df41d7decf1e38301cd` |
+| `bars/NAS100/1h.jsonl.gz` | 104 | 1,071 | `24a15b0ec6422e139a855048910c694d2cae7bcb3178e8ca6dd4b700a5c58f89` |
+| `bars/NAS100/1d.jsonl.gz` | 123 | 1,506 | `db72cc6b4b5bfb9652fb3e8319074c36cbbad524a48f08f3028a27f5cc3d40d6` |
+| `bars/XAUUSD/1m.jsonl.gz` | 129,531 | 2,476,539 | `e8149937d8177843befcce468c86dbdfbcda87d90f3918de2df33eda9431784e` |
+| `bars/XAUUSD/5m.jsonl.gz` | 25,901 | 556,712 | `6c5664941e23017ce4e76d9c1043964a3ca9c1256b6ac5bafef317ab1d47bc4c` |
+| `bars/XAUUSD/15m.jsonl.gz` | 8,636 | 195,600 | `ae77ce3506d673cb40e8b44063f0168ee01bd1d6b257537155947807756be8e1` |
+| `bars/XAUUSD/1h.jsonl.gz` | 2,159 | 50,276 | `9303e3244e60a05750c43529ae70615b84275820456207c13dca73e887717f88` |
+| `bars/XAUUSD/1d.jsonl.gz` | 179 | 5,002 | `5dd677bbc36281e5b9294a9a07ba17c227180001be16c2423468c18a41902dff` |
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.24 → 0.4.25 (patch — committed live fixture audit artifacts).
+
+**Run results**
+
+- `td-fetch fetch --apply` spent 61 TwelveData credits, produced 10 shards, and completed in 63 seconds.
+- Final compressed shard byte total: 3,290,334 bytes (3.14 MiB / 3.29 MB).
+- Note: the first invocation exited before any API call because `bun run --cwd packages/market-data-twelvedata ...` did not propagate the root `.env`; the successful invocation explicitly exported `.env` first.
+
+**Verification**
+
+- `bun run --cwd packages/market-data-twelvedata td-fetch plan --intraday-from=2026-01-28 --intraday-to=2026-04-28 --daily-from=2025-10-28 --daily-to=2026-04-28` — 10 shards, 61 total credits, ≈4.74 MB estimated compressed.
+- Manifest/schema audit script — `schemaVersion: 1`, 10 shards, 61 spent credits, 3,290,334 compressed bytes, 61 fetch-log lines, 20 adversarial windows; both symbol meta files have populated aliases/raw search payloads.
+- `shasum -a 256 data/market-data/twelvedata/v1.0.0-2026-04-28/bars/*/*.jsonl.gz` — matches all manifest shard hashes above.
+- `bun run lint:fix` — exit 0; no fixes applied; pre-existing warnings remain in unrelated/generated surfaces and existing package files.
+- `bun test --cwd packages/market-data-twelvedata` — 41 pass / 0 fail / 149 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+
 ## 0.4.24 — 2026-04-28 17:59 Europe/Amsterdam
 
 **Initiated by:** SecurityReviewer (agent), executing [ANKA-111](/ANKA/issues/ANKA-111) as security review remediation for [ANKA-102](/ANKA/issues/ANKA-102).
