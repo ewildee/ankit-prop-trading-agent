@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 23:36 Europe/Amsterdam — docs-only ([ANKA-123](/ANKA/issues/ANKA-123) — Phase 4 trader skeleton spec)
+
+**What was done**
+
+- Scoped Paperclip wake on [ANKA-123](/ANKA/issues/ANKA-123). Architect ([ANKA-123 comment 6035a456](/ANKA/issues/ANKA-123)) had finished the design pass and was read-only; handed back to FE for the spec write.
+- Per AGENTS.md "What FE keeps", design specs stay with FE; authored `.dev/specs/trader-skeleton.md` directly rather than briefing CodexExecutor.
+- Re-read BLUEPRINT §3 (runtime map + IPC: trader on `:9202`, Elysia typed RPC), §4 (account/envelope/instance, isolation invariants), §6.3–6.8 (Analyst→Trader→Judge→Gateway→Reflector + decision-A drop-on-overlap concurrency), §9 (hard rails are gateway-binding; `clientOrderId` is the rail-9 idempotency key), §17 (supervisor config — confirms `:9202` for trader), §18 (SQLite DDL for `decisions`/`orders`/`executions`/`trades`/`costs`/`control_state`/`phase_state`), §19 (`HealthSnapshot` + trader-specific `details` example, §19.3 endpoint surface), §25 (module catalog: `pkg:contracts/{pipeline,broker,control}` is the public boundary).
+- Cross-checked: `services/ctrader-gateway/src/hard-rails/types.ts` defines `NewOrderIntent`/`AmendOrderIntent`/`CloseOrderIntent` inside the service. The trader spec reroutes the public boundary through `pkg:contracts/broker` so trader code never imports gateway internals.
+- Spec acceptance checklist locked from the Architect's three findings: trader binds `:9202` (not `:9301`); contracts-first IPC boundary; hard rails binding in gateway with trader-generated stable `clientOrderId` per attempt.
+
+**Findings**
+
+- Issue text suggested `:9301`; supervisor config and §19.3 already pin `:9202` — sticking to `:9301` would have driven dashboard/supervisor drift before Phase 4 even starts. Spec corrects this.
+- `packages/shared-contracts/src/index.ts` exports `eval`, `hard-rails`, `health`, `news`, `obs`, plus `config` (post-077654b). Catalog rows `pipeline`, `broker`, `control` are still missing, so they have to land before any `services/trader` import — captured as the §10 implementation-routing order.
+- Elysia is in the frozen stack (`BLUEPRINT.md:593`) but not yet a workspace dependency (`package.json:33`). Spec calls this out as a residual risk and provides a fallback (Bun.serve + Zod handler shim with the same boundary).
+- The reflector is the only stage allowed to fail without halting the pipeline (§6 / `BLUEPRINT.md:854`); spec encodes this as the failure-isolation rule rather than leaving it implicit.
+
+**Decisions**
+
+- Process model is one Bun process with N in-process account loops + per-instance mutex (decision A), not N OS processes. Re-evaluation trigger written into the spec: > 1 enabled account *and* observable cross-account starvation.
+- Trader does not redo hard-rail coverage in tests — gateway already owns rail spec coverage. Trader-side test only asserts that a `RailVerdict.outcome:'reject'` from `MockGatewayClient.submit()` writes the right `decisions`/`orders` rows and emits a `decision` SSE event with the rail key. Avoids duplicate-coverage drift between services.
+- Spec stays under `.dev/specs/` (FE-owned, non-production); implementation issues split off [ANKA-119](/ANKA/issues/ANKA-119) in a documented order: contracts first (broker + control block trader; pipeline non-blocking), then trader skeleton against `MockGatewayClient`, then live HTTP gateway client gated on [ANKA-16](/ANKA/issues/ANKA-16) KYC.
+
+**Surprises / contradictions**
+
+- Sibling-agent activity: between the spec being authored and committed, another heartbeat reset `.dev/journal.md` and `.dev/progress.md` to HEAD (077654b) state. My ANKA-123 entries were re-applied before commit; I did not touch the sibling's working-tree edits to `AGENTS.md` (PR merge protocol section) or `services/dashboard/*`.
+- None vs. Architect findings — the three lenses (port, boundary, rail location) all converge on the same spec shape. The issue body's `:9301` suggestion is the only doc/internal inconsistency, and it's a one-line correction in the spec rather than a `DOC-BUG-FIXES.md` entry because BLUEPRINT itself is already correct.
+
+**Open endings**
+
+- Commit + push spec, then comment on [ANKA-123](/ANKA/issues/ANKA-123) with the link and close per the docs-only review-gate row.
+- Follow-up child issues to draft under [ANKA-119](/ANKA/issues/ANKA-119): (a) `pkg:contracts/broker` (`OrderRequest`/`OrderAck`/`ExecutionEvent`/`OpenPosition`/`Bar`/`Symbol`), (b) `pkg:contracts/control` (`ControlState`/`OperatorAction`/`AuditEntry`), (c) `pkg:contracts/pipeline` (`AnalystOutput`/`TraderOutput`/`JudgeOutput`/`ReflectorOutput`/`Decision`/`CacheLayerStats`), (d) `services/trader` skeleton consuming the `Mock` seam — these are CodexExecutor-shaped diff briefs once the parent is sequenced.
+
 ## 2026-04-28 23:32 Europe/Amsterdam — v0.4.27 ([ANKA-124](/ANKA/issues/ANKA-124) — T009.c `SymbolTagMap` contracts lift)
 
 **What was done**
