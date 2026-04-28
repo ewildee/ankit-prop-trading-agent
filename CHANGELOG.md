@@ -2,6 +2,34 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.26 — 2026-04-28 14:06 Europe/Amsterdam
+
+**Initiated by:** QAEngineer (agent), executing [ANKA-88](/ANKA/issues/ANKA-88) under parent [ANKA-86](/ANKA/issues/ANKA-86).
+
+**Why:** [ANKA-88](/ANKA/issues/ANKA-88) is the QA per-rail spec gate for [ANKA-86](/ANKA/issues/ANKA-86)'s calendar DB epoch-ms normalization. The mandated regressions were already present; the review also requested a non-listed UTC-midnight crossing spot-check for a negative-offset event.
+
+**Changed** — `@ankit-prop/news` v0.2.1 → v0.2.2
+
+- `services/news/src/calendar-db.spec.ts` — adds coverage for an event at `2026-04-28T23:30:00-05:00` (= `2026-04-29T04:30:00Z`) being included by a UTC-midnight-crossing range and excluded from the previous UTC day window.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.2.1 → 0.2.2 (patch — QA regression coverage for hard-rail-critical calendar instant normalization).
+- root `ankit-prop-umbrella` 0.4.25 → 0.4.26 (patch — workspace package version move).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; no files changed, pre-existing unrelated unsafe suggestions remain outside `svc:news/calendar-db`.
+- `bun test services/news/src/calendar-db.spec.ts` — run 1: 14 pass / 0 fail / 24 expects.
+- `bun test services/news/src/calendar-db.spec.ts` — run 2: 14 pass / 0 fail / 24 expects.
+- `bun test` — 329 pass / 0 fail / 2029 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+
+**Notes**
+
+- The original 13-test ANKA-86 spec surface still covers the 6 mandated ms-normalization regressions plus the 7 pre-existing calendar DB tests. This release adds the requested extra permutation, so the targeted spec now has 14 tests.
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
 ## 0.4.25 — 2026-04-28 13:57 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-86](/ANKA/issues/ANKA-86) under parent [ANKA-81](/ANKA/issues/ANKA-81).
