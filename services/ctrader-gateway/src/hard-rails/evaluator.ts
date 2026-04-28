@@ -21,10 +21,11 @@
 //      ULID and burn another token (the H-2 bug this split fixes).
 //
 // Calling `evaluatePostFillRails` without a corresponding `BrokerSnapshot
-// .fill` is a dispatcher invariant violation. The post-fill function still
-// fail-closes-soft (returns rail 7's `allow` no-fill default) rather than
-// throwing, so a malformed reconciliation does not crash the gateway, but
-// dispatcher tests assert the invariant.
+// .fill` is a dispatcher invariant violation. The post-fill function does
+// not throw — rail 7 itself fail-closes (returns `reject`) on missing fill
+// data per BLUEPRINT §3.5 (ANKA-40), so a malformed reconciliation cannot
+// silently let the just-opened position skip the slippage cap. Dispatcher
+// tests still assert the invariant.
 
 import type { HardRailKey, RailDecision, RailVerdict } from '@ankit-prop/contracts';
 import { composeRailVerdict, HARD_RAIL_KEYS } from '@ankit-prop/contracts';

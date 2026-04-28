@@ -2,6 +2,16 @@
 // Close immediately if filled beyond `max(2 × typical_spread, 0.5 × ATR(14))`.
 // In our model the rail returns `reject` for the originating NEW intent;
 // the gateway then queues a ProtoOAClosePositionReq for the just-filled position.
+//
+// Rail 7 is post-fill-only (see evaluator.ts POST_FILL_RAIL_KEYS). Reaching
+// the rail with `intent.kind !== 'NEW'` or `broker.fill === undefined` is a
+// dispatcher invariant violation. Per BLUEPRINT §3.5 fail-closed defaults
+// ("default for any uncertainty: fail closed. No trades > wrong trades."),
+// both branches return `reject` rather than masking the upstream defect by
+// allowing the just-opened position to remain open without a slippage check.
+// ANKA-40 regression: previously these branches returned `allow`, meaning a
+// missing fill report on the post-fill path would silently let the position
+// through without ever evaluating the cap.
 
 import type { RailDecision } from '@ankit-prop/contracts';
 import { logDecision } from './log-decision.ts';
@@ -11,12 +21,22 @@ export function evaluateSlippageGuard(intent: RailIntent, ctx: RailContext): Rai
   const { broker, config } = ctx;
   const decidedAt = isoNow(broker.nowMs);
 
-  if (intent.kind !== 'NEW' || broker.fill === undefined) {
+  if (intent.kind !== 'NEW') {
     return logDecision(intent, ctx, {
       rail: 'slippage_guard',
-      outcome: 'allow',
-      reason: 'not a post-fill check',
+      outcome: 'reject',
+      reason: `rail 7 invoked with non-NEW intent kind=${intent.kind} — fail closed`,
       detail: { intentKind: intent.kind, hasFill: broker.fill !== undefined },
+      decidedAt,
+    });
+  }
+
+  if (broker.fill === undefined) {
+    return logDecision(intent, ctx, {
+      rail: 'slippage_guard',
+      outcome: 'reject',
+      reason: 'rail 7 invoked on post-fill path without fill report — fail closed',
+      detail: { intentKind: intent.kind, hasFill: false },
       decidedAt,
     });
   }

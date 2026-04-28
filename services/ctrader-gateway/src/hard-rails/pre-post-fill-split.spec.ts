@@ -195,4 +195,20 @@ describe('pre-submit / post-fill rail split (ANKA-29)', () => {
     expect(post.decisions[0]?.rail).toBe('slippage_guard');
     expect(post.decisions[0]?.outcome).toBe('reject');
   });
+
+  test('post-fill without broker fill rejects fail-closed and emits exactly one rail-7 decision', () => {
+    const idempotency = new InMemoryIdempotencyStore();
+    const throttle = new InMemoryThrottleStore();
+
+    const pre = evaluatePreSubmitRails(intent(), makeCtx({ idempotency, throttle }));
+    expect(pre.outcome).toBe('allow');
+
+    const post = evaluatePostFillRails(intent(), makeCtx({ idempotency, throttle }));
+    expect(post.outcome).toBe('reject');
+    expect(post.decisions).toHaveLength(1);
+    expect(post.decisions[0]?.rail).toBe('slippage_guard');
+    expect(post.decisions[0]?.outcome).toBe('reject');
+    expect(post.decisions[0]?.reason).toContain('without fill report');
+    expect(post.decisions[0]?.detail).toMatchObject({ intentKind: 'NEW', hasFill: false });
+  });
 });

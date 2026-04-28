@@ -2,6 +2,67 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 05:25 Europe/Amsterdam — v0.4.12 ([ANKA-40](/ANKA/issues/ANKA-40) — rail 7 missing-fill fail-open fix)
+
+Heartbeat resumed under run-liveness continuation; the prior run described the fix without committing it. Re-applied and committed.
+
+**What was done**
+
+- Landed the staged but uncommitted [ANKA-42](/ANKA/issues/ANKA-42) bookkeeping commit first (rail-1 spec + rail-10 fixture rename + CHANGELOG newest-first reorder + 0.4.11 / 0.2.7 bumps). The auto-stash hook had been parking my [ANKA-40](/ANKA/issues/ANKA-40) work on each Bash call to keep that bookkeeping commit clean; landing it first cleared the gate. Commit `6870f18`.
+- `services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.ts` — split the single fail-open early-return into two fail-closed branches: non-NEW intent and missing fill both `reject`. Header expanded with the §3.5 / §9 fail-closed rationale and an explicit ANKA-40-regression note pointing future readers at the prior `allow` semantics.
+- `services/ctrader-gateway/src/hard-rails/evaluator.ts` — corrected the `evaluatePostFillRails` header note that previously claimed "fail-closes-soft (returns rail 7's `allow` no-fill default)". After this commit the dispatcher contract is strict-fail-closed end-to-end.
+- `services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.spec.ts` (new) — six unit tests pinning the new fail-closed semantics, including the regression case from the issue (NEW + no fill → reject) plus AMEND / CLOSE / kind-wins / sanity / above-cap cases.
+- `services/ctrader-gateway/src/hard-rails/pre-post-fill-split.spec.ts` — added the dispatcher-level regression test: `evaluatePostFillRails` invoked without `broker.fill` rejects with exactly one rail-7 decision whose reason mentions "without fill report".
+
+**Findings**
+
+- Rail 7's prior `intent.kind !== 'NEW' || broker.fill === undefined` early-return was the literal `allow` branch the issue called out. Splitting it into two `reject` branches is the minimum behaviour change; the in-cap / out-of-cap math on the bottom of the function is untouched.
+- Catching the non-NEW kind first (before checking `broker.fill`) is deliberate — a malformed snapshot with a fill on AMEND/CLOSE must surface as `intentKind: 'AMEND'` (or `'CLOSE'`) rather than the more generic missing-fill reason. The "non-NEW intent with a stray fill still rejects (kind check wins)" spec pins this ordering.
+- The matrix harness (`matrix.spec.ts`) drives rail 7 only with NEW + explicit `broker.fill`, so the 28-case sweep is unaffected by this change.
+- Run-liveness loop discipline: the prior run hit a hostile-environment loop where every `bun run lint:fix` and several `git stash` operations triggered worktree-wiping hooks. This run avoided that by committing the gating ANKA-42 bookkeeping first, then doing all ANKA-40 edits before any further git operations, then running the verification gates back-to-back.
+
+**Verification**
+
+- `bun test services/ctrader-gateway/src/hard-rails` — 81 / 0, 519 expects across 11 files.
+- `bun test` — 246 / 0, 1662 expects across 38 files.
+- `bun run typecheck` — clean (the `eval-harness/src/sim-engine.ts` error noted in the previous run came from sibling WIP that's no longer in the working tree).
+
+**Bumped**
+
+- `@ankit-prop/ctrader-gateway` 0.2.7 → 0.2.8 (patch — fail-closed correction on rail 7's no-fill / non-NEW branches).
+- root `ankit-prop-umbrella` 0.4.11 → 0.4.12 (patch).
+
+**Next**
+
+- Close [ANKA-40](/ANKA/issues/ANKA-40) with a comment pointing at the commit + 0.4.12 entry. The companion QA work for [ANKA-39](/ANKA/issues/ANKA-39) review findings is tracked separately under [ANKA-43](/ANKA/issues/ANKA-43) (same heartbeat window, different issue).
+
+## 2026-04-28 05:12 Europe/Amsterdam — v0.4.11 ([ANKA-43](/ANKA/issues/ANKA-43) — QA regression coverage for [ANKA-39](/ANKA/issues/ANKA-39))
+
+Heartbeat woken with [ANKA-43](/ANKA/issues/ANKA-43) assigned. Read BLUEPRINT §0.2, §9, §13, §13.5, and §22; fetched `https://bun.com/llms.txt` at 05:08 Europe/Amsterdam before writing test code.
+
+**What was done**
+
+- Added `packages/eval-harness/src/backtest.spec.ts` to assert high-impact, non-restricted calendar events still create the 2h pre-news kill-switch window.
+- Added `packages/eval-harness/src/sim-engine.spec.ts` to assert Europe/Prague day bucketing and strategy-driven close balance accounting.
+- Extended `services/ctrader-gateway/src/hard-rails/pre-post-fill-split.spec.ts` with a missing-fill post-fill path regression: `evaluatePostFillRails` must reject fail-closed with exactly one rail-7 decision.
+
+**Findings**
+
+- Initial targeted run without all sibling implementation files failed 3 regressions: rail 7 missing fill returned `allow`; high-impact non-restricted pre-news opens produced no `news_blackout_open`; strategy close left `finalBalance` unchanged at `100000` instead of `99900`.
+- The Europe/Prague bucket test passed because partial [ANKA-41](/ANKA/issues/ANKA-41) code is present on disk (`pragueDayStartFromMs` now delegates to Prague bucketing).
+- A sibling heartbeat restored more [ANKA-40](/ANKA/issues/ANKA-40) / [ANKA-41](/ANKA/issues/ANKA-41) implementation files after the failing run. With those uncommitted sibling files present, the QA regression set passes.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; one QA file formatted, pre-existing unsafe suggestions / `ctrader-vendor` unused-import warning remain.
+- `bun test services/ctrader-gateway/src/hard-rails/pre-post-fill-split.spec.ts packages/eval-harness/src/backtest.spec.ts packages/eval-harness/src/sim-engine.spec.ts` — initial repro run 5 pass / 3 fail / 28 expects.
+- `bun test services/ctrader-gateway/src/hard-rails/pre-post-fill-split.spec.ts services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.spec.ts packages/eval-harness/src/backtest.spec.ts packages/eval-harness/src/sim-engine.spec.ts packages/eval-harness/src/prague-day.spec.ts` — current shared worktree 18 pass / 0 fail / 62 expects.
+
+**Open endings**
+
+- Do not commit the QA tests alone: they depend on uncommitted sibling implementation files. [ANKA-43](/ANKA/issues/ANKA-43) remains blocked on [ANKA-40](/ANKA/issues/ANKA-40) and [ANKA-41](/ANKA/issues/ANKA-41) landing cleanly.
+- Once blockers land, rerun the targeted command above, then `bun test` and `bun run typecheck`, add version/changelog bookkeeping, commit with `test(...)`, and hand back for review.
+
 ## 2026-04-28 00:25 Europe/Amsterdam — v0.4.10 ([ANKA-32](/ANKA/issues/ANKA-32) — `composeRailVerdict([], …)` fail-closed at the contract surface; parent [ANKA-19](/ANKA/issues/ANKA-19) H-6 HIGH)
 
 Heartbeat woken with [ANKA-32](/ANKA/issues/ANKA-32) assigned. Tiny one-function fix at the `pkg:contracts` boundary — the previous spec at `hard-rails.spec.ts:113-119` literally argued fail-closed was the dispatcher's job, but BLUEPRINT §3.5 demands fail-closed at the contract surface itself. Mechanical fix.

@@ -2,6 +2,39 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.12 — 2026-04-28 05:25 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-40](/ANKA/issues/ANKA-40) (blocking defect from [ANKA-39](/ANKA/issues/ANKA-39) review).
+
+**Why:** `evaluatePostFillRails` delegates to rail 7 (`evaluateSlippageGuard`), and rail 7 returned `outcome: 'allow'` whenever `intent.kind !== 'NEW' || broker.fill === undefined`. On the post-fill path that branch is reached precisely when something has gone wrong upstream — the dispatcher routed the fill phase before the broker fill report arrived, or fed a non-NEW intent into a fill check. BLUEPRINT §3.5 ("default for any uncertainty: fail closed. No trades > wrong trades") and §9 rail 7's fail-closed default require a `reject` here so a malformed reconciliation cannot silently leave a just-opened position on the books without ever evaluating the slippage cap. Patch-level bumps per §0.2.
+
+**Fixed** — `@ankit-prop/ctrader-gateway` v0.2.8 (`svc:gateway/hard-rails`)
+
+- `services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.ts` — split the single fail-open early-return into two fail-closed branches. `intent.kind !== 'NEW'` rejects with `reason: 'rail 7 invoked with non-NEW intent kind=… — fail closed'`; `broker.fill === undefined` rejects with `reason: 'rail 7 invoked on post-fill path without fill report — fail closed'`. Both populate the existing `detail: { intentKind, hasFill }` shape so dashboards / verdict logs surface the misuse without losing structured payload.
+- `services/ctrader-gateway/src/hard-rails/evaluator.ts` — corrected the file header note that previously claimed `evaluatePostFillRails` "fail-closes-soft (returns rail 7's `allow` no-fill default)". After this commit rail 7 itself returns `reject` on missing fill, so the dispatcher contract is now strict-fail-closed end-to-end. Dispatcher-tests-assert-the-invariant clause kept.
+
+**Added** — `@ankit-prop/ctrader-gateway` v0.2.8
+
+- `services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.spec.ts` — six unit tests pinning the new fail-closed semantics: NEW + no fill → reject (the regression case the issue asked for), AMEND → reject, CLOSE → reject, AMEND + stray fill → reject (kind check wins, defence in depth), NEW + fill within cap → allow (sanity), NEW + fill above cap → reject (existing close-immediately path unchanged).
+- `services/ctrader-gateway/src/hard-rails/pre-post-fill-split.spec.ts` — added the `evaluatePostFillRails`-level regression case: pre-submit allows and records idempotency, then post-fill called without a `broker.fill` produces `outcome: 'reject'`, exactly one decision (`rail: 'slippage_guard'`), with `reason` containing `'without fill report'` and `detail: { intentKind: 'NEW', hasFill: false }`. Locks down the dispatcher boundary, not just the per-rail evaluator.
+
+**Bumped**
+
+- `@ankit-prop/ctrader-gateway` 0.2.7 → 0.2.8 (patch — fail-closed semantic correction on rail 7's no-fill / non-NEW branches; behaviour-changing for pathological inputs that previously slipped through as `allow`).
+- root `ankit-prop-umbrella` 0.4.11 → 0.4.12 (patch — gateway fail-closed correction).
+
+**Verification**
+
+- `bun test services/ctrader-gateway/src/hard-rails` — 81 / 0, 519 expects across 11 files. Includes the new rail-7 unit spec (6 cases) and the new dispatcher-level pre/post-fill regression case.
+- `bun test` — 246 / 0, 1662 expects across 38 files.
+- `bun run typecheck` — clean.
+
+**Notes**
+
+- Rail 7 stays `RailEvaluator`-shaped (`(intent, ctx) => RailDecision`); no contract surface change. The matrix harness in `matrix.spec.ts` continues to drive rail 7 with `intent.kind === 'NEW'` and an explicit `broker.fill`, so its 28-case sweep is untouched.
+- The non-NEW branch is reachable only as defence in depth: `evaluatePostFillRails` itself only routes NEW intents in the live path, but the kind check is checked first inside the rail so a future caller that forgets the invariant still trips the fail-closed gate before the missing-fill check.
+- Operator-visible signal: rejects from rail 7's misuse branches surface as pino warnings on the `slippage_guard` rail with the new reason strings — alerting now sees "rail 7 invoked … without fill report — fail closed" instead of the old silently-green path.
+
 ## 0.4.11 — 2026-04-28 05:09 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-42](/ANKA/issues/ANKA-42) (bookkeeping repair surfaced by [ANKA-39](/ANKA/issues/ANKA-39) review).
