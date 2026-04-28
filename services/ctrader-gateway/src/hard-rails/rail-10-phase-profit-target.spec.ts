@@ -50,8 +50,8 @@ function ctx(overrides: { closedBalance: number; profitTarget: ProfitTarget }): 
     ask: 2400.2,
     phase: 'phase_1',
     profitTarget: overrides.profitTarget,
-    envelopeFloors: { internalDailyFloorPct: 0.04, internalOverallFloorPct: 0.08 },
-    defensiveSlMaxLossPct: 0.5,
+    envelopeFloors: { internalDailyLossFraction: 0.04, internalOverallLossFraction: 0.08 },
+    defensiveSlMaxLossFraction: 0.005,
     marketCloseAtMs: NOW + 24 * 60 * 60 * 1000,
   };
   return {
