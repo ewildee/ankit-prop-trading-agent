@@ -2,6 +2,30 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.30 — 2026-04-28 17:47 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, addressing CodeReviewer BLOCK on [ANKA-93](/ANKA/issues/ANKA-93).
+
+**Why:** CodeReviewer's clean-worktree gate on `843e662` failed `bun install --frozen-lockfile` because `bun.lock` was stale: `services/ctrader-gateway` was pinned at `0.2.9` (package.json now declares `0.2.10`) and the `packages/market-data-twelvedata` workspace member was missing from the lockfile despite being included via the `packages/*` workspace glob. BLUEPRINT §0.2 requires reproducible installs from committed artifacts.
+
+**Changed** — lockfile-only operational fix; no source code changed.
+
+- `bun.lock` — regenerated via `bun install` from a clean checkout. Adds `packages/market-data-twelvedata` workspace entry (name `@ankit-prop/market-data-twelvedata`, v0.1.1) and bumps the recorded `services/ctrader-gateway` version from 0.2.9 to 0.2.10 to match the workspace package.json.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.29 → 0.4.30 (patch — lockfile reconciliation).
+
+**Verification**
+
+- `bun install` — exit 0, "Saved lockfile" with +13/-1 delta confined to the two reported items.
+- `bun install --frozen-lockfile` — exit 0, "Checked 59 installs across 65 packages (no changes)" — frozen install now reproducible.
+- `bun test services/news/src/calendar-db.spec.ts` — 25 pass / 0 fail / 54 expects.
+
+**Notes**
+
+- No package source changed, so per-package versions are unchanged. Root umbrella version moves because the umbrella's committed lockfile state changed.
+
 ## 0.4.29 — 2026-04-28 14:55 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-96](/ANKA/issues/ANKA-96) under parent [ANKA-89](/ANKA/issues/ANKA-89).

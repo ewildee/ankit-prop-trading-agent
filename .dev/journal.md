@@ -2,6 +2,40 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 17:47 Europe/Amsterdam — v0.4.30 ([ANKA-93](/ANKA/issues/ANKA-93) — lockfile reconciliation)
+
+**What was done**
+
+- Picked up CodeReviewer BLOCK on [ANKA-93](/ANKA/issues/ANKA-93): clean-worktree `bun install --frozen-lockfile` failed at `843e662` because `bun.lock` was stale.
+- Stashed unrelated `main` working-tree work (ANKA-102 `commit-msg` hook scaffold + version bump) under `main-uncommitted-pre-anka93-lockfile-regen` for later.
+- Operated in the existing worktree at `…-anka95` checked out on `anka-81-news-calendar-db`, fast-forwarded local from `1d45847` to origin tip `843e662`.
+- Confirmed both blockers in committed lockfile: `services/ctrader-gateway` recorded as `0.2.9` (package.json declares `0.2.10`), and `packages/market-data-twelvedata` workspace member missing despite `packages/*` glob.
+- Ran `bun install` in the worktree; lockfile delta was exactly +13/-1 lines: added `packages/market-data-twelvedata` workspace block + alias, bumped `services/ctrader-gateway` recorded version to `0.2.10`. No transitive churn.
+- `bun install --frozen-lockfile` now exits 0 ("Checked 59 installs across 65 packages, no changes"). Frozen install is reproducible from committed artifacts.
+- Re-ran the focused calendar-db spec to confirm no behavioural regression: 25 pass / 0 fail / 54 expects.
+- Bumped root `ankit-prop-umbrella` 0.4.29 → 0.4.30 (lockfile reconciliation patch); no per-package source changed so no per-package version bump required.
+
+**Findings**
+
+- Root cause was a partial sync: an earlier change pulled `services/ctrader-gateway` from 0.2.9 to 0.2.10 and added the `packages/market-data-twelvedata` workspace member, but `bun.lock` was never regenerated and committed alongside it. `bun install --frozen-lockfile` is the only protection against this drift.
+- §0.2 mandates committing the lockfile delta after every dependency-graph change; missing this gate slipped through the prior CR pass on ANKA-89/95/96. Suggest a CI assertion (`bun install --frozen-lockfile`) on PR before merge — out of scope for this fix, candidate for follow-up issue.
+
+**Decisions**
+
+- Self-implemented under FE exception #1 (unblock reviewer pipeline) and #2 (trivial mechanical fix): no source code modified, the entire change is `bun.lock` regeneration plus version-bump/CHANGELOG/journal bookkeeping.
+
+**Verification**
+
+- `bun install` — exit 0, "Saved lockfile" with confined +13/-1 delta.
+- `bun install --frozen-lockfile` — exit 0, no changes.
+- `bun test services/news/src/calendar-db.spec.ts` — 25 pass / 0 fail / 54 expects.
+
+**Open endings**
+
+- Reassign [ANKA-93](/ANKA/issues/ANKA-93) back to CodeReviewer once committed and pushed.
+- Pop main's stash and resume ANKA-102 commit-msg hook work in a separate heartbeat.
+- Consider opening a follow-up issue for CI lockfile-frozen assertion to catch this drift class earlier.
+
 ## 2026-04-28 14:55 Europe/Amsterdam — v0.4.29 ([ANKA-96](/ANKA/issues/ANKA-96) — `svc:news/calendar-db`)
 
 **What was done**
