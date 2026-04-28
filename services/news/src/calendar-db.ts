@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { CalendarItem, type CalendarItem as CalendarItemType } from '@ankit-prop/contracts';
 
-export type CalendarDbOpenErrorCode = 'unwriteable_path' | 'init_failed';
+export type CalendarDbOpenErrorCode = 'unwriteable_path' | 'init_failed' | 'schema_outdated';
 
 export class CalendarDbOpenError extends Error {
   readonly code: CalendarDbOpenErrorCode;
@@ -20,6 +20,48 @@ export class CalendarDbOpenError extends Error {
     this.code = params.code;
     this.path = params.path;
     this.cause = params.cause;
+  }
+}
+
+export type CalendarDbWriteErrorCode = 'invalid_instant';
+
+export class CalendarDbWriteError extends Error {
+  readonly code: CalendarDbWriteErrorCode;
+  readonly path: string;
+  readonly value: string;
+
+  constructor(params: {
+    readonly code: CalendarDbWriteErrorCode;
+    readonly path: string;
+    readonly value: string;
+    readonly message: string;
+  }) {
+    super(params.message);
+    this.name = 'CalendarDbWriteError';
+    this.code = params.code;
+    this.path = params.path;
+    this.value = params.value;
+  }
+}
+
+export type CalendarDbQueryErrorCode = 'invalid_range';
+
+export class CalendarDbQueryError extends Error {
+  readonly code: CalendarDbQueryErrorCode;
+  readonly path: string;
+  readonly value: string;
+
+  constructor(params: {
+    readonly code: CalendarDbQueryErrorCode;
+    readonly path: string;
+    readonly value: string;
+    readonly message: string;
+  }) {
+    super(params.message);
+    this.name = 'CalendarDbQueryError';
+    this.code = params.code;
+    this.path = params.path;
+    this.value = params.value;
   }
 }
 
@@ -57,10 +99,14 @@ export function openCalendarDb(path: string): Database {
 
   try {
     db.exec('PRAGMA journal_mode=WAL');
+    assertSchemaCanInitialize(db, path);
     db.exec(readFileSync(INIT_SQL_PATH, 'utf8'));
     return db;
   } catch (err) {
     closeCalendarDb(db);
+    if (err instanceof CalendarDbOpenError) {
+      throw err;
+    }
     throw new CalendarDbOpenError({
       code: 'init_failed',
       path,
@@ -77,6 +123,7 @@ export function upsertItems(db: Database, items: ReadonlyArray<CalendarItemType>
       id,
       fetched_at,
       date,
+      instant_ms,
       title,
       impact,
       instrument,
@@ -87,10 +134,11 @@ export function upsertItems(db: Database, items: ReadonlyArray<CalendarItemType>
       actual,
       youtube_link,
       article_link
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     ON CONFLICT(id) DO UPDATE SET
       fetched_at = excluded.fetched_at,
       date = excluded.date,
+      instant_ms = excluded.instant_ms,
       title = excluded.title,
       impact = excluded.impact,
       instrument = excluded.instrument,
@@ -111,12 +159,14 @@ export function upsertItems(db: Database, items: ReadonlyArray<CalendarItemType>
 
     for (const item of batch) {
       const parsed = CalendarItem.parse(item);
+      const instantMs = parseItemInstant(parsed.date);
       const id = calendarItemId(parsed);
       const existed = existsStmt.get(id) !== null;
       upsertStmt.run(
         id,
         fetchedAt,
         parsed.date,
+        instantMs,
         parsed.title,
         parsed.impact,
         parsed.instrument,
@@ -148,8 +198,10 @@ export function queryRange(
   toIso: string,
   instruments?: readonly string[],
 ): CalendarItemType[] {
+  const fromMs = parseRangeInstant('fromIso', fromIso);
+  const toMs = parseRangeInstant('toIso', toIso);
   const activeInstruments = instruments?.filter((instrument) => instrument.length > 0) ?? [];
-  const params: (string | number)[] = [fromIso, toIso];
+  const params: (string | number)[] = [fromMs, toMs];
   let instrumentClause = '';
 
   if (activeInstruments.length > 0) {
@@ -173,13 +225,56 @@ export function queryRange(
           youtube_link,
           article_link
         FROM calendar_items
-        WHERE date >= ? AND date < ?${instrumentClause}
-        ORDER BY date ASC, title ASC, instrument ASC
+        WHERE instant_ms >= ? AND instant_ms < ?${instrumentClause}
+        ORDER BY instant_ms ASC, title ASC, instrument ASC
       `,
     )
     .all(...params) as CalendarItemRow[];
 
   return rows.map(rowToCalendarItem);
+}
+
+function assertSchemaCanInitialize(db: Database, path: string): void {
+  const version = (db.query('PRAGMA user_version').get() as { user_version: number }).user_version;
+  const hasCalendarItems =
+    db
+      .query("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'calendar_items' LIMIT 1")
+      .get() !== null;
+  const isFreshDb = version === 0 && !hasCalendarItems;
+
+  if (!isFreshDb && version < 2) {
+    throw new CalendarDbOpenError({
+      code: 'schema_outdated',
+      path,
+      message: `calendar-db: schema at ${path} is outdated (user_version ${version}); delete the stale DB so it can be recreated`,
+    });
+  }
+}
+
+function parseItemInstant(value: string): number {
+  const instantMs = Date.parse(value);
+  if (Number.isNaN(instantMs)) {
+    throw new CalendarDbWriteError({
+      code: 'invalid_instant',
+      path: 'date',
+      value,
+      message: `calendar-db: invalid calendar item date: ${value}`,
+    });
+  }
+  return instantMs;
+}
+
+function parseRangeInstant(path: 'fromIso' | 'toIso', value: string): number {
+  const instantMs = Date.parse(value);
+  if (Number.isNaN(instantMs)) {
+    throw new CalendarDbQueryError({
+      code: 'invalid_range',
+      path,
+      value,
+      message: `calendar-db: invalid range bound ${path}: ${value}`,
+    });
+  }
+  return instantMs;
 }
 
 export function closeCalendarDb(db: Database): void {

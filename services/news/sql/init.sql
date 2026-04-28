@@ -2,6 +2,7 @@ CREATE TABLE IF NOT EXISTS calendar_items (
   id TEXT PRIMARY KEY,
   fetched_at TEXT NOT NULL,
   date TEXT NOT NULL,
+  instant_ms INTEGER NOT NULL,
   title TEXT NOT NULL,
   impact TEXT NOT NULL,
   instrument TEXT NOT NULL,
@@ -14,8 +15,14 @@ CREATE TABLE IF NOT EXISTS calendar_items (
   article_link TEXT
 ) WITHOUT ROWID;
 
-CREATE INDEX IF NOT EXISTS idx_calendar_items_date
-  ON calendar_items(date);
+DROP INDEX IF EXISTS idx_calendar_items_date;
 
-CREATE INDEX IF NOT EXISTS idx_calendar_items_instrument_date
-  ON calendar_items(instrument, date);
+DROP INDEX IF EXISTS idx_calendar_items_instrument_date;
+
+CREATE INDEX IF NOT EXISTS idx_calendar_items_instant_ms
+  ON calendar_items(instant_ms);
+
+CREATE INDEX IF NOT EXISTS idx_calendar_items_instrument_instant
+  ON calendar_items(instrument, instant_ms);
+
+PRAGMA user_version = 2;

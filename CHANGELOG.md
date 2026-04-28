@@ -2,6 +2,35 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.25 — 2026-04-28 13:57 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-86](/ANKA/issues/ANKA-86) under parent [ANKA-81](/ANKA/issues/ANKA-81).
+
+**Why:** [ANKA-81](/ANKA/issues/ANKA-81) review found that `svc:news/calendar-db` compared ISO text lexicographically, which can misclassify equivalent instants expressed with different offsets. Gateway hard rails #3 and #4 consume this query, so the DB must compare real instants and fail closed on invalid bounds or stale schema.
+
+**Changed** — `@ankit-prop/news` v0.2.0 → v0.2.1
+
+- `services/news/sql/init.sql` — adds `instant_ms INTEGER NOT NULL`, replaces date-text indices with `instant_ms` indices, and sets `PRAGMA user_version = 2`.
+- `services/news/src/calendar-db.ts` — persists parsed epoch milliseconds, queries with `instant_ms >= ? AND instant_ms < ?`, orders by `instant_ms ASC, title ASC, instrument ASC`, exports `CalendarDbWriteError` / `CalendarDbQueryError`, and rejects stale `calendar_items` schemas with `CalendarDbOpenError` code `schema_outdated`.
+- `services/news/src/calendar-db.spec.ts` — adds regressions for mixed-offset equivalence, exact exclusive `to`, deterministic mixed-offset ordering, invalid write dates, invalid query bounds, and stale schema fail-closed open.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.2.0 → 0.2.1 (patch — hard-rail-critical instant comparison fix).
+- root `ankit-prop-umbrella` 0.4.24 → 0.4.25 (patch — workspace package version move).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; Biome applied safe formatting and still reports pre-existing unsafe suggestions in unrelated packages.
+- `bun test services/news/src/calendar-db.spec.ts` — 13 pass / 0 fail / 22 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/sql/init.sql services/news/src/calendar-db.ts services/news/src/calendar-db.spec.ts` — no matches.
+
+**Notes**
+
+- Existing non-empty `calendar_items` DB files with `user_version < 2` now fail closed and instruct the operator to delete the stale DB; no migration framework was introduced.
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
 ## 0.4.24 — 2026-04-28 13:40 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-81](/ANKA/issues/ANKA-81) under parent [ANKA-75](/ANKA/issues/ANKA-75).
