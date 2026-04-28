@@ -2,6 +2,36 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.27 — 2026-04-28 23:50 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-126](/ANKA/issues/ANKA-126) — `infra:tooling` worktree-first directive (defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) platform fix lands).
+
+**Why:** Board chose Option 1 of [ANKA-98](/ANKA/issues/ANKA-98) — per-issue worktrees by default in the Paperclip `claude_local` adapter. That platform fix lives outside the company boundary and has not shipped yet. Until it does, agents share a single checkout per company and concurrent heartbeats keep stomping multi-file refactors. This in-repo guard codifies the worktree workaround so agents stop reaching for stash/reset.
+
+**Added** — repo governance docs (no package code modified)
+
+- `AGENTS.md` — new top-of-file section *Worktree-first for multi-file changes (defensive guard, ANKA-126)* under operational discipline. Specifies trigger (>1 file or >1 Bash turn), creation command (`git worktree add .paperclip/worktrees/<issueId> <baseBranch>`), the work-in-worktree rule, return-to-shared-root for merge only, cleanup, and a single explicit single-line/single-turn exception.
+- `~/.paperclip/instances/.../agents/{FoundingEngineer,CodexExecutor,Designer}/instructions/AGENTS.md` — short pointer section to the project AGENTS.md directive (instance-local, not in repo). Other agents that drive multi-file edits will be brought in line as their tickets surface.
+- `.gitignore` — added `.paperclip/worktrees/` so per-issue worktrees stay local-only. This is **not** the same as the out-of-repo Paperclip instance directory at `~/.paperclip/`.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.26 → 0.4.27.
+
+**Lifetime**
+
+- Temporary guard. The whole *Worktree-first for multi-file changes* section, the per-agent pointers, and the `.gitignore` line are deleted in the same commit that announces ANKA-98 has shipped per-issue worktrees in `claude_local`.
+
+**Verification**
+
+- Doc-only change. No Bun-runtime code touched, so BLUEPRINT §0.2 `bun.com/llms.txt` proof not applicable; lint/test/typecheck not re-run for this change.
+- This change itself was authored from a per-issue worktree at `.paperclip/worktrees/ANKA-126` off `origin/main` to dogfood the directive.
+
+**Notes**
+
+- Parallel work on [ANKA-124](/ANKA/issues/ANKA-124) (`anka-124-symbol-tag-map-contracts`) also claims version `0.4.27`. Whichever PR merges first lands; the second rebases and bumps to `0.4.28` per the `0.4.26` merge-integration precedent below.
+- Triage of the eight collision stashes already on the shared root checkout is out of scope here — separate ticket if needed.
+
 ## 0.4.26 — 2026-04-28 18:20 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-113](/ANKA/issues/ANKA-113) — `infra:tooling` PR #1 merge-conflict resolution on the Wave-1 news branch `anka-77-ftmo-calendar-cassette`.

@@ -2,6 +2,24 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 23:50 Europe/Amsterdam — v0.4.27 ([ANKA-126](/ANKA/issues/ANKA-126) — worktree-first defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) lands)
+
+**What was done.** Added the in-repo defensive guard for the per-issue worktree convention while we wait for the Paperclip `claude_local` per-issue-worktree platform fix from [ANKA-98](/ANKA/issues/ANKA-98).
+
+- `AGENTS.md` (project) — new top-of-file section *Worktree-first for multi-file changes (defensive guard, ANKA-126)* under operational discipline. Spells out the trigger (>1 file or >1 Bash turn), the create command (`git worktree add .paperclip/worktrees/<issueId> <baseBranch>`), the work-in-worktree rule, return-to-shared-root for merge only, cleanup, and the explicit single-turn exception.
+- Per-agent instructions (instance-local, not in repo) — added a short pointer block to `FoundingEngineer`, `CodexExecutor`, and `Designer` AGENTS.md files. They reference the project AGENTS.md for the canonical directive. Other agents that drive multi-file edits will be brought in line as their tickets surface.
+- `.gitignore` — added `.paperclip/worktrees/`. Local-only working trees inside the company repo; not the same as the out-of-repo `~/.paperclip/` instance directory.
+- `CHANGELOG.md` — `0.4.27` entry framing the lifetime as temporary, removable in the same commit that announces ANKA-98 has shipped.
+- Root `package.json` — `0.4.26` → `0.4.27`.
+
+**Findings.** The shared root checkout already had eight collision stashes (downstream cleanup, separate ticket if needed), confirming the directive is overdue. Parallel work on [ANKA-124](/ANKA/issues/ANKA-124) (`anka-124-symbol-tag-map-contracts`) also claims `0.4.27`; whichever PR merges first lands and the second rebase-bumps to `0.4.28`, mirroring the `0.4.26` merge-integration precedent.
+
+**Decisions.** This change was authored from a per-issue worktree at `.paperclip/worktrees/ANKA-126` off `origin/main` to dogfood the directive. The shared root was on `anka-121-dashboard-shell` with unrelated dashboard state, so even a doc-only change would have ridden on the wrong branch had I worked in-place.
+
+**Surprises.** None. The merge-integration precedent from `0.4.26` is exactly the playbook for the version-collision risk with `anka-124`.
+
+**Open endings.** Per-agent instructions for other multi-file editors (e.g. QAEngineer, CodeReviewer, Debugger) are not yet patched. They are not currently driving multi-file refactors, so this is acceptable until a ticket surfaces. The directive removal is gated on [ANKA-98](/ANKA/issues/ANKA-98).
+
 ## 2026-04-28 18:20 Europe/Amsterdam — v0.4.26 ([ANKA-113](/ANKA/issues/ANKA-113) — PR #1 `anka-77-ftmo-calendar-cassette` merge-conflict resolution)
 
 **What was done**

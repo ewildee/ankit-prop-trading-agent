@@ -24,6 +24,51 @@ npm package for something Bun already ships is a red flag (§5.3
 forbidden list). Record the date+time of the last fetch in
 `.dev/progress.md`.
 
+## Worktree-first for multi-file changes (defensive guard, [ANKA-126](/ANKA/issues/ANKA-126))
+
+Until the Paperclip platform fix from [ANKA-98](/ANKA/issues/ANKA-98)
+lands (per-issue worktrees by default in the `claude_local` adapter),
+agents share a single checkout per company. Concurrent heartbeats have
+stomped each other and lost multi-file refactors. To stop reaching for
+stash/reset workarounds, the working contract is:
+
+1. **Trigger.** If your change touches more than one file, or will take
+   more than one Bash tool turn to complete, do **not** edit the shared
+   root checkout. Start with a worktree.
+2. **Create.** From the shared root, run:
+
+   ```sh
+   git worktree add .paperclip/worktrees/<issueId> <baseBranch>
+   # e.g. git worktree add .paperclip/worktrees/ANKA-126 origin/main
+   ```
+
+   where `<issueId>` is the Paperclip issue id (e.g. `ANKA-126`) and
+   `<baseBranch>` is the branch you would otherwise check out (typically
+   `origin/main`, or the parent feature branch when the work explicitly
+   continues someone else's PR). Add `-b <branch-name>` if you also need
+   a fresh feature branch.
+3. **Work in the worktree.** All edits, `bun` commands, commits, and
+   pushes happen inside `.paperclip/worktrees/<issueId>`. Use absolute
+   paths so you don't accidentally touch the shared root.
+4. **Return for merge only.** Only return to the shared root checkout
+   for a final fast-forward merge into `main` (or for a no-op when
+   you've already pushed the feature branch and a PR will land it).
+5. **Cleanup.** On success: `git worktree remove .paperclip/worktrees/<issueId>`.
+   If the work needs another heartbeat, leave the worktree in place —
+   the next heartbeat resumes there directly. Stale worktrees are
+   acceptable; they will be pruned wholesale once [ANKA-98](/ANKA/issues/ANKA-98)
+   lands.
+6. **Exception.** Single-line / single-file fixes that complete in one
+   Bash turn (typo, CHANGELOG timestamp, `.dev/journal.md` append) may
+   run in the shared root. Anything else uses a worktree.
+
+`.paperclip/worktrees/` is gitignored. It is **not** the same as the
+out-of-repo Paperclip instance directory at `~/.paperclip/`; this is a
+local-only working tree directory inside the company repo.
+
+Remove this section once [ANKA-98](/ANKA/issues/ANKA-98) ships and the
+`claude_local` adapter creates per-issue worktrees automatically.
+
 ## Working methodology (BLUEPRINT §0.2)
 
 Memory file discipline:
