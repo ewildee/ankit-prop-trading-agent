@@ -2,6 +2,32 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.26 — 2026-04-28 18:20 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-113](/ANKA/issues/ANKA-113) — `infra:tooling` PR #1 merge-conflict resolution on the Wave-1 news branch `anka-77-ftmo-calendar-cassette`.
+
+**Why:** GitHub reported PR #1 (`anka-77-ftmo-calendar-cassette`, head `e8bac186`) `mergeable: false` against `origin/main` after main moved on with [ANKA-76](/ANKA/issues/ANKA-76)/[ANKA-101](/ANKA/issues/ANKA-101)/[ANKA-102](/ANKA/issues/ANKA-102)/[ANKA-104](/ANKA/issues/ANKA-104)/[ANKA-107](/ANKA/issues/ANKA-107)/[ANKA-111](/ANKA/issues/ANKA-111). Parent [ANKA-77](/ANKA/issues/ANKA-77) is `blocked` waiting for the PR to become mergeable. The cassette/schema gates were already revalidated green by QA on the PR head.
+
+**What changed (umbrella merge integration only — no production code modified)**
+
+- Merged `origin/main` into `anka-77-ftmo-calendar-cassette` with a single non-rewriting merge commit (no force-push; PR #1 identity preserved).
+- Conflicts isolated to FE-owned metadata only. `bun.lock` and `TODOS.md` auto-merged; `.dev/journal.md`, `.dev/progress.md`, `CHANGELOG.md`, and root `package.json` resolved manually:
+  - `.dev/progress.md` → take `origin/main` + fresh ANKA-113 session block (replace-each-session file per AGENTS.md).
+  - `.dev/journal.md` and `CHANGELOG.md` → union with `origin/main` entries placed before PR entries inside each conflict region. Newest-first ordering is preserved across the seam; PR-side entries (13:13–13:49) land below `origin/main` entries (14:30–18:10) which is the correct chronological order. Both lineages independently bumped through 0.4.21–0.4.24, so duplicate version headings remain as audit history of what each lineage shipped under each label.
+  - Root `package.json` → `0.4.26` (strictly above `max(main 0.4.25, PR 0.4.24)`). Sub-package versions auto-merged unchanged from PR (e.g. `@ankit-prop/news` 0.2.0).
+- No Bun-runtime, service, package, or contract source files were modified by this heartbeat. BLUEPRINT §0.2 `bun.com/llms.txt` proof not applicable.
+
+**Verification**
+
+- `git merge-tree --write-tree --name-only origin/main HEAD` after resolution: empty output (no remaining conflicts).
+- `bun test packages/shared-contracts/src/news.spec.ts services/news/src/symbol-tag-mapper.spec.ts` re-run on the merged tree (see [ANKA-113](/ANKA/issues/ANKA-113) thread for log).
+- `bunx biome check` re-run on the news/contracts surface (see [ANKA-113](/ANKA/issues/ANKA-113) thread for log).
+- Backup tag `anka-77-pr1-backup-pre-merge` retained at the pre-merge PR head `e8bac186` for rollback.
+
+**Open endings**
+
+- After push, GitHub PR #1 should flip to `mergeable: true`. [ANKA-113](/ANKA/issues/ANKA-113) hands back to the parent ([ANKA-77](/ANKA/issues/ANKA-77)) — QAEngineer to do the final cassette/contract revalidation against the merged tree, or assignee to land directly.
+
 ## 0.4.25 — 2026-04-28 18:10 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-76](/ANKA/issues/ANKA-76) as the live operational follow-through for [ANKA-68](/ANKA/issues/ANKA-68).
@@ -165,6 +191,83 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/market-data-twelvedata` 0.1.1 → 0.1.2 (patch — fetch safety and default-path bug fix).
+## 0.4.24 — 2026-04-28 13:49 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing the board-requested follow-up on [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** Board flagged that `svc:news/symbol-tag-mapper` should consume the operator-canonical configuration loader `@triplon/config` (internal NPM mirror; source at `~/Work/Projects/shared/config-loader`) instead of duplicating bespoke YAML loading, ad-hoc path resolution, and a custom `SymbolTagMapLoadError` shape. `@triplon/config` already provides layered file resolution (`~/.config/<scope>/<name>.config.yaml` → `./<name>.config.yaml` → override), Zod validation, and structured `ConfigError` codes — keeping the mapper's surface area minimal and consistent with the rest of Triplon Mac tooling.
+
+**Changed** — `@ankit-prop/news` v0.1.0 → v0.2.0
+
+- `services/news/src/symbol-tag-mapper.ts` — rewritten on top of `defineAppConfig({ scope: 'ankit-prop', name: 'symbol-tag-map', schema: SymbolTagMapSchema, envOverrides: false })`. Removed the bespoke `SymbolTagMapLoadError`, `LoadSymbolTagMapOptions`, the manual `~/`/relative-path expansion, and the direct `Bun.YAML.parse` call. `loadSymbolTagMap` is now synchronous (matches the loader's surface) and falls back to the bundled `config/symbol-tag-map.example.yaml` only when neither user nor project file is present. Errors propagate as `@triplon/config`'s `ConfigError` (`E_CONFIG_NOT_FOUND` / `E_CONFIG_PARSE` / `E_CONFIG_INVALID`).
+- `services/news/src/symbol-tag-mapper.spec.ts` — replaced the `SymbolTagMapLoadError` assertions with `ConfigError` code checks; sandboxed `HOME` / `XDG_CONFIG_HOME` / `cwd` per-test so the bundled-example fallback exercises a clean lookup chain instead of leaking into the operator's real `~/.config/ankit-prop/symbol-tag-map.config.yaml`.
+- `services/news/package.json` — adds `@triplon/config ^0.1.0` as a workspace dependency. `zod` stays direct so other svc:news modules can keep importing it without leaning on the loader's re-export.
+
+**Removed** — `@ankit-prop/news`
+
+- `SymbolTagMapLoadError` class and `SymbolTagMapLoadErrorCode` union — superseded by `ConfigError` from `@triplon/config`.
+- `LoadSymbolTagMapOptions.fallbackPath` — the loader's own override slot covers explicit-path callers; the bundled example is the only implicit fallback now.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.1.0 → 0.2.0 (minor — public mapper API contract changed: sync return + `ConfigError` instead of `SymbolTagMapLoadError`. No external consumers yet — N2/N4 are still out of scope per the parent plan).
+- root `ankit-prop-umbrella` 0.4.23 → 0.4.24 (patch — workspace package version move).
+
+**Verification**
+
+- `bun test services/news/src/symbol-tag-mapper.spec.ts` — 9 pass / 0 fail / 14 expects (single tag, multi-tag dedupe/order, unknown-tag warning, empty input, bundled-example fallback, explicit override path, `E_CONFIG_NOT_FOUND`, `E_CONFIG_PARSE`, `E_CONFIG_INVALID`).
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `bun run lint` — exit 0; only pre-existing diagnostics in unrelated packages (e.g. `packages/market-data-twelvedata/src/rate-limiter.ts`).
+
+**Notes**
+
+- `@triplon/config` is dual-listed in `~/.bunfig.toml` `minimumReleaseAgeExcludes` so the 2-day install hold doesn't apply, and the `@triplon` scope token in `~/.npmrc` already points at the private registry — no repo-side npm/bun config needed.
+
+## 0.4.23 — 2026-04-28 13:19 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** `svc:news` needs the symbol-tag-mapper sub-module before the calendar fetcher can turn FTMO `instrument` strings into the tracked trading symbols that restricted-window and pre-news evaluators consume. BLUEPRINT §11.3 requires splitting FTMO tags on `" + "` and §17.3 defines the operator-canonical `symbol-tag-map.config.yaml` shape. BLUEPRINT §5 forbids adding `yaml` / `js-yaml`, so this loader uses Bun's native `Bun.YAML.parse`.
+
+**Added** — `@ankit-prop/news` v0.0.2 → v0.1.0
+
+- `src/symbol-tag-mapper.ts` — exports `SymbolTagMapSchema`, `SymbolTagMap`, `SymbolTagMapLoadError`, `loadSymbolTagMap(path?, options?)`, and `resolveAffectedSymbols(rawInstrument, map, logger?)`. The loader reads the operator config path by default and falls back to `config/symbol-tag-map.example.yaml` when the operator file is absent. YAML and schema failures raise structured `SymbolTagMapLoadError` values with `code`, `path`, and `attemptedPaths`.
+- `src/symbol-tag-mapper.ts` — resolves FTMO `instrument` strings by splitting on `" + "`, trimming tags, mapping each tag through the config, warning on unknown tags through the injected logger, and returning deterministic de-duplicated symbols in first-seen order.
+- `src/symbol-tag-mapper.spec.ts` — covers single-tag mapping, multi-tag split/dedupe, unknown-tag warning, empty/whitespace input, example fallback, malformed operator YAML, malformed fallback YAML, and schema-invalid YAML.
+- `package.json` — adds `zod` as the news service dependency for the inline mapper config schema. `yaml` was intentionally not added because Bun ships native YAML parsing and BLUEPRINT §5.3 forbids that dependency.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.0.2 → 0.1.0 (minor — new public mapper module).
+- root `ankit-prop-umbrella` 0.4.22 → 0.4.23 (patch — workspace package version move).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; Biome applied safe formatting only and still reports pre-existing unsafe suggestions in unrelated packages.
+- `bun test services/news/src/symbol-tag-mapper.spec.ts` — 8 pass / 0 fail / 11 expects.
+- `bun test` — 341 pass / 0 fail / 2089 expects.
+- `bun run typecheck` — clean after correcting the concurrent [ANKA-78](/ANKA/issues/ANKA-78) duplicate export in `packages/shared-contracts/src/index.ts`.
+
+**Notes**
+
+- The `SymbolTagMap` schema stays inline for now because `@ankit-prop/contracts` has no `config` namespace yet; follow-up [T009.c](TODOS.md) tracks lifting it once that shared surface exists.
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
+## 0.4.22 — 2026-04-28 13:15 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-78](/ANKA/issues/ANKA-78) under parent [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** The news service and gateway rail-7 `NewsClient` need one shared contract surface before the `svc:news` runtime lands. BLUEPRINT §11.2 pins the FTMO calendar item shape; [ANKA-78](/ANKA/issues/ANKA-78) extends that package surface with the restricted-window replies consumed by the later endpoint and force-flat work.
+
+**Added** — `@ankit-prop/contracts` v0.3.3 → v0.4.0
+
+- `src/news.ts` — exports `CalendarImpact`, `CalendarItem`, `CalendarResponse`, `RestrictedReason`, `RestrictedReply`, and `NextRestrictedReply` as Zod strict schemas plus inferred TypeScript types.
+- `src/index.ts` — re-exports the news contracts from `@ankit-prop/contracts`.
+- `src/news.spec.ts` — covers minimal calendar item parsing, unknown `eventType` acceptance, both tier-1 routes (`restriction: true` and `impact: high`), restricted reply round-trip, closed `rule` enum, nullable next-restricted item, and closed impact enum.
+
+**Bumped**
+
+- `@ankit-prop/contracts` 0.3.3 → 0.4.0 (minor — new public schema surface).
 - root `ankit-prop-umbrella` 0.4.21 → 0.4.22 (patch — workspace package version move).
 
 **Verification**
@@ -209,6 +312,34 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/ctrader-gateway` 0.2.10 → 0.2.11 (patch — contract refactor; no behavioural change for non-news rails).
+- `bun test packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/index.spec.ts` — 9 pass / 0 fail / 17 expects.
+- `bun run lint:fix` — exit 0; Biome reported pre-existing unsafe suggestions/warnings in unrelated packages and applied no fixes.
+- `bun test` — 341 pass / 0 fail / 2089 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" packages/shared-contracts/src/news.ts packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/index.ts` — no matches.
+
+**Notes**
+
+- No service restart required: only the shared contracts package changed, and no service `/health` surface was running from this package.
+
+## 0.4.21 — 2026-04-28 13:13 Europe/Amsterdam
+
+**Initiated by:** DocumentSpecialist (agent), executing [ANKA-77](/ANKA/issues/ANKA-77) under [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** `svc:news` needs a canonical real FTMO economic-calendar cassette for the 14-day replay and contract-change detector work described in BLUEPRINT §11.1-§11.3 and §21.3. The chosen 2026-03-23 → 2026-04-06 Prague window crosses the 2026-03-29 DST boundary and includes the requested high-impact USD, restricted, and multi-tag NFP coverage.
+
+**Added** — `@ankit-prop/news` v0.0.2 cassette assets
+
+- `services/news/test/cassettes/ftmo-2026-03-23-week.json` — raw FTMO JSON response from `GET https://gw2.ftmo.com/public-api/v1/economic-calendar?dateFrom=2026-03-23T00:00:00+01:00&dateTo=2026-04-06T00:00:00+02:00&timezone=Europe/Prague`, fetched 2026-04-28 13:12 CEST; response header `x-backend-revision: 1d0bf5c9aa11944d489591b907e1c2bea1c61945`; 193 items, 52,541 bytes.
+- `services/news/test/cassettes/contract-baseline.json` — keys-and-types baseline for the response/item shape in BLUEPRINT §11.2, intentionally value-free for the later contract-change detector.
+
+**Changed** — `infra:tooling`
+
+- `biome.json` — excludes raw `services/news/test/cassettes/ftmo-*.json` vendor cassettes from formatting so `lint:fix` cannot rewrite bytes that must remain exactly as returned.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.0.1 → 0.0.2 (patch — version-pinned FTMO calendar cassette assets).
 - root `ankit-prop-umbrella` 0.4.20 → 0.4.21 (patch — workspace package version move).
 
 **Verification**
@@ -223,6 +354,15 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 - `NewsClient.lastSuccessfulFetchAtMs()` is the contract surface ANKA-9 will implement; the live svc:news socket should record the wall-clock timestamp of the *last 200/OK calendar response* and surface it unchanged. A failed poll (5xx, socket close, parse error) MUST NOT advance this value — that's how the §11.7 guard stays honest.
 - This commit landed via an isolated `git worktree add` at `/tmp/anka-31-newsclient` because parallel heartbeats kept stomping the main checkout's branch state during the previous two retries (5 collision stashes + recurring `git reset` reflog entries). The worktree isolation pattern is the right answer for any multi-file change while parallel heartbeats are active.
+- `jq` contract probe — cassette has 193 items, at least one high-impact USD event, at least one `restriction:true` event, the multi-tag `USD + US Indices + XAUUSD + DXY` NFP event, and both `+01:00` / `+02:00` offsets across Prague DST.
+- `cmp -s /tmp/ftmo-2026-03-23.json services/news/test/cassettes/ftmo-2026-03-23-week.json` — confirms the committed cassette is byte-for-byte the downloaded raw JSON.
+- `bunx biome check services/news/test/cassettes/ftmo-2026-03-23-week.json services/news/test/cassettes/contract-baseline.json package.json services/news/package.json` — intentionally fails before the Biome exclusion because raw JSON would be reformatted.
+- `bunx biome check services/news/test/cassettes/ftmo-2026-03-23-week.json services/news/test/cassettes/contract-baseline.json package.json services/news/package.json biome.json` — passes after the raw-cassette exclusion; Biome checks 4 files because the raw cassette is intentionally ignored.
+
+**Notes**
+
+- No Bun runtime code or dependency surface changed; no new npm packages.
+- No service restart required: `services/news` still has only the placeholder `start` script and no `/health` implementation yet.
 
 ## 0.4.20 — 2026-04-28 12:25 Europe/Amsterdam
 

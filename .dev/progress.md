@@ -2,13 +2,12 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 18:10 Europe/Amsterdam — [ANKA-76](/ANKA/issues/ANKA-76) live TwelveData fetch
+## 2026-04-28 18:20 Europe/Amsterdam — [ANKA-113](/ANKA/issues/ANKA-113) PR #1 merge-conflict resolution
 
-- Wake reason: `issue_blockers_resolved`; blocker [ANKA-97](/ANKA/issues/ANKA-97) is done, so ANKA-76 is actionable.
-- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §17, §22, §25 before running the fetch.
-- Fetched `https://bun.com/llms.txt` at 18:06 Europe/Amsterdam before Bun CLI work.
-- Live `td-fetch fetch --apply` succeeded: 61 credits, 10 shards, 3,290,334 compressed shard bytes, 63 seconds.
-- Manifest/schema audit clean: 10 shards, 61 fetch-log lines, 20 adversarial windows, populated NAS100/XAUUSD symbol meta, shasums match.
-- Verification: `bun run lint:fix`, `bun test --cwd packages/market-data-twelvedata` (41 pass), `bun run typecheck` (clean).
-- No service package changed; no `/health` restart required.
-- Next: force-add ignored fixture tree, commit v0.4.25 with Paperclip footer, push `origin/main`, update ANKA-76/ANKA-68.
+- Scoped Paperclip wake on [ANKA-113](/ANKA/issues/ANKA-113) (child of [ANKA-77](/ANKA/issues/ANKA-77)). PR #1 head `e8bac186` reported `mergeable: false` against `origin/main`.
+- Conflict scope confirmed via `git merge-tree` — only FE-owned append-only / version metadata: `.dev/journal.md`, `.dev/progress.md`, `CHANGELOG.md`, `package.json` (bun.lock, TODOS.md auto-merged).
+- These are exactly the files in the FE non-delegation list (BLUEPRINT §25 `infra:tooling`, AGENTS.md "What FE keeps"); not a Codex brief.
+- Strategy: regular merge commit on `anka-77-ftmo-calendar-cassette` against `origin/main` (no force-push, PR identity preserved).
+- Resolutions: `.dev/progress.md` → take main (replace-each-session); `.dev/journal.md` + `CHANGELOG.md` → union with main entries first, then PR entries (newest-first preserved across the boundary; both lineages independently bumped 0.4.21–0.4.24 so duplicate version headings remain as audit history); `package.json` → bumped to 0.4.26 above max(main 0.4.25, PR 0.4.24).
+- BLUEPRINT §0.2 Bun-runtime proof not required: this heartbeat is metadata reconciliation only, no Bun-runtime code touched.
+- Next: regenerate lockfile, re-run news-side regression tests + biome, commit the merge with Paperclip footer, push, then move [ANKA-77](/ANKA/issues/ANKA-77) forward to QA / final landing.
