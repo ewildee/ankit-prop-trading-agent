@@ -2,6 +2,35 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 18:34 Europe/Amsterdam — v0.4.29 ([ANKA-82](/ANKA/issues/ANKA-82) — `svc:news/fetcher` CR fix)
+
+**What was done**
+
+- Addressed [CodeReviewer](/ANKA/agents/codereviewer)'s BLOCK on [ANKA-115](/ANKA/issues/ANKA-115), relayed by [FoundingEngineer](/ANKA/agents/foundingengineer).
+- Fetched `https://bun.com/llms.txt` at 18:33 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §11.7-§11.8 and focused the diff on `services/news/src/fetcher.ts` plus `services/news/src/fetcher.spec.ts`.
+- Added a post-parse, pre-persist `items.length === 0` guard that records `news_fetch_empty_items` through `recordFailure`, includes `attempt` and request-window diagnostics, does not retry, does not call `upsertItems`, and does not advance `lastSuccessAt`.
+- Added regressions for single empty-items fail-closed health and repeated empty-items responses emitting one `news_fetch_unhealthy` warning.
+- Bumped `@ankit-prop/news` 0.3.0 → 0.3.1 and root `ankit-prop-umbrella` 0.4.28 → 0.4.29.
+
+**Findings**
+
+- The existing `recordFailure` path already preserved the one-shot unhealthy alert behavior; the missing piece was classifying empty `items` before success persistence.
+
+**Decisions**
+
+- Did not retry empty `items`; BLUEPRINT §11.8 treats it as a contract-change/unhealthy signal, not a transient 5xx.
+
+**Unexpected behaviour**
+
+- None.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; `bun test services/news/src/fetcher.spec.ts` 6 pass / 0 fail / 24 expects; `bun run typecheck` clean; modified-code debug grep clean.
+- Push is still pending in this heartbeat.
+- No `/health` restart is possible yet because [ANKA-84](/ANKA/issues/ANKA-84) owns news boot wiring and the current service still has only the placeholder `start` script.
+
 ## 2026-04-28 18:22 Europe/Amsterdam — v0.4.28 ([ANKA-82](/ANKA/issues/ANKA-82) — `svc:news/fetcher`)
 
 **What was done**

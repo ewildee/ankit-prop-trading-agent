@@ -2,6 +2,34 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.29 — 2026-04-28 18:34 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), addressing CodeReviewer BLOCK on [ANKA-82](/ANKA/issues/ANKA-82) via [ANKA-115](/ANKA/issues/ANKA-115).
+
+**Why:** BLUEPRINT §11.8 requires an empty FTMO calendar `items` array on a populated window to mark the feed unhealthy. Treating `{ items: [] }` as success could refresh `lastSuccessAt`, erase restricted events, and let gateway rails 3-4 trade through news.
+
+**Fixed** — `@ankit-prop/news` v0.3.0 → v0.3.1
+
+- `services/news/src/fetcher.ts` — after `CalendarResponse.safeParse` succeeds, `items.length === 0` now records `news_fetch_empty_items` through the existing fail-closed `recordFailure` path with `attempt` and request window diagnostics, returns without retrying, does not call `upsertItems`, and does not advance `lastSuccessAt`.
+- `services/news/src/fetcher.spec.ts` — adds the requested regression for a single empty-items response and covers three consecutive empty-items responses emitting exactly one `news_fetch_unhealthy` warning.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.3.0 → 0.3.1 (patch — fail-closed empty calendar contract violation).
+- root `ankit-prop-umbrella` 0.4.28 → 0.4.29 (patch — workspace package version move).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; Biome formatted the touched spec and still reports pre-existing unrelated unsafe suggestions outside `svc:news/fetcher`.
+- `bun test services/news/src/fetcher.spec.ts` — 6 pass / 0 fail / 24 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/fetcher.ts services/news/src/fetcher.spec.ts` — no matches.
+
+**Notes**
+
+- No retry/backoff, schema-mismatch, persist-error, or `recordSuccess` reset semantics changed.
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
 ## 0.4.28 — 2026-04-28 18:22 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-82](/ANKA/issues/ANKA-82) under parent [ANKA-75](/ANKA/issues/ANKA-75).

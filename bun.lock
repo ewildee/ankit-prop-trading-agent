@@ -77,7 +77,7 @@
     },
     "services/news": {
       "name": "@ankit-prop/news",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "dependencies": {
         "@ankit-prop/contracts": "workspace:*",
         "@ankit-prop/eval-harness": "workspace:*",

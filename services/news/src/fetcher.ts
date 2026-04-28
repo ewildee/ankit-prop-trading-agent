@@ -90,9 +90,10 @@ export function createFetcher(opts: CreateFetcherOptions): NewsCalendarFetcher {
 
   const runOnce = async (): Promise<void> => {
     for (let attempt = 0; ; attempt += 1) {
+      const requestUrl = buildCalendarUrl(baseUrl, clock.now(), dateRangeDays);
       let response: Response;
       try {
-        response = await fetchImpl(buildCalendarUrl(baseUrl, clock.now(), dateRangeDays));
+        response = await fetchImpl(requestUrl);
       } catch (err) {
         recordFailure('news_fetch_network_error', {
           attempt,
@@ -135,6 +136,14 @@ export function createFetcher(opts: CreateFetcherOptions): NewsCalendarFetcher {
         recordFailure('news_fetch_schema_mismatch', {
           attempt,
           issues: parsed.error.issues,
+        });
+        return;
+      }
+
+      if (parsed.data.items.length === 0) {
+        recordFailure('news_fetch_empty_items', {
+          attempt,
+          window: requestWindow(requestUrl),
         });
         return;
       }
@@ -219,6 +228,15 @@ function logUnknownEventTypes(items: readonly CalendarItem[], logger: FetcherLog
   if (eventTypes.length > 0) {
     logger.warn({ kind: 'news_fetch_unknown_event_type', eventTypes });
   }
+}
+
+function requestWindow(url: URL): Record<string, string> {
+  return {
+    dateFrom: url.searchParams.get('dateFrom') ?? '',
+    dateTo: url.searchParams.get('dateTo') ?? '',
+    timezone: url.searchParams.get('timezone') ?? '',
+    url: url.toString(),
+  };
 }
 
 function errorMessage(err: unknown): string {

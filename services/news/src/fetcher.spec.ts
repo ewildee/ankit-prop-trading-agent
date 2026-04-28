@@ -112,7 +112,37 @@ describe('news fetcher', () => {
     });
   });
 
-  test('three consecutive failures emit one unhealthy alert', async () => {
+  test('empty items response is treated as a fail-closed contract violation', async () => {
+    await withTempDb(async (db) => {
+      const clock = new ManualClock(NOW);
+      const logger = captureLogger();
+      const fetcher = createFetcher({
+        db,
+        clock,
+        logger,
+        fetch: sequenceFetch([], [jsonResponse({ items: [] })]),
+      });
+
+      await fetcher.start();
+
+      expect(queryRange(db, '2026-04-14T14:00:00+02:00', '2026-04-28T14:00:00+02:00')).toEqual([]);
+      expect(fetcher.getHealth()).toEqual({
+        lastSuccessAt: null,
+        lastErrorAt: NOW,
+        consecutiveFailures: 1,
+        ageSeconds: null,
+      });
+      expect(logger.errors[0]?.kind).toBe('news_fetch_empty_items');
+      expect(logger.errors[0]?.window).toMatchObject({
+        dateFrom: '2026-04-14T14:00:00+02:00',
+        dateTo: '2026-04-28T14:00:00+02:00',
+        timezone: 'Europe/Prague',
+      });
+      expect(logger.warns.filter((entry) => entry.kind === 'news_fetch_unhealthy')).toEqual([]);
+    });
+  });
+
+  test('three consecutive empty-items failures emit one unhealthy alert', async () => {
     await withTempDb(async (db) => {
       const clock = new ManualClock(NOW);
       const logger = captureLogger();
@@ -123,10 +153,10 @@ describe('news fetcher', () => {
         fetch: sequenceFetch(
           [],
           [
-            jsonResponse({ items: [{ ...BASE_ITEM, impact: 'critical' }] }),
-            jsonResponse({ items: [{ ...BASE_ITEM, impact: 'critical' }] }),
-            jsonResponse({ items: [{ ...BASE_ITEM, impact: 'critical' }] }),
-            jsonResponse({ items: [{ ...BASE_ITEM, impact: 'critical' }] }),
+            jsonResponse({ items: [] }),
+            jsonResponse({ items: [] }),
+            jsonResponse({ items: [] }),
+            jsonResponse({ items: [] }),
           ],
         ),
       });
@@ -137,6 +167,12 @@ describe('news fetcher', () => {
       await clock.tick();
 
       expect(fetcher.getHealth().consecutiveFailures).toBe(4);
+      expect(logger.errors.map((entry) => entry.kind)).toEqual([
+        'news_fetch_empty_items',
+        'news_fetch_empty_items',
+        'news_fetch_empty_items',
+        'news_fetch_empty_items',
+      ]);
       expect(logger.warns.filter((entry) => entry.kind === 'news_fetch_unhealthy')).toEqual([
         { kind: 'news_fetch_unhealthy', consecutive: 3 },
       ]);
