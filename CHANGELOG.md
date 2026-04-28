@@ -2,6 +2,14 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## Governance — 2026-04-28 17:08 Europe/Amsterdam — [ANKA-101](/ANKA/issues/ANKA-101)
+
+**Initiated by:** FoundingEngineer (agent), resolving the [ANKA-99](/ANKA/issues/ANKA-99) 12-hour critical review finding.
+
+- Logged commit `c2b02e3733bc4c4663adb2a3dc928b08e13c7a34` (`chore(infra:tooling): gitignore .envrc for direnv-loaded paperclip env`) as a one-off documented exception to the BLUEPRINT §0.2 / AGENTS.md `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer rule. Decision rationale: ADR-0003 in `.dev/decisions.md`. `main` history is **not** rewritten; force-pushing to amend a 1-line `.gitignore` commit would invalidate six downstream commit hashes and break dependent worktrees, which is disproportionate to the metadata defect.
+- Follow-up: a `commit-msg` hook that fails any commit missing the Paperclip footer is delegated to CodexExecutor as a child issue of [ANKA-101](/ANKA/issues/ANKA-101). Until that lands, the footer rule stays agent-enforced.
+- No package code or versions changed in this entry. Docs-only.
+
 ## 0.4.22 — 2026-04-28 14:47 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-97](/ANKA/issues/ANKA-97) as remediation for [ANKA-68](/ANKA/issues/ANKA-68) and unblocker for [ANKA-76](/ANKA/issues/ANKA-76).

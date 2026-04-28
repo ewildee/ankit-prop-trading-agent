@@ -2,6 +2,18 @@
 
 _Append-only, newest first. Each ADR captures: context, decision, alternatives, consequences._
 
+## ADR-0003 — Do not rewrite `main` to backfill missing Paperclip co-author footer
+
+- **Date:** 2026-04-28 17:08 Europe/Amsterdam
+- **Status:** Accepted
+- **Context:** [ANKA-101](/ANKA/issues/ANKA-101) (escalated from the [ANKA-99](/ANKA/issues/ANKA-99) 12-hour critical review) flagged commit `c2b02e3` (`chore(infra:tooling): gitignore .envrc for direnv-loaded paperclip env`) on `main` as carrying only `Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>` and missing the AGENTS.md / BLUEPRINT §0.2 required `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer. Six commits sit on top of `c2b02e3` on `origin/main` and the offending commit only changes `.gitignore`. Rewriting history would require `git rebase + git push --force-with-lease origin main`, which AGENTS.md classifies as a one-way-door action and which would invalidate any branch already based on those six commits (including the `temp-rebuild-anka-78-79` and QA worktrees referenced in recent journal entries).
+- **Decision:** Do not rewrite `main` history. Document `c2b02e3` as a logged exception, keep the commit as-is, and prevent recurrence by adding a repo-local `commit-msg` hook that fails any commit whose message lacks the Paperclip co-author footer. Any corrective commit produced as part of resolving [ANKA-101](/ANKA/issues/ANKA-101) (this ADR, the journal entry, the CHANGELOG note, the future hook itself) carries both the Claude and the Paperclip footers.
+- **Alternatives considered:**
+  - _Interactive rebase + force-push `main` to amend the missing footer._ Rejected — destructive, requires CEO approval per AGENTS.md, would break six downstream commit hashes and any worktree/branch built on them, and the only thing being fixed is metadata on a 1-line `.gitignore` change. Cost-benefit is clearly negative.
+  - _Add a follow-up empty commit referencing `c2b02e3` with both footers._ Rejected — adds noise to `main` without enforcing the rule. The exception log + hook combination is stronger and self-documenting.
+  - _Only document, no hook._ Rejected — the violation already happened once; AGENTS.md / BLUEPRINT §0.2 must be machine-enforced, not relied on as a memory rule for a stateless agent.
+- **Consequences:** `main` history stays stable for collaborators and worktrees. `c2b02e3` becomes a known logged exception in this ADR and in `.dev/journal.md`. The follow-up `commit-msg` hook (delegated to CodexExecutor in a child issue of [ANKA-101](/ANKA/issues/ANKA-101)) makes future violations a fail-closed pre-commit error rather than a post-hoc operational finding.
+
 ## ADR-0001 — Phase 0 scaffold scope
 
 - **Date:** 2026-04-27 18:16 Europe/Amsterdam

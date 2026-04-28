@@ -2,6 +2,42 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 17:08 Europe/Amsterdam — docs-only ([ANKA-101](/ANKA/issues/ANKA-101) — Paperclip co-author footer backfill on `c2b02e3`)
+
+**What was done**
+
+- Read [ANKA-101](/ANKA/issues/ANKA-101) parent context: [ANKA-99](/ANKA/issues/ANKA-99) 12-hour critical review found commit `c2b02e3733bc4c4663adb2a3dc928b08e13c7a34` (`chore(infra:tooling): gitignore .envrc for direnv-loaded paperclip env`) on `main` carrying only the Claude footer, missing the BLUEPRINT §0.2 / AGENTS.md mandated `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer.
+- Verified facts on disk: `git show --stat c2b02e3` confirms author `Test`, single Claude `Co-Authored-By` line, 1-file 1-insertion `.gitignore` change. `git rev-list --count c2b02e3..HEAD` reports 6 commits on top of the offending one. AGENTS.md line 56 is the canonical rule.
+- Decided not to rewrite `main` history. Logged the rationale, alternatives, and consequences as ADR-0003 in `.dev/decisions.md`.
+- Drafted child-issue brief for CodexExecutor: add a repo-local `commit-msg` hook that fails any commit whose message lacks the `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer. Wire it via `core.hooksPath` so it ships in-repo (current `core.hooksPath` is unset; `.git/hooks/` only contains `*.sample`). Implementation, tests, and review-gate routing belong on Codex.
+- This entry, ADR-0003, and the CHANGELOG note are the docs-only corrective surface for ANKA-101. Their commit will carry both the Claude and Paperclip co-author footers, satisfying the "enforce the footer in the next corrective commit" requirement.
+
+**Findings**
+
+- The current repo has no active git hooks (`core.hooksPath` unset, only `.sample` files in `.git/hooks/`). The footer rule is enforced today only by AGENTS.md prose and by agent diligence, which is exactly the failure mode that produced `c2b02e3`. Machine enforcement is the correct fix.
+- Six commits sit on top of `c2b02e3` (`23dbc1c`, `1912b04`, `2e83033`, `99f63b1`, `aceecfe`, plus the journal/CHANGELOG additions). A force-push to amend a 1-file `.gitignore` commit would invalidate all six hashes and break any worktree (e.g. `temp-rebuild-anka-78-79`, the QA-50 worktree) anchored on them. The blast radius is far larger than the metadata fix justifies.
+
+**Contradictions**
+
+- AGENTS.md "non-delegation list" keeps ADR authorship on FE, so ADR-0003 is FE-authored. The hook implementation is delegated to CodexExecutor per behavioural rule #1; this is the intended split.
+
+**Decisions**
+
+- Do not rewrite `main`. Document `c2b02e3` as a logged exception (this entry + ADR-0003) and enforce the footer going forward via a `commit-msg` hook delegated in a child issue of [ANKA-101](/ANKA/issues/ANKA-101).
+- No package version bump for this docs-only commit; CHANGELOG appends a "Notes / governance" entry rather than opening a new release header, since no package code changed.
+
+**Unexpected behaviour**
+
+- None.
+
+**Adaptations**
+
+- N/A — this heartbeat is a governance call plus delegation, not a code change.
+
+**Open endings**
+
+- Child issue for CodexExecutor to land the `commit-msg` hook (see ANKA-101 thread). Once merged, future commits missing the Paperclip footer fail-closed at commit time. Until that lands, the rule remains agent-enforced.
+
 ## 2026-04-28 14:47 Europe/Amsterdam — v0.4.22 ([ANKA-97](/ANKA/issues/ANKA-97) — TwelveData XAUUSD saturation/root-dir remediation)
 
 **What was done**

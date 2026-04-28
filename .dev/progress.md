@@ -2,13 +2,10 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 14:47 Europe/Amsterdam — [ANKA-97](/ANKA/issues/ANKA-97) TwelveData XAUUSD saturation/root-dir remediation
+## 2026-04-28 17:08 Europe/Amsterdam — [ANKA-101](/ANKA/issues/ANKA-101) Paperclip co-author footer backfill on `c2b02e3`
 
-- Wake reason: direct assignment; [ANKA-97](/ANKA/issues/ANKA-97) blocks [ANKA-76](/ANKA/issues/ANKA-76) live `--apply` rerun.
-- BLUEPRINT §0.2 Bun-runtime proof: fetched `https://bun.com/llms.txt` at 14:21 Europe/Amsterdam (33,157 bytes) before editing Bun-runtime code.
-- Re-read BLUEPRINT §0/§0.1/§0.2, §5.1-§5.3, §17, §22, and §25 before fixture work.
-- Implemented planner/fetcher alignment: XAUUSD estimates now use 24h calendar days; dry-plan calls use the same 0.75 page-capacity margin as chunk sizing.
-- Implemented exact chunk windows and a 3-page saturated/no-progress cap to abort runaway TD backfill cascades.
-- Anchored default `td-fetch --root-dir` at repo-root `data/market-data/twelvedata/<fixtureVersion>` even when invoked with package `--cwd`.
-- Added regression coverage for 90-day XAUUSD/1m latest-N TD saturation semantics, saturation cap, planner call math, and cwd-independent default root.
-- Verification so far: `bun install` no changes; `bun run lint:fix` exits 0 with pre-existing warnings; `bun test --cwd packages/market-data-twelvedata` 41/0; `bun run typecheck` clean; `td-fetch plan` now estimates 61 credits (XAUUSD/1m 35 calls).
+- Wake reason: direct assignment from [ANKA-99](/ANKA/issues/ANKA-99) 12-hour review escalation. `c2b02e3` on `main` carries only the Claude footer; missing the BLUEPRINT §0.2 / AGENTS.md required `Co-Authored-By: Paperclip <noreply@paperclip.ing>` line.
+- Verified `git show --stat c2b02e3`: 1-file 1-insertion `.gitignore` change. `git rev-list --count c2b02e3..HEAD` = 6. Rewriting `main` would force-push and invalidate six downstream hashes — blast radius far exceeds the metadata fix.
+- Decision (ADR-0003 in `.dev/decisions.md`): keep `main` history; log `c2b02e3` as a one-off documented exception; enforce future commits via a repo-local `commit-msg` hook (current `core.hooksPath` unset, only sample hooks installed).
+- Updated `.dev/decisions.md` (ADR-0003), `.dev/journal.md` (newest-first entry), this `progress.md`, and `CHANGELOG.md` (Governance entry, no version bump). All in this docs-only heartbeat.
+- Next: open a CodexExecutor child issue under [ANKA-101](/ANKA/issues/ANKA-101) for the `commit-msg` footer-enforcement hook. Then comment on ANKA-101 with the FE decision and close. The corrective commit for this heartbeat carries both Claude and Paperclip footers.
