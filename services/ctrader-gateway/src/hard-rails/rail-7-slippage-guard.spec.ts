@@ -73,7 +73,7 @@ function broker(overrides: Partial<BrokerSnapshot> = {}): BrokerSnapshot {
 function ctx(overrides: Partial<BrokerSnapshot> = {}): RailContext {
   return {
     broker: broker(overrides),
-    news: new InMemoryNewsClient(),
+    news: new InMemoryNewsClient({ lastSuccessfulFetchAtMs: NOW }),
     idempotency: new InMemoryIdempotencyStore(),
     throttle: new InMemoryThrottleStore(),
     logger: captureLogger(),

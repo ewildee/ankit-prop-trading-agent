@@ -6,7 +6,7 @@
 
 import type { RailDecision } from '@ankit-prop/contracts';
 import { logDecision } from './log-decision.ts';
-import { NEWS_NEVER_FETCHED_REASON } from './rail-3-news-blackout.ts';
+import { NEWS_NEVER_FETCHED_REASON, NEWS_NON_FINITE_FETCH_REASON } from './rail-3-news-blackout.ts';
 import { isoNow, type RailContext, type RailIntent } from './types.ts';
 
 export function evaluateNewsPreKill(intent: RailIntent, ctx: RailContext): RailDecision {
@@ -30,6 +30,34 @@ export function evaluateNewsPreKill(intent: RailIntent, ctx: RailContext): RailD
       outcome: 'reject',
       reason: NEWS_NEVER_FETCHED_REASON,
       detail: { lastSuccessfulFetchAtMs: null, newsStaleMaxMs: config.newsStaleMaxMs },
+      decidedAt,
+    });
+  }
+  // BLUEPRINT §9 rail 4 + §11.7 freshness, with AGENTS.md / BLUEPRINT §0.2:
+  // uncertain calendar timestamps fail closed. No trades > wrong trades.
+  if (!Number.isFinite(lastFetchAtMs)) {
+    return logDecision(intent, ctx, {
+      rail: 'news_pre_kill_2h',
+      outcome: 'reject',
+      reason: NEWS_NON_FINITE_FETCH_REASON,
+      detail: {
+        lastSuccessfulFetchAtMs: lastFetchAtMs,
+        nowMs: broker.nowMs,
+        newsStaleMaxMs: config.newsStaleMaxMs,
+      },
+      decidedAt,
+    });
+  }
+  if (lastFetchAtMs > broker.nowMs) {
+    return logDecision(intent, ctx, {
+      rail: 'news_pre_kill_2h',
+      outcome: 'reject',
+      reason: `news future-timestamp ${lastFetchAtMs} > nowMs ${broker.nowMs} — fail-closed`,
+      detail: {
+        lastSuccessfulFetchAtMs: lastFetchAtMs,
+        nowMs: broker.nowMs,
+        newsStaleMaxMs: config.newsStaleMaxMs,
+      },
       decidedAt,
     });
   }

@@ -103,7 +103,7 @@ function makeCtx(overrides: {
 }): RailContext {
   return {
     broker: broker(overrides.broker ?? {}),
-    news: new InMemoryNewsClient({ events: [] }),
+    news: new InMemoryNewsClient({ events: [], lastSuccessfulFetchAtMs: NOW }),
     idempotency: overrides.idempotency ?? new InMemoryIdempotencyStore(),
     throttle: overrides.throttle ?? new InMemoryThrottleStore(),
     logger: silentLogger,

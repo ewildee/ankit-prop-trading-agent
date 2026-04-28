@@ -9,7 +9,11 @@ import { describe, expect, test } from 'bun:test';
 import { InMemoryIdempotencyStore } from './idempotency-store.ts';
 import { captureLogger } from './logger.ts';
 import { InMemoryNewsClient } from './news-client.ts';
-import { evaluateNewsBlackout, NEWS_NEVER_FETCHED_REASON } from './rail-3-news-blackout.ts';
+import {
+  evaluateNewsBlackout,
+  NEWS_NEVER_FETCHED_REASON,
+  NEWS_NON_FINITE_FETCH_REASON,
+} from './rail-3-news-blackout.ts';
 import { evaluateNewsPreKill } from './rail-4-news-pre-kill.ts';
 import { InMemoryThrottleStore } from './throttle-store.ts';
 import {
@@ -152,31 +156,84 @@ describe('rail 3 + 4 — rail-computed §11.7 staleness (ANKA-31)', () => {
     expect(decision.detail).toMatchObject({ ageMs: STALE_MAX });
   });
 
-  test('rail 3: client lying about freshness (lastSuccessfulFetchAtMs in the future) cannot defeat the guard', () => {
-    // A faulty client that reports a *future* timestamp produces a negative
-    // age. The rail's strict `ageMs > staleMax` check still allows here, but
-    // the proof is that a lying client can no longer report age=0 after a
-    // failed fetch — that signal is gone from the contract surface.
-    // Rail 3 still applies the event-window check normally.
+  test('rail 3: client lying about freshness (lastSuccessfulFetchAtMs in the future) rejects', () => {
     const lastFetch = NOW + 60_000; // 60 s in the future
     const news = new InMemoryNewsClient({ lastSuccessfulFetchAtMs: lastFetch });
     const decision = evaluateNewsBlackout(intent(), ctx(news));
-    expect(decision.outcome).toBe('allow');
-    // Age is negative — the rail records the raw arithmetic so log analysis
-    // can detect upstream clock skew or a misbehaving client.
+    expect(decision.outcome).toBe('reject');
+    expect(decision.reason).toContain('news future-timestamp');
+    expect(decision.reason).toContain('fail-closed');
     expect(decision.detail).toMatchObject({
       lastSuccessfulFetchAtMs: lastFetch,
-      ageMs: -60_000,
+      nowMs: NOW,
+      newsStaleMaxMs: STALE_MAX,
     });
   });
 
-  test('rail 4: omitted lastSuccessfulFetchAtMs → fixture defaults to fresh sentinel and rail allows', () => {
-    // Other test suites that only care about news-window logic don't pass a
-    // staleness option. The fixture must default to "always fresh" so they
-    // don't accidentally trip rail 4 on staleness instead of the window logic.
+  test('rail 4: client lying about freshness (lastSuccessfulFetchAtMs in the future) rejects', () => {
+    const lastFetch = NOW + 60_000; // 60 s in the future
+    const news = new InMemoryNewsClient({ lastSuccessfulFetchAtMs: lastFetch });
+    const decision = evaluateNewsPreKill(intent(), ctx(news));
+    expect(decision.outcome).toBe('reject');
+    expect(decision.reason).toContain('news future-timestamp');
+    expect(decision.reason).toContain('fail-closed');
+    expect(decision.detail).toMatchObject({
+      lastSuccessfulFetchAtMs: lastFetch,
+      nowMs: NOW,
+      newsStaleMaxMs: STALE_MAX,
+    });
+  });
+
+  for (const [label, lastFetch] of [
+    ['NaN', Number.NaN],
+    ['+Infinity', Number.POSITIVE_INFINITY],
+    ['-Infinity', Number.NEGATIVE_INFINITY],
+  ] as const) {
+    test(`rail 3: ${label} lastSuccessfulFetchAtMs rejects`, () => {
+      const news = new InMemoryNewsClient({ lastSuccessfulFetchAtMs: lastFetch });
+      const decision = evaluateNewsBlackout(intent(), ctx(news));
+      expect(decision.outcome).toBe('reject');
+      expect(decision.reason).toBe(NEWS_NON_FINITE_FETCH_REASON);
+      expect(decision.reason).toContain('fail-closed');
+      expect(decision.detail).toMatchObject({
+        lastSuccessfulFetchAtMs: lastFetch,
+        nowMs: NOW,
+        newsStaleMaxMs: STALE_MAX,
+      });
+    });
+
+    test(`rail 4: ${label} lastSuccessfulFetchAtMs rejects`, () => {
+      const news = new InMemoryNewsClient({ lastSuccessfulFetchAtMs: lastFetch });
+      const decision = evaluateNewsPreKill(intent(), ctx(news));
+      expect(decision.outcome).toBe('reject');
+      expect(decision.reason).toBe(NEWS_NON_FINITE_FETCH_REASON);
+      expect(decision.reason).toContain('fail-closed');
+      expect(decision.detail).toMatchObject({
+        lastSuccessfulFetchAtMs: lastFetch,
+        nowMs: NOW,
+        newsStaleMaxMs: STALE_MAX,
+      });
+    });
+  }
+
+  test('rail 4: omitted lastSuccessfulFetchAtMs without clock fails closed on fixture sentinel', () => {
     const news = new InMemoryNewsClient(); // no events, no fetch override
+    const decision = evaluateNewsPreKill(intent(), ctx(news));
+    expect(decision.outcome).toBe('reject');
+    expect(decision.reason).toContain('news future-timestamp');
+    expect(decision.reason).toContain('fail-closed');
+    expect(decision.detail).toMatchObject({
+      lastSuccessfulFetchAtMs: Number.MAX_SAFE_INTEGER,
+      nowMs: NOW,
+      newsStaleMaxMs: STALE_MAX,
+    });
+  });
+
+  test('rail 4: omitted lastSuccessfulFetchAtMs with clock uses fresh-now fixture', () => {
+    const news = new InMemoryNewsClient({ nowMs: () => NOW });
     const decision = evaluateNewsPreKill(intent(), ctx(news));
     expect(decision.outcome).toBe('allow');
     expect(decision.reason).toBe('no tier-1 event within 2h');
+    expect(decision.detail).toMatchObject({ lastSuccessfulFetchAtMs: NOW, ageMs: 0 });
   });
 });

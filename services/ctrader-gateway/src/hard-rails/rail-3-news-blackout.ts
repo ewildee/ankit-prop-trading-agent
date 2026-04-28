@@ -13,6 +13,8 @@ import { isoNow, type RailContext, type RailIntent } from './types.ts';
 
 export const NEWS_NEVER_FETCHED_REASON =
   'news client has never reported a successful fetch — fail-closed' as const;
+export const NEWS_NON_FINITE_FETCH_REASON =
+  'news non-finite lastSuccessfulFetchAtMs — fail-closed' as const;
 
 export function evaluateNewsBlackout(intent: RailIntent, ctx: RailContext): RailDecision {
   const { broker, news, config } = ctx;
@@ -35,6 +37,34 @@ export function evaluateNewsBlackout(intent: RailIntent, ctx: RailContext): Rail
       outcome: 'reject',
       reason: NEWS_NEVER_FETCHED_REASON,
       detail: { lastSuccessfulFetchAtMs: null, newsStaleMaxMs: config.newsStaleMaxMs },
+      decidedAt,
+    });
+  }
+  // BLUEPRINT §9 rail 3 + §11.7 freshness, with AGENTS.md / BLUEPRINT §0.2:
+  // uncertain calendar timestamps fail closed. No trades > wrong trades.
+  if (!Number.isFinite(lastFetchAtMs)) {
+    return logDecision(intent, ctx, {
+      rail: 'news_blackout_5m',
+      outcome: 'reject',
+      reason: NEWS_NON_FINITE_FETCH_REASON,
+      detail: {
+        lastSuccessfulFetchAtMs: lastFetchAtMs,
+        nowMs: broker.nowMs,
+        newsStaleMaxMs: config.newsStaleMaxMs,
+      },
+      decidedAt,
+    });
+  }
+  if (lastFetchAtMs > broker.nowMs) {
+    return logDecision(intent, ctx, {
+      rail: 'news_blackout_5m',
+      outcome: 'reject',
+      reason: `news future-timestamp ${lastFetchAtMs} > nowMs ${broker.nowMs} — fail-closed`,
+      detail: {
+        lastSuccessfulFetchAtMs: lastFetchAtMs,
+        nowMs: broker.nowMs,
+        newsStaleMaxMs: config.newsStaleMaxMs,
+      },
       decidedAt,
     });
   }

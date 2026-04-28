@@ -2,6 +2,44 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 17:19 — v0.2.12 ([ANKA-103](/ANKA/issues/ANKA-103) — rail 3/4 news timestamp fail-closed)
+
+**What was done**
+
+- Read the scoped wake payload and heartbeat context for [ANKA-103](/ANKA/issues/ANKA-103); there were no pending comments to acknowledge.
+- Re-read BLUEPRINT §0, §0.2, §5, §9, §11.7, §17, §22, and §25; fetched/read `https://bun.com/llms.txt` at 2026-04-28 17:19 Europe/Amsterdam.
+- Updated rails 3 and 4 to reject non-finite and strict future `lastSuccessfulFetchAtMs` values before stale-age arithmetic, with fail-closed reasons and structured detail.
+- Updated `InMemoryNewsClient` so omitted freshness can use a fixture clock, while omitted-without-clock now fails closed through the existing future sentinel.
+- Replaced the old future-timestamp allow test with rail 3/4 rejection coverage and added non-finite regression cases; cascade hard-rail fixtures now declare fresh news timestamps explicitly.
+- Bumped `@ankit-prop/ctrader-gateway` to 0.2.12 and updated `CHANGELOG.md`, `TODOS.md`, and `.dev/progress.md`.
+
+**Findings**
+
+- The old `Number.MAX_SAFE_INTEGER` fixture default was the only broad cascade risk; tying affected tests to their broker snapshot time kept unrelated rail assertions focused.
+- `bun run lint:fix` exits 0 but still reports pre-existing warnings in unrelated packages/files.
+
+**Decisions**
+
+- Used a strict `lastFetchAtMs > broker.nowMs` future check with no tolerance, matching the [ANKA-103](/ANKA/issues/ANKA-103) fail-closed requirement.
+- Kept the new non-finite reason constant shared from rail 3, mirroring the existing `NEWS_NEVER_FETCHED_REASON` reuse pattern.
+
+**Unexpected behaviour**
+
+- A full gateway test run initially exposed one idempotency fixture whose retry advanced `broker.nowMs`; switching that fixture freshness to the computed broker time fixed the false rail 3/4 rejection.
+- The worktree also contains unrelated in-progress [ANKA-102](/ANKA/issues/ANKA-102) edits; they were left unstaged for this scoped commit.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; pre-existing unrelated warnings remain.
+- `bun test services/ctrader-gateway/src/hard-rails/news-staleness.spec.ts` — 16 pass / 0 fail / 57 expects.
+- `bun test services/ctrader-gateway` — 107 pass / 0 fail / 606 expects.
+- Gateway-scoped `tsc --ignoreConfig ... services/ctrader-gateway/src/**/*.ts` — exit 0.
+
+**Open endings**
+
+- Commit, push, gateway restart, `/health` version check, and FoundingEngineer review-gate handoff remain.
+
+
 ## 2026-04-28 17:08 Europe/Amsterdam — docs-only ([ANKA-101](/ANKA/issues/ANKA-101) — Paperclip co-author footer backfill on `c2b02e3`)
 
 **What was done**

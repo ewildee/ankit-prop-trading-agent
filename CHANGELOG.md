@@ -2,6 +2,34 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.2.12 — 2026-04-28 17:19 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-103](/ANKA/issues/ANKA-103) as child fix for [ANKA-100](/ANKA/issues/ANKA-100).
+
+**Why:** Rails 3 and 4 rejected stale news only when `broker.nowMs - lastSuccessfulFetchAtMs > newsStaleMaxMs`. Future-dated or non-finite fetch timestamps could make that age non-positive or invalid and fail open, violating BLUEPRINT §9, §11.7, and the §0.2 fail-closed default.
+
+**Changed** — `@ankit-prop/ctrader-gateway` v0.2.11 → v0.2.12
+
+- `src/hard-rails/rail-3-news-blackout.ts` and `rail-4-news-pre-kill.ts` now reject non-finite `lastSuccessfulFetchAtMs` and strict future timestamps before stale-age arithmetic. Rejection reasons include `fail-closed`; detail carries `{ lastSuccessfulFetchAtMs, nowMs, newsStaleMaxMs }`.
+- `src/hard-rails/news-client.ts` fixture defaults now document the fail-closed sentinel. Omitted `lastSuccessfulFetchAtMs` uses `nowMs?.()` when supplied; omitted without a clock keeps `Number.MAX_SAFE_INTEGER`, which now trips the future-timestamp guard.
+- Hard-rail fixture specs that do not exercise news freshness now pass explicit fresh timestamps.
+
+**Added**
+
+- `src/hard-rails/news-staleness.spec.ts` coverage for rail 3 and rail 4 future timestamps, `NaN`, `+Infinity`, `-Infinity`, omitted-without-clock fail-closed, and omitted-with-clock fresh-now behaviour.
+
+**Bumped**
+
+- `@ankit-prop/ctrader-gateway` 0.2.11 → 0.2.12 (patch — hard-rail fail-closed bug fix).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; pre-existing workspace warnings remain in unrelated packages/files.
+- `bun test services/ctrader-gateway/src/hard-rails/news-staleness.spec.ts` — 16 pass / 0 fail / 57 expects.
+- `bun test services/ctrader-gateway` — 107 pass / 0 fail / 606 expects.
+- Gateway-scoped `tsc --ignoreConfig ... services/ctrader-gateway/src/**/*.ts` — exit 0.
+
+
 ## Governance — 2026-04-28 17:08 Europe/Amsterdam — [ANKA-101](/ANKA/issues/ANKA-101)
 
 **Initiated by:** FoundingEngineer (agent), resolving the [ANKA-99](/ANKA/issues/ANKA-99) 12-hour critical review finding.

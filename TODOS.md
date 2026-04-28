@@ -15,6 +15,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
 ## Phase 2 — `ctrader-gateway` (ANKA-7 split into 4 child issues)
 
+- [x] **I002** Fix rails 3/4 news freshness fail-open on future or non-finite timestamps — _Closes [ANKA-103](/ANKA/issues/ANKA-103)_.
 - [~] **T003** Vendor cTrader client + protobuf transport over `wss://*.ctraderapi.com:5035/`.
   - [~] **T003.a** §10.3 7-step smoke-test against FTMO Free Trial — _ANKA-12_; offline scaffold (AES-GCM `RefreshTokenStore`, typed 7-step orchestrator, protobufjs codec on Spotware vendored .proto, smoke runner CLI) shipped in `74913ed` v0.4.1. Live execution gated on _ANKA-16_ (Spotware KYC + one-time browser OAuth code-grant).
   - [ ] **T003.b** Transport + OAuth + reconciliation — _ANKA-13_; blocked by ANKA-12 (vendor verdict locks once `bun run --cwd packages/ctrader-vendor smoke` reports `pass` for all 7 steps live).

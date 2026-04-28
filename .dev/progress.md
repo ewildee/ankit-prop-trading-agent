@@ -2,10 +2,11 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 17:08 Europe/Amsterdam — [ANKA-101](/ANKA/issues/ANKA-101) Paperclip co-author footer backfill on `c2b02e3`
+## 2026-04-28 17:19 Europe/Amsterdam — [ANKA-103](/ANKA/issues/ANKA-103) rail 3/4 news timestamp fail-closed
 
-- Wake reason: direct assignment from [ANKA-99](/ANKA/issues/ANKA-99) 12-hour review escalation. `c2b02e3` on `main` carries only the Claude footer; missing the BLUEPRINT §0.2 / AGENTS.md required `Co-Authored-By: Paperclip <noreply@paperclip.ing>` line.
-- Verified `git show --stat c2b02e3`: 1-file 1-insertion `.gitignore` change. `git rev-list --count c2b02e3..HEAD` = 6. Rewriting `main` would force-push and invalidate six downstream hashes — blast radius far exceeds the metadata fix.
-- Decision (ADR-0003 in `.dev/decisions.md`): keep `main` history; log `c2b02e3` as a one-off documented exception; enforce future commits via a repo-local `commit-msg` hook (current `core.hooksPath` unset, only sample hooks installed).
-- Updated `.dev/decisions.md` (ADR-0003), `.dev/journal.md` (newest-first entry), this `progress.md`, and `CHANGELOG.md` (Governance entry, no version bump). All in this docs-only heartbeat.
-- Next: open a CodexExecutor child issue under [ANKA-101](/ANKA/issues/ANKA-101) for the `commit-msg` footer-enforcement hook. Then comment on ANKA-101 with the FE decision and close. The corrective commit for this heartbeat carries both Claude and Paperclip footers.
+- Wake reason: issue assigned; no pending comment in the scoped payload. Work stayed on the [ANKA-100](/ANKA/issues/ANKA-100) child fix.
+- Fetched and read `https://bun.com/llms.txt` at 2026-04-28 17:19 Europe/Amsterdam before finalising Bun-runtime edits.
+- Rails 3/4 now reject non-finite `lastSuccessfulFetchAtMs` and strict future timestamps before stale-age arithmetic, with fail-closed reasons and `{ lastSuccessfulFetchAtMs, nowMs, newsStaleMaxMs }` detail.
+- `InMemoryNewsClient` omitted freshness now fails closed unless a fixture supplies `nowMs`; cascade hard-rail specs now declare freshness explicitly.
+- Verification green: `bun run lint:fix` (exit 0; pre-existing warnings remain), `bun test services/ctrader-gateway/src/hard-rails/news-staleness.spec.ts` (16 pass), `bun test services/ctrader-gateway` (107 pass), gateway-scoped `tsc` (exit 0).
+- Next: commit `@ankit-prop/ctrader-gateway` 0.2.12, push, restart gateway, verify `/health` reports 0.2.12, then route back to FoundingEngineer for review gate.

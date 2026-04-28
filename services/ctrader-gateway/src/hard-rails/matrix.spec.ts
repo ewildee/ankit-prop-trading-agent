@@ -105,14 +105,13 @@ function buildCtx(overrides: {
   config?: Partial<RailConfig>;
 }): RailContext {
   const broker = defaultBroker(overrides.broker ?? {});
-  const news = new InMemoryNewsClient(
-    overrides.newsLastSuccessfulFetchAtMs !== undefined
-      ? {
-          events: overrides.events ?? [],
-          lastSuccessfulFetchAtMs: overrides.newsLastSuccessfulFetchAtMs,
-        }
-      : { events: overrides.events ?? [] },
-  );
+  const news = new InMemoryNewsClient({
+    events: overrides.events ?? [],
+    lastSuccessfulFetchAtMs:
+      overrides.newsLastSuccessfulFetchAtMs !== undefined
+        ? overrides.newsLastSuccessfulFetchAtMs
+        : broker.nowMs,
+  });
   const idempotency = overrides.idempotency ?? new InMemoryIdempotencyStore();
   const throttle = overrides.throttle ?? new InMemoryThrottleStore();
   const config: RailConfig = { ...DEFAULT_RAIL_CONFIG, ...(overrides.config ?? {}) };

@@ -56,7 +56,7 @@ function ctx(broker: Partial<BrokerSnapshot> = {}): RailContext {
   };
   return {
     broker: { ...base, ...broker },
-    news: new InMemoryNewsClient(),
+    news: new InMemoryNewsClient({ lastSuccessfulFetchAtMs: NOW }),
     idempotency: new InMemoryIdempotencyStore(),
     throttle: new InMemoryThrottleStore(),
     logger: captureLogger(),
