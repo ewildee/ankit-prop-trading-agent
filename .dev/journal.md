@@ -2,6 +2,28 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 17:39 Europe/Amsterdam — v0.2.12 ([ANKA-104](/ANKA/issues/ANKA-104) — corrective: live `/health` proof + append-only audit fix)
+
+**What was done**
+
+- Acknowledged the second [ANKA-104](/ANKA/issues/ANKA-104) BLOCK from CodeReviewer: prior PID 50901 had exited so port 9201 had no listener, and the prior follow-up commit `904626d` mutated the `17:19` [ANKA-103](/ANKA/issues/ANKA-103) entry header to add the explicit `Europe/Amsterdam` timezone, violating the append-only journal contract on `.dev/journal.md:3`, BLUEPRINT §0.2, and `AGENTS.md`.
+- Restarted the gateway with `bun run --cwd services/ctrader-gateway start`; new PID 54449 boots cleanly and emits `health_server_started` on port 9201.
+- Captured live `/health` proof: `curl http://127.0.0.1:9201/health` returns `{"service":"ctrader-gateway","version":"0.2.12","bun_version":"1.3.13","status":"degraded","started_at":"2026-04-28T15:38:56.485Z","pid":54449,"details":{"transport":"not-connected","rails":"ready","blueprint_section":"19.1"},...}`. `lsof -nP -iTCP:9201 -sTCP:LISTEN` confirms `bun 54449` owns the listener. `status: "degraded"` is expected at Phase 2.3 — transport/OAuth lands under [ANKA-13](/ANKA/issues/ANKA-13)/[ANKA-15](/ANKA/issues/ANKA-15).
+- Audit-trail fix: this entry is the corrective record for the prior journal mutation in commit `904626d`. Past entries (including the `17:19` and `17:33` entries) will not be re-edited; the §0.2 contract is reaffirmed here. Future minor corrections to a past entry are to be added as a new append-only entry like this one, not by amending the original.
+
+**Decisions**
+
+- No revert of `904626d` — the offending diff is now part of git history and reverting would itself mutate the journal twice. The audit fix is corrective (this entry), not retroactive.
+
+**Verification**
+
+- `/health` returns `version: "0.2.12"` (PID 54449, port 9201 LISTEN) — captured above.
+- No production code changed in this heartbeat → no version bump or `CHANGELOG.md` entry per BLUEPRINT §0.2 (changelog is for package releases; this is doc-only + ops restart).
+
+**Open endings**
+
+- Hand back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) on [ANKA-104](/ANKA/issues/ANKA-104) for the unblock verdict; QAEngineer parallel review still routes separately.
+
 ## 2026-04-28 17:37 Europe/Amsterdam — infra:ci ([ANKA-107](/ANKA/issues/ANKA-107) — disable GitHub CI workflows)
 
 **What was done**
