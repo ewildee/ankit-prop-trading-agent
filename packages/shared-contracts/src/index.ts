@@ -1,6 +1,8 @@
 export const PHASE_0_SENTINEL = 'phase-0-scaffold' as const;
 export type PhaseSentinel = typeof PHASE_0_SENTINEL;
 
+export type { SymbolTagMap } from './config/index.ts';
+export { SymbolTagMapSchema } from './config/index.ts';
 export type { FtmoBreachKind, FtmoBreachScope } from './eval.ts';
 export {
   CostBreakdown,

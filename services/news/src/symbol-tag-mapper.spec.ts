@@ -9,6 +9,7 @@ import {
   loadSymbolTagMap,
   resolveAffectedSymbols,
   type SymbolTagMap,
+  SymbolTagMapSchema,
 } from './symbol-tag-mapper.ts';
 
 const MAP: SymbolTagMap = {
@@ -21,6 +22,10 @@ const MAP: SymbolTagMap = {
 };
 
 describe('resolveAffectedSymbols', () => {
+  test('keeps the shared SymbolTagMap schema re-export parseable for local consumers', () => {
+    expect(SymbolTagMapSchema.parse(MAP)).toEqual(MAP);
+  });
+
   test('maps a single tag to tracked symbols', () => {
     expect(resolveAffectedSymbols('USD', MAP)).toEqual(['NAS100', 'XAUUSD']);
   });
