@@ -12,4 +12,4 @@ _Replace this section every session — keep ≤ 20 lines._
 - Added CR regressions for locale strings with offsets, second-precision offsets, and locale range bounds.
 - Bumped `@ankit-prop/news` 0.2.3 → 0.2.4 and root `ankit-prop-umbrella` 0.4.27 → 0.4.28.
 - Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; targeted spec 26 pass / 0 fail / 56 expects; `bun run typecheck` clean; code debug grep clean.
-- Remaining: commit, push `origin anka-81-news-calendar-db`, and comment back with the commit SHA.
+- Completed: committed and pushed `d35393dbe72c06e96dcdda5fa883064c08a5734d`; commented back on [ANKA-95](/ANKA/issues/ANKA-95). Next owner: FoundingEngineer respawns CR + QA gates.
