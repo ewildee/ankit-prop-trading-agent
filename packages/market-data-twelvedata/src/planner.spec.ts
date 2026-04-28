@@ -1,5 +1,11 @@
 import { describe, expect, test } from 'bun:test';
-import { estimateBars, formatPlan, planFetch, TWELVEDATA_MAX_BARS_PER_CALL } from './planner.ts';
+import {
+  estimateBars,
+  formatPlan,
+  planFetch,
+  TWELVEDATA_MAX_BARS_PER_CALL,
+  TWELVEDATA_PAGE_BAR_SAFETY_MARGIN,
+} from './planner.ts';
 
 const MS_PER_DAY = 86_400_000;
 
@@ -10,11 +16,12 @@ describe('estimateBars', () => {
     expect(estimateBars('XAUUSD', '1m', t, t)).toBe(0);
   });
 
-  test('XAUUSD 24x5 gives more bars than NAS100 6.5x5 over the same window', () => {
+  test('XAUUSD uses full 24h calendar-day density over the same window', () => {
     const from = Date.UTC(2026, 0, 1);
     const to = from + 30 * MS_PER_DAY;
     const xauBars = estimateBars('XAUUSD', '1m', from, to);
     const ndxBars = estimateBars('NAS100', '1m', from, to);
+    expect(xauBars).toBe(30 * 24 * 60);
     expect(xauBars).toBeGreaterThan(ndxBars * 2);
   });
 
@@ -51,7 +58,7 @@ describe('planFetch', () => {
     expect(plan.totalCredits).toBe(summed + plan.symbolSearchCalls);
   });
 
-  test('every shard fits in ≤5000 bars per call (calls = ceil(bars/max))', () => {
+  test('every shard plans against the same safety-adjusted page capacity as the fetcher', () => {
     const plan = planFetch({
       symbols: ['NAS100', 'XAUUSD'],
       intradayTimeframes: ['1m', '5m', '15m', '1h'],
@@ -61,14 +68,15 @@ describe('planFetch', () => {
       dailyFromMs: dailyFrom,
       dailyToMs: dailyTo,
     });
+    const effectiveBarsPerCall = TWELVEDATA_MAX_BARS_PER_CALL * TWELVEDATA_PAGE_BAR_SAFETY_MARGIN;
     for (const s of plan.shards) {
       const expectedCalls =
-        s.estimatedBars === 0 ? 0 : Math.ceil(s.estimatedBars / TWELVEDATA_MAX_BARS_PER_CALL);
+        s.estimatedBars === 0 ? 0 : Math.ceil(s.estimatedBars / effectiveBarsPerCall);
       expect(s.estimatedCalls).toBe(expectedCalls);
     }
   });
 
-  test('total credit budget for the locked plan-rev-2 window stays under one Grow-tier minute', () => {
+  test('locked plan-rev-2 window reflects XAUUSD full-day density and page margin', () => {
     const plan = planFetch({
       symbols: ['NAS100', 'XAUUSD'],
       intradayTimeframes: ['1m', '5m', '15m', '1h'],
@@ -78,7 +86,12 @@ describe('planFetch', () => {
       dailyFromMs: dailyFrom,
       dailyToMs: dailyTo,
     });
-    expect(plan.totalCredits).toBeLessThan(55);
+    const xau1m = plan.shards.find((s) => s.symbol === 'XAUUSD' && s.timeframe === '1m');
+    expect(xau1m).toBeDefined();
+    if (!xau1m) throw new Error('missing XAUUSD/1m shard');
+    expect(xau1m.estimatedCalls).toBe(35);
+    expect(plan.totalCredits).toBeGreaterThan(55);
+    expect(plan.totalCredits).toBeLessThanOrEqual(65);
   });
 
   test('formatPlan renders header and totals', () => {

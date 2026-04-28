@@ -1,5 +1,9 @@
 import type { FixtureStore } from './fixture-store.ts';
-import { estimateBars, TWELVEDATA_MAX_BARS_PER_CALL } from './planner.ts';
+import {
+  estimateBars,
+  TWELVEDATA_MAX_BARS_PER_CALL,
+  TWELVEDATA_PAGE_BAR_SAFETY_MARGIN,
+} from './planner.ts';
 import {
   type BarLine,
   FIXTURE_SCHEMA_VERSION,
@@ -11,7 +15,8 @@ import { type CanonicalSymbol, SYMBOL_CATALOG } from './symbols.ts';
 import { type Timeframe, timeframeMs } from './timeframes.ts';
 import type { TwelveDataClient } from './twelve-data-client.ts';
 
-const PAGE_BAR_SAFETY_MARGIN = 0.9;
+const PAGE_BAR_SAFETY_MARGIN = TWELVEDATA_PAGE_BAR_SAFETY_MARGIN;
+const MAX_CONSECUTIVE_SATURATED_NO_PROGRESS_PAGES = 3;
 
 export type FetchPlanInput = {
   symbols: ReadonlyArray<CanonicalSymbol>;
@@ -143,6 +148,7 @@ export class FetchOrchestrator {
       this.log(`[shard] ${symbol}/${tf}: full pull from ${new Date(cursor).toISOString()}`);
     }
     let chunkEndOverride: number | null = null;
+    let consecutiveSaturatedNoProgressPages = 0;
     while (cursor < toMs) {
       const plannedEnd =
         chunkEndOverride ?? Math.min(toMs, this.computeChunkEnd(symbol, tf, cursor, toMs));
@@ -192,6 +198,10 @@ export class FetchOrchestrator {
       } else {
         nextCursor = chunkEnd;
       }
+      const saturatedNoProgress = saturated && nextCursor === cursor;
+      consecutiveSaturatedNoProgressPages = saturatedNoProgress
+        ? consecutiveSaturatedNoProgressPages + 1
+        : 0;
       await this.cfg.store.appendFetchLog({
         t: new Date().toISOString(),
         op: 'time_series',
@@ -205,11 +215,17 @@ export class FetchOrchestrator {
         attempts: res.attempts,
         outputsizeRequested: res.outputsizeRequested,
         saturated,
+        saturatedNoProgressPages: consecutiveSaturatedNoProgressPages,
         durationMs,
       });
       this.log(
         `[shard] ${symbol}/${tf}: ${new Date(cursor).toISOString()} → ${new Date(chunkEnd).toISOString()} bars=${res.bars.length} added=${added}${saturated ? ' [saturated]' : ''}`,
       );
+      if (consecutiveSaturatedNoProgressPages >= MAX_CONSECUTIVE_SATURATED_NO_PROGRESS_PAGES) {
+        throw new Error(
+          `[shard] ${symbol}/${tf}: ${consecutiveSaturatedNoProgressPages} consecutive saturated pages at cursor ${new Date(cursor).toISOString()} (chunkEnd=${new Date(chunkEnd).toISOString()}); aborting to cap TwelveData credit burn`,
+        );
+      }
       cursor = nextCursor;
       chunkEndOverride = nextChunkEndOverride;
     }
@@ -232,11 +248,12 @@ export class FetchOrchestrator {
     if (probeBars === 0) return Math.min(toMs, cursor + 7 * 86_400_000);
     const probeDays = (probeEnd - cursor) / 86_400_000;
     const barsPerDay = probeBars / probeDays;
-    const maxDays = Math.max(
-      1,
-      Math.floor((TWELVEDATA_MAX_BARS_PER_CALL * PAGE_BAR_SAFETY_MARGIN) / Math.max(1, barsPerDay)),
+    const targetBars = TWELVEDATA_MAX_BARS_PER_CALL * PAGE_BAR_SAFETY_MARGIN;
+    const maxWindowMs = Math.max(
+      tfMs,
+      Math.floor((targetBars / Math.max(1, barsPerDay)) * 86_400_000),
     );
-    return Math.min(toMs, cursor + maxDays * 86_400_000);
+    return Math.min(toMs, cursor + maxWindowMs);
   }
 
   private async writeManifest(

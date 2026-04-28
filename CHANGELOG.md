@@ -2,6 +2,43 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.22 — 2026-04-28 14:47 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-97](/ANKA/issues/ANKA-97) as remediation for [ANKA-68](/ANKA/issues/ANKA-68) and unblocker for [ANKA-76](/ANKA/issues/ANKA-76).
+
+**Why:** The first live `td-fetch fetch --apply` attempt hit 100+ `time_series` calls while still inside the first `XAUUSD/1m` shard. The scaffold had underestimated TwelveData's XAUUSD bar density and used a relative default fixture root that landed under the package cwd. The live rerun must not spend credits until the dry plan and fetcher chunker agree on realistic call counts and runaway saturation fails closed.
+
+**Changed** — `@ankit-prop/market-data-twelvedata` v0.1.1 → v0.1.2
+
+- `src/planner.ts` — XAUUSD intraday density now plans at 24 trading hours per calendar day (TwelveData live behavior), while NAS100 keeps the US-equity session estimate. Planned calls now use the same 0.75 safety-adjusted page capacity as the fetcher so dry credits match intended chunk size.
+- `src/fetcher.ts` — page safety margin tightened from 0.9 to 0.75 through the shared planner constant. Intraday chunk sizing now uses exact millisecond windows instead of flooring to whole days, preventing avoidable over-fetch while keeping the safety margin. A 3-page saturated/no-progress cap aborts runaway backfill cascades with a clear symbol/timeframe/cursor error.
+- `src/cli.ts` — default `--root-dir` resolves from `import.meta.url` up to the workspace root package and writes under repo-root `data/market-data/twelvedata/<fixtureVersion>`, regardless of `bun run --cwd packages/market-data-twelvedata ...`. Explicit `--root-dir` remains unchanged.
+- `src/index.ts` — exports the default-root resolver and shared TwelveData page safety margin for tests and package consumers.
+
+**Added**
+
+- `src/cli.spec.ts` — regression test proving the default fixture root stays anchored at repo root even after `process.chdir()` into the package directory.
+- `src/fetcher.spec.ts` — regression coverage for a 90-day `XAUUSD/1m` shard using TwelveData's "latest N rows in window" saturation semantics; verifies actual credits stay within 1.2× of dry-plan credits. Also covers the saturated/no-progress cap.
+- `src/planner.spec.ts` — assertions for XAUUSD 24h density, safety-adjusted call planning, and the new locked-window estimate.
+
+**Bumped**
+
+- `@ankit-prop/market-data-twelvedata` 0.1.1 → 0.1.2 (patch — fetch safety and default-path bug fix).
+- root `ankit-prop-umbrella` 0.4.21 → 0.4.22 (patch — workspace package version move).
+
+**Verification**
+
+- `bun install` — no dependency changes.
+- `bun run lint:fix` — exit 0; full-workspace pre-existing warnings remain in unrelated/generated surfaces and existing market-data helper files.
+- `bun test --cwd packages/market-data-twelvedata` — 41 pass / 0 fail / 149 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `bun run --cwd packages/market-data-twelvedata td-fetch plan` — 10 shards, 59 `time_series` calls, 61 total credits; `XAUUSD/1m` now estimates 35 calls.
+
+**Notes**
+
+- No live `fetch --apply` rerun here; that remains scoped to [ANKA-76](/ANKA/issues/ANKA-76) after review.
+- No service restart required: package is a CLI utility, not a long-running `/health` service.
+
 ## 0.4.21 — 2026-04-28 14:30 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-31](/ANKA/issues/ANKA-31) (REVIEW-FINDINGS H-5 from [ANKA-19](/ANKA/issues/ANKA-19)).

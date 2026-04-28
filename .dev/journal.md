@@ -2,6 +2,43 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 14:47 Europe/Amsterdam — v0.4.22 ([ANKA-97](/ANKA/issues/ANKA-97) — TwelveData XAUUSD saturation/root-dir remediation)
+
+**What was done**
+
+- Fetched `https://bun.com/llms.txt` at 14:21 Europe/Amsterdam (33,157 bytes) before editing Bun-runtime code; recorded proof in `.dev/progress.md`.
+- Read [ANKA-97](/ANKA/issues/ANKA-97) heartbeat context. Scope is tight: `packages/market-data-twelvedata` only; no live API rerun.
+- Updated planner/fetcher call math: XAUUSD intraday density is now 24h per calendar day, planned calls use the same 0.75 safety-adjusted page capacity as the fetcher, and fetcher chunk windows are exact millisecond spans instead of whole-day floors.
+- Added a 3-page saturated/no-progress cap in `FetchOrchestrator.fillShard` to stop credit-burning backfill cascades with an explicit symbol/timeframe/cursor error.
+- Anchored default CLI fixture root to the repo workspace root via `import.meta.url` upward search for `package.json#workspaces`, so package `--cwd` no longer writes under `packages/market-data-twelvedata/data`.
+- Added regression tests for the 90-day `XAUUSD/1m` latest-N saturation case, saturation cap, safety-adjusted planner math, and cwd-independent default root. Bumped `@ankit-prop/market-data-twelvedata` to 0.1.2 and root to 0.4.22. CHANGELOG entry written. Verification includes `bun install`, `bun run lint:fix`, package tests, root typecheck, and dry plan.
+
+**Findings**
+
+- The old dry plan's 40-credit total was wrong for TwelveData XAUUSD live behavior. The corrected default plan is 61 total credits: 59 `time_series`, 2 `symbol_search`, with `XAUUSD/1m` at 35 calls.
+- The 0.75 page margin must be reflected in `planFetch`, not only `computeChunkEnd`; otherwise the dry plan under-promises by design.
+
+**Contradictions**
+
+- [ANKA-97](/ANKA/issues/ANKA-97) asked for "no journal entry" in the acceptance text, but BLUEPRINT §0.2 and the agent execution contract require a session journal after code changes. This entry records the remediation only and does not modify the [ANKA-76](/ANKA/issues/ANKA-76) live-run journal content.
+
+**Decisions**
+
+- Count only saturated pages that make no cursor progress toward the 3-page cap. Saturated pages that advance the cursor can happen on exact `outputsize` boundaries and are not the runaway pattern that burned credits.
+- Kept NAS100 density unchanged because the [ANKA-76](/ANKA/issues/ANKA-76) live attempt did not show NAS100 saturation evidence.
+
+**Unexpected behaviour**
+
+- `bun run lint:fix` still reports pre-existing full-workspace suggestions outside this issue and existing `noNonNullAssertion` warnings in the package. It exits 0 and only formatted ANKA-97-touched files.
+
+**Adaptations**
+
+- The 90-day regression initially used no daily shard, which violated the manifest schema's non-empty daily timeframe invariant. The test now includes the daily shard and asserts the intraday shard explicitly.
+
+**Open endings**
+
+- [ANKA-76](/ANKA/issues/ANKA-76) owns the next live `td-fetch fetch --apply` run after review/verification; this issue intentionally does not spend TwelveData credits.
+
 ## 2026-04-28 14:30 Europe/Amsterdam — v0.4.21 ([ANKA-31](/ANKA/issues/ANKA-31) — rail-computed §11.7 staleness, CEO-nudged retry on a dedicated worktree)
 
 **What was done**
