@@ -4,6 +4,9 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import type { CalendarItem } from '@ankit-prop/contracts';
 import {
+  CalendarDbOpenError,
+  CalendarDbQueryError,
+  CalendarDbWriteError,
   calendarItemId,
   closeCalendarDb,
   openCalendarDb,
@@ -38,8 +41,8 @@ describe('calendar-db', () => {
       expect(journalMode.journal_mode.toLowerCase()).toBe('wal');
       expect(objects.map((object) => object.name)).toEqual([
         'calendar_items',
-        'idx_calendar_items_date',
-        'idx_calendar_items_instrument_date',
+        'idx_calendar_items_instant_ms',
+        'idx_calendar_items_instrument_instant',
       ]);
     });
   });
@@ -109,6 +112,110 @@ describe('calendar-db', () => {
         queryRange(db, '2026-04-28T00:00:00+02:00', '2026-04-29T00:00:00+02:00', ['XAUUSD']),
       ).toEqual([xauusd]);
     });
+  });
+
+  test('queryRange compares equivalent mixed-offset instants by epoch milliseconds', async () => {
+    await withTempDb((db) => {
+      const event = item({ title: 'ECB Rate Decision', date: '2026-04-28T14:30:00+02:00' });
+      upsertItems(db, [event]);
+
+      expect(queryRange(db, '2026-04-28T12:00:00Z', '2026-04-28T13:00:00Z')).toEqual([event]);
+      expect(queryRange(db, '2026-04-28T13:00:00Z', '2026-04-28T13:30:00Z')).toEqual([]);
+    });
+  });
+
+  test('queryRange excludes events exactly at the to bound across equivalent offsets', async () => {
+    await withTempDb((db) => {
+      const event = item({ title: 'At exact to', date: '2026-04-28T10:00:00+00:00' });
+      upsertItems(db, [event]);
+
+      expect(queryRange(db, '2026-04-28T09:00:00Z', '2026-04-28T10:00:00Z')).toEqual([]);
+    });
+  });
+
+  test('queryRange orders mixed offsets deterministically by instant then title and instrument', async () => {
+    await withTempDb((db) => {
+      const sameInstantZ = item({
+        title: 'Beta same instant',
+        instrument: 'NAS100',
+        date: '2026-04-28T12:30:00Z',
+      });
+      const later = item({
+        title: 'Later event',
+        instrument: 'XAUUSD',
+        date: '2026-04-28T12:35:00Z',
+      });
+      const sameInstantOffset = item({
+        title: 'Alpha same instant',
+        instrument: 'XAUUSD',
+        date: '2026-04-28T14:30:00+02:00',
+      });
+      upsertItems(db, [later, sameInstantZ, sameInstantOffset]);
+
+      expect(queryRange(db, '2026-04-28T12:00:00Z', '2026-04-28T13:00:00Z')).toEqual([
+        sameInstantOffset,
+        sameInstantZ,
+        later,
+      ]);
+    });
+  });
+
+  test('upsertItems fails closed on invalid item dates', async () => {
+    await withTempDb((db) => {
+      expect(() => upsertItems(db, [item({ date: 'not-a-date' })])).toThrow(CalendarDbWriteError);
+      expect(() => upsertItems(db, [item({ date: 'not-a-date' })])).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbWriteError',
+          code: 'invalid_instant',
+          path: 'date',
+          value: 'not-a-date',
+        }),
+      );
+    });
+  });
+
+  test('queryRange fails closed on invalid range bounds', async () => {
+    await withTempDb((db) => {
+      expect(() => queryRange(db, 'garbage', '2026-04-28T00:00:00Z')).toThrow(CalendarDbQueryError);
+      expect(() => queryRange(db, 'garbage', '2026-04-28T00:00:00Z')).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbQueryError',
+          code: 'invalid_range',
+          path: 'fromIso',
+          value: 'garbage',
+        }),
+      );
+      expect(() => queryRange(db, '2026-04-28T00:00:00Z', 'garbage')).toThrow(CalendarDbQueryError);
+      expect(() => queryRange(db, '2026-04-28T00:00:00Z', 'garbage')).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbQueryError',
+          code: 'invalid_range',
+          path: 'toIso',
+          value: 'garbage',
+        }),
+      );
+    });
+  });
+
+  test('openCalendarDb fails closed on stale calendar_items schemas', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'calendar-db-'));
+    const dbPath = join(tmp, 'calendar.db');
+    try {
+      const db = openCalendarDb(dbPath);
+      db.exec('PRAGMA user_version = 1');
+      closeCalendarDb(db);
+
+      expect(() => openCalendarDb(dbPath)).toThrow(CalendarDbOpenError);
+      expect(() => openCalendarDb(dbPath)).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbOpenError',
+          code: 'schema_outdated',
+          path: dbPath,
+        }),
+      );
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
   });
 
   test('closeCalendarDb is idempotent', async () => {

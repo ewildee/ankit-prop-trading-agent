@@ -2,6 +2,43 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 13:57 Europe/Amsterdam — v0.4.25 ([ANKA-86](/ANKA/issues/ANKA-86) — `svc:news/calendar-db`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-86](/ANKA/issues/ANKA-86). No pending comments; harness had already checked out the issue.
+- Switched the clean worktree from `anka-77-ftmo-calendar-cassette` to the required `anka-81-news-calendar-db` branch before editing.
+- Fetched `https://bun.com/llms.txt` at 13:57 Europe/Amsterdam (33,157 bytes) before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0.2, §5, §11.5, §11.8, §17, §22, and §25 plus heartbeat context.
+- Added `instant_ms` storage and indices to `calendar_items`, with `PRAGMA user_version = 2` and stale schema fail-closed open.
+- Changed `upsertItems` to parse and persist epoch milliseconds, and to throw `CalendarDbWriteError` on invalid item dates.
+- Changed `queryRange` to parse bounds to epoch milliseconds, throw `CalendarDbQueryError` on invalid bounds, and order by instant/title/instrument.
+- Added calendar-db regressions for mixed-offset equivalence, exact exclusive `to`, deterministic mixed-offset ordering, invalid writes/ranges, and stale schema open.
+- Bumped `@ankit-prop/news` 0.2.0 → 0.2.1 and root `ankit-prop-umbrella` 0.4.24 → 0.4.25.
+
+**Findings**
+
+- `CalendarItem` currently accepts any string for `date`, so `upsertItems` needs its own `Date.parse` fail-closed guard.
+- New empty SQLite files also report `user_version = 0`; stale detection therefore allows only a fresh empty DB through and fails closed for non-fresh DBs with version `< 2`.
+
+**Contradictions**
+
+- None. The issue body explicitly preserves `date TEXT` for audit/display while requiring epoch-ms comparison.
+
+**Decisions**
+
+- Did not introduce migrations; stale non-live DB files fail closed with an operator delete instruction per the issue.
+- Kept instrument filtering verbatim and unchanged; only the time comparison axis changed.
+
+**Unexpected behaviour**
+
+- The heartbeat workspace initially reported the previous [ANKA-77](/ANKA/issues/ANKA-77) branch. The target [ANKA-86](/ANKA/issues/ANKA-86) branch existed locally and was clean, so work continued after switching.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; `bun test services/news/src/calendar-db.spec.ts` 13 pass / 0 fail / 22 expects; `bun run typecheck` clean; modified-code debug grep clean.
+- No `/health` restart is possible yet because `services/news` still has only the placeholder `start` script.
+
 ## 2026-04-28 13:40 Europe/Amsterdam — v0.4.24 ([ANKA-81](/ANKA/issues/ANKA-81) — `svc:news/calendar-db`)
 
 **What was done**
