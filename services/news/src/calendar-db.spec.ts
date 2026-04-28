@@ -220,6 +220,79 @@ describe('calendar-db', () => {
     });
   });
 
+  test('upsertItems accepts minute-precision ISO instants with compact numeric offsets', async () => {
+    await withTempDb((db) => {
+      const event = item({ title: 'Minute precision', date: '2026-04-28T14:30+0200' });
+
+      expect(upsertItems(db, [event])).toEqual({ inserted: 1, updated: 0 });
+      expect(queryRange(db, '2026-04-28T12:00Z', '2026-04-28T13:00Z')).toEqual([event]);
+    });
+  });
+
+  test('upsertItems fails closed on RFC-2822-style locale string with GMT offset', async () => {
+    await withTempDb((db) => {
+      const value = 'Tue Apr 28 2026 14:30:00 GMT+0200';
+
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(CalendarDbWriteError);
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbWriteError',
+          code: 'invalid_instant',
+          path: 'date',
+          value,
+        }),
+      );
+    });
+  });
+
+  test('upsertItems fails closed on long-form English date with offset', async () => {
+    await withTempDb((db) => {
+      const value = 'April 28, 2026 14:30:00 +0200';
+
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(CalendarDbWriteError);
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbWriteError',
+          code: 'invalid_instant',
+          path: 'date',
+          value,
+        }),
+      );
+    });
+  });
+
+  test('upsertItems fails closed on US-slash date with offset', async () => {
+    await withTempDb((db) => {
+      const value = '04/28/2026 14:30:00 +0200';
+
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(CalendarDbWriteError);
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbWriteError',
+          code: 'invalid_instant',
+          path: 'date',
+          value,
+        }),
+      );
+    });
+  });
+
+  test('upsertItems fails closed on second-precision offsets', async () => {
+    await withTempDb((db) => {
+      const value = '2026-04-28T14:30:00+02:00:30';
+
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(CalendarDbWriteError);
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbWriteError',
+          code: 'invalid_instant',
+          path: 'date',
+          value,
+        }),
+      );
+    });
+  });
+
   test('queryRange fails closed on invalid range bounds', async () => {
     await withTempDb((db) => {
       expect(() => queryRange(db, 'garbage', '2026-04-28T00:00:00Z')).toThrow(CalendarDbQueryError);
@@ -240,6 +313,46 @@ describe('calendar-db', () => {
           value: 'garbage',
         }),
       );
+    });
+  });
+
+  test('queryRange fails closed on locale fromIso', async () => {
+    await withTempDb((db) => {
+      for (const value of [
+        'Tue Apr 28 2026 14:30:00 GMT+0200',
+        'April 28, 2026 14:30:00 +0200',
+        '04/28/2026 14:30:00 +0200',
+      ]) {
+        expect(() => queryRange(db, value, '2026-04-29T00:00:00Z')).toThrow(CalendarDbQueryError);
+        expect(() => queryRange(db, value, '2026-04-29T00:00:00Z')).toThrow(
+          expect.objectContaining({
+            name: 'CalendarDbQueryError',
+            code: 'invalid_range',
+            path: 'fromIso',
+            value,
+          }),
+        );
+      }
+    });
+  });
+
+  test('queryRange fails closed on locale toIso', async () => {
+    await withTempDb((db) => {
+      for (const value of [
+        'Tue Apr 28 2026 14:30:00 GMT+0200',
+        'April 28, 2026 14:30:00 +0200',
+        '04/28/2026 14:30:00 +0200',
+      ]) {
+        expect(() => queryRange(db, '2026-04-28T00:00:00Z', value)).toThrow(CalendarDbQueryError);
+        expect(() => queryRange(db, '2026-04-28T00:00:00Z', value)).toThrow(
+          expect.objectContaining({
+            name: 'CalendarDbQueryError',
+            code: 'invalid_range',
+            path: 'toIso',
+            value,
+          }),
+        );
+      }
     });
   });
 

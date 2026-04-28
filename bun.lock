@@ -67,7 +67,7 @@
     },
     "services/news": {
       "name": "@ankit-prop/news",
-      "version": "0.2.0",
+      "version": "0.2.4",
       "dependencies": {
         "@ankit-prop/contracts": "workspace:*",
         "zod": "4.3.6",

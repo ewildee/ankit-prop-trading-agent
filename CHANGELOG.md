@@ -2,6 +2,33 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.28 — 2026-04-28 14:44 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-95](/ANKA/issues/ANKA-95) under parent [ANKA-89](/ANKA/issues/ANKA-89).
+
+**Why:** CodeReviewer feedback on [ANKA-93](/ANKA/issues/ANKA-93) found that the calendar DB explicit-offset guard was suffix-only, allowing locale strings through `Date.parse`. `svc:news/calendar-db` feeds hard-rail calendar decisions, so accepted instants now require the full ISO 8601 shape with `Z` or a numeric offset.
+
+**Changed** — `@ankit-prop/news` v0.2.3 → v0.2.4
+
+- `services/news/src/calendar-db.ts` — replaces the suffix-only timezone-offset check with an anchored full ISO instant matcher before `Date.parse`, accepting `Z`, `±HH:MM`, and `±HHMM` while rejecting Bun-unsupported `±HH:MM:SS`.
+- `services/news/src/calendar-db.spec.ts` — adds regressions for RFC-2822-style, long-form English, and slash-style locale strings with offsets, second-precision offsets, and locale range bounds.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.2.3 → 0.2.4 (patch — hard-rail calendar instant schema tightening).
+- root `ankit-prop-umbrella` 0.4.27 → 0.4.28 (patch — workspace package version move).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; no files changed, pre-existing unrelated unsafe suggestions remain outside `svc:news/calendar-db`.
+- `bun test services/news/src/calendar-db.spec.ts` — 26 pass / 0 fail / 56 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/calendar-db.ts services/news/src/calendar-db.spec.ts` — no matches.
+
+**Notes**
+
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
 ## 0.4.27 — 2026-04-28 14:14 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-89](/ANKA/issues/ANKA-89) under parent [ANKA-86](/ANKA/issues/ANKA-86).

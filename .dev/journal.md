@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 14:44 Europe/Amsterdam — v0.4.28 ([ANKA-95](/ANKA/issues/ANKA-95) — `svc:news/calendar-db`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-95](/ANKA/issues/ANKA-95). No pending comments; harness had already checked out the issue.
+- Fetched `https://bun.com/llms.txt` at 14:27 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0.2, §5, §9, §11.2-§11.8, §17, §18.1, §22, and §25 plus heartbeat context.
+- Used the linked `anka-81-news-calendar-db` worktree at `ankit-prop-trading-agent-paperclip-anka95`; left the unrelated `main` worktree progress change untouched.
+- Replaced the suffix-only timezone-offset regex with a full ISO instant matcher before `Date.parse`, keeping existing `CalendarDbWriteError` and `CalendarDbQueryError` shapes plus trim semantics.
+- Added regressions for locale strings with offsets on writes and query bounds, plus Bun-unsupported second-precision offsets, from [ANKA-93](/ANKA/issues/ANKA-93) review feedback.
+- Bumped `@ankit-prop/news` 0.2.3 → 0.2.4 and root `ankit-prop-umbrella` 0.4.27 → 0.4.28.
+
+**Findings**
+
+- Bun 1.3.13 accepts the three locale strings from [ANKA-95](/ANKA/issues/ANKA-95) via `Date.parse`, and rejects `2026-04-28T14:30:00+02:00:30`, so the regex now rejects that offset form before parsing.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Kept the validation private to `calendar-db.ts`; contract-layer Zod tightening remains out of scope per [ANKA-95](/ANKA/issues/ANKA-95).
+
+**Unexpected behaviour**
+
+- The primary checkout is on `main` with unrelated dirty files, so the task was isolated in a linked worktree to avoid mixing changes.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; `bun test services/news/src/calendar-db.spec.ts` 26 pass / 0 fail / 56 expects; `bun run typecheck` clean; modified-code debug grep clean.
+- No `/health` restart is possible yet because `services/news` still has only the placeholder `start` script.
+
 ## 2026-04-28 14:14 Europe/Amsterdam — v0.4.27 ([ANKA-89](/ANKA/issues/ANKA-89) — `svc:news/calendar-db`)
 
 **What was done**
