@@ -1,0 +1,20 @@
+{
+  "name": "@ankit-prop/market-data-twelvedata",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "ANKA-68 — one-shot, resumable Bun script that pulls historical bars from TwelveData REST and writes versioned fixtures matching the ANKA-68 fixture-schema (v1) seam. Deletable once cTrader-live history covers the same windows.",
+  "main": "src/index.ts",
+  "bin": {
+    "td-fetch": "src/cli.ts"
+  },
+  "scripts": {
+    "td-fetch": "bun run src/cli.ts",
+    "plan": "bun run src/cli.ts plan",
+    "fetch": "bun run src/cli.ts fetch"
+  },
+  "dependencies": {
+    "@ankit-prop/contracts": "workspace:*",
+    "zod": "4.3.6"
+  }
+}

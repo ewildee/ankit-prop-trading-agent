@@ -2,6 +2,44 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.19 — 2026-04-28 12:06 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-68](/ANKA/issues/ANKA-68) (TwelveData fetch & cache script — sibling A under [ANKA-67](/ANKA/issues/ANKA-67) plan rev 2).
+
+**Why:** TwelveData subscription expires ~2026-05-12. To keep harness work alive after the sub lapses, we need a one-shot, resumable, dry-run-first fetch script that pulls NAS100 + XAUUSD over the locked plan-rev-2 window (3 mo intraday at 1m/5m/15m/1h plus 6 mo 1d tail) into versioned, gzipped JSONL fixtures, and captures symbol identity + an adversarial-windows manifest at fetch time so we cannot drift after expiry. Schema for the seam between this issue and sibling [ANKA-69](/ANKA/issues/ANKA-69) (CachedFixtureProvider) is published as the [`fixture-schema` document on ANKA-68 (rev 1)](/ANKA/issues/ANKA-68#document-fixture-schema).
+
+**Added** — `@ankit-prop/market-data-twelvedata` v0.1.0 (new `pkg:market-data-twelvedata`)
+
+- New umbrella package at `packages/market-data-twelvedata/` with the `td-fetch` Bun CLI (subcommands `plan`, `fetch`).
+- `src/planner.ts` — bar/call/credit/byte estimator. Locked plan-rev-2 window plans 40 credits total (38 `time_series` + 2 `symbol_search`), ≈3.6 MB compressed across 10 shards, all under one Grow-tier minute (55 cr/min).
+- `src/rate-limiter.ts` — sliding-window token-bucket `CreditRateLimiter`; serialises concurrent acquires; never bursts above the per-minute ceiling.
+- `src/twelve-data-client.ts` — minimal REST client for `time_series` + `symbol_search`, rate-limited, with 429 retry/back-off and TwelveData error-envelope parsing. UTC-only datetime parsing (`?timezone=UTC`).
+- `src/fixture-store.ts` — gzipped JSONL shard writer/reader (`Bun.gzipSync` / `Bun.gunzipSync`, no npm deps), sha256 manifest entries, symbol-meta + adversarial-windows + manifest persistence, append-only `fetch-log.jsonl`.
+- `src/fetcher.ts` — orchestrator: resolves symbol identity via `/symbol_search` (caches per fixture), fills each (symbol, timeframe) shard with chunked time-paginated calls sized by per-tier bars-per-day estimate, **resumable** (skips bars already on disk and resumes from `lastT + tfMs`), writes manifest with credits-spent + git provenance.
+- `src/adversarial-windows.ts` — manually curated NFP / FOMC / ECB releases (2025-10 → 2026-04) plus US-equity holiday closures inside the locked window; passes `AdversarialWindowsFileSchema`.
+- `src/schema.ts` — Zod schemas (`FIXTURE_SCHEMA_VERSION = 1`) for `BarLine`, `SymbolMetaFile`, `Manifest`, `AdversarialWindowsFile`, matching the published seam doc.
+- `src/cli.ts` — argv parsing, **dry-run by default** (`fetch` requires `--apply`); defaults match plan rev 2 (3 mo intraday + 6 mo daily-tail, NAS100 + XAUUSD, all four intraday timeframes, 55 cr/min).
+- Specs: `planner.spec.ts`, `rate-limiter.spec.ts`, `twelve-data-client.spec.ts`, `fixture-store.spec.ts`, `adversarial-windows.spec.ts`, `fetcher.spec.ts` (full pull + resume).
+
+**Bumped**
+
+- `@ankit-prop/market-data-twelvedata` (initial 0.1.0).
+- root `ankit-prop-umbrella` 0.4.18 → 0.4.19 (patch — workspace package add).
+
+**Verification**
+
+- `bun test packages/market-data-twelvedata/` — 31 pass / 0 fail / 129 expects.
+- `bun run lint` — exit 0.
+- `bun run typecheck` — clean for `packages/market-data-twelvedata/`. Pre-existing errors in sibling `packages/market-data/` (ANKA-69 in-flight) are unrelated and out of scope here.
+- `bun run --cwd packages/market-data-twelvedata td-fetch plan --intraday-from=2026-01-28 --intraday-to=2026-04-28 --daily-from=2025-10-28 --daily-to=2026-04-28` — prints 10 shards, totals 40 calls / 40 credits / ≈3.61 MB compressed; exits without hitting the API.
+
+**Notes**
+
+- `--apply` is **not** run in this commit; live fetch run is the final acceptance step on [ANKA-68](/ANKA/issues/ANKA-68) and is gated on schema agreement with sibling [ANKA-69](/ANKA/issues/ANKA-69). When the live run lands it will get its own changelog entry with credit spend and final byte size.
+- Cross-link of the seam doc onto [ANKA-69](/ANKA/issues/ANKA-69) failed this heartbeat with run-ownership lock (sibling run currently owns ANKA-69) — will retry next heartbeat.
+- Pre-existing unstaged edits in `packages/eval-harness/src/ftmo-rules.spec.ts` and `packages/eval-harness/src/prague-day.spec.ts` left untouched; not part of this commit's scope.
+- No service restart required: package is a CLI utility, no service `/health` surface changed.
+
 ## 0.4.18 — 2026-04-28 10:02 Europe/Amsterdam
 
 **Initiated by:** QAEngineer (agent), executing [ANKA-66](/ANKA/issues/ANKA-66) (Daily test coverage & regression audit).

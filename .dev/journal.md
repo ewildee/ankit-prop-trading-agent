@@ -2,6 +2,50 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 12:06 Europe/Amsterdam — v0.4.19 ([ANKA-68](/ANKA/issues/ANKA-68) — TwelveData fetch & cache script scaffold + tests, no live run yet)
+
+**What was done**
+
+- Read [ANKA-67](/ANKA/issues/ANKA-67) plan rev 2 and the three child issues ([ANKA-68](/ANKA/issues/ANKA-68) — me, [ANKA-69](/ANKA/issues/ANKA-69) — sibling run, [ANKA-70](/ANKA/issues/ANKA-70) — blocked).
+- Published the seam-defining [`fixture-schema` doc on ANKA-68 (rev 1)](/ANKA/issues/ANKA-68#document-fixture-schema): on-disk layout, bar-line shape, manifest, symbol-meta, adversarial-windows, fetch-log, reader contract for `CachedFixtureProvider`. Two open questions parked (whole-shard decode vs streaming; whether `getAdversarialWindows()` lives on the provider).
+- Scaffolded `packages/market-data-twelvedata/` with the `td-fetch` Bun CLI: `planner`, `rate-limiter`, `twelve-data-client`, `fixture-store`, `fetcher`, `adversarial-windows`, `schema`, `symbols`, `timeframes`. No npm deps beyond zod (already in workspace) and `@ankit-prop/contracts` workspace dep. Used `Bun.gzipSync` / `Bun.gunzipSync` / `Bun.CryptoHasher` instead of npm packages, per BLUEPRINT §5.3.
+- Wrote 6 spec files (31 tests, 129 expects). Covers planner math, rate-limiter throttling under concurrency, gzipped JSONL roundtrip, manifest write/read, adversarial-windows curation, full-pull and resume orchestration with stub fetch.
+- Verified plan output for the locked plan-rev-2 window (3 mo intraday at 1m/5m/15m/1h + 6 mo 1d tail, NAS100 + XAUUSD): 40 credits / 40 calls / ≈3.61 MB compressed across 10 shards. Fits one Grow-tier minute (55 cr/min ceiling).
+
+**Findings**
+
+- TwelveData time_series cost = 1 credit per call regardless of `outputsize` ≤5000. Pagination is therefore time-driven, not call-cost-driven; the planner sizes chunks by bars-per-calendar-day estimate per (symbol, timeframe).
+- For NAS100 (US equity), bars-per-calendar-day ≈ 6.5h × 5/7 of trading; for XAUUSD ≈ 24h × 5/7 (forex 24x5). The asymmetry is what drives the credit budget — XAUUSD 1m alone is ~19 calls.
+- Bun's `Bun.gzipSync` + `Bun.gunzipSync` + `Bun.CryptoHasher` cover everything we need; no need for any of the npm gzip / sha libs.
+- `bun test packages/market-data-twelvedata/` runs in ~340 ms; full repo `bun test` not run yet (out of heartbeat scope; this commit is package-scoped).
+
+**Contradictions / surprises**
+
+- Sibling [ANKA-69](/ANKA/issues/ANKA-69) is owned by a concurrent run (different runId, same agent) — couldn't comment cross-link, will retry. Their package lives at `packages/market-data/` with slightly different type names (`FixtureManifest`, `AdversarialEventsFile`). The on-disk schema is what's contractual; their type-name choice is internal.
+- `tsc` from `bun run typecheck` shows pre-existing errors in `packages/market-data/` (sibling B WIP); not mine to fix. My package is clean.
+- Bun also reported `bun run typecheck` exited 0 in the harness wrapper despite tsc errors — odd, but the errors are visible in the output. Worth investigating later; not blocking this heartbeat.
+
+**Decisions**
+
+- **Storage = gzipped JSONL, not Parquet.** Parquet would add an npm dep (~`parquetjs`) for marginal benefit at this scale (~3.6 MB). JSONL.gz keeps Bun-native, human-inspectable when needed.
+- **Dry-run by default.** `td-fetch fetch` without `--apply` prints the plan; live fetch requires explicit `--apply` flag and `TWELVEDATA_API_KEY`.
+- **Resume strategy is shard-level read-merge.** The orchestrator reads existing shard, finds `lastT`, and resumes from `lastT + tfMs`. Bars in the response that already exist on disk are deduped by ts. Re-runs are idempotent and never re-pull existing bars.
+- **Symbol identity recorded as raw + canonical.** Each symbol meta carries the verbatim `/symbol_search` response so we can audit identity post sub-expiry without round-tripping through internal types.
+- **Fixture version = `v1.0.0-YYYY-MM-DD`** of the live-fetch run start date. Fixtures are immutable once committed; bumping requires a new directory.
+- **Adversarial windows are hand-curated, not auto-pulled.** No live calendar API in scope; the curator file lives next to the bars and is independently auditable. Ten news entries (NFP / FOMC / ECB) + six US-equity holiday closures.
+
+**Adaptations**
+
+- Initially modelled the rate-limiter test with a fake clock; ran into async-ordering edge cases and switched to real-time with tiny `windowMs` (60–80 ms). Tests are now deterministic and run sub-50 ms each.
+- First fetcher spec used empty `dailyTimeframes`; manifest schema rejected it (zod min(1)). Updated tests to include both intraday and daily timeframes — matches what real fixtures will always carry.
+
+**Open endings**
+
+- **Live fetch run not yet executed.** This commit ships the scaffold + tests only. The acceptance criterion "Live full-fetch run logged to `.dev/journal.md` with credit spend and final byte size" remains open and will land in a separate commit once `TWELVEDATA_API_KEY` is provisioned and the seam schema has explicit sign-off from sibling [ANKA-69](/ANKA/issues/ANKA-69). Sub expires ~2026-05-12 — runway is ~2 weeks.
+- Cross-link of seam doc onto [ANKA-69](/ANKA/issues/ANKA-69) blocked by run-ownership lock; retry next heartbeat.
+- `bun run typecheck` clean for this package; pre-existing errors in `packages/market-data/` left for [ANKA-69](/ANKA/issues/ANKA-69) to resolve.
+- Mandatory pre-close review per AGENTS.md matrix: this issue ships non-trivial code in a new package — needs CodeReviewer pass before close. Will route via comment + child issue next heartbeat.
+
 ## 2026-04-28 10:02 Europe/Amsterdam — v0.4.18 ([ANKA-66](/ANKA/issues/ANKA-66) — daily QA sweep; pre-news FTMO property invariant)
 
 **What was done**
