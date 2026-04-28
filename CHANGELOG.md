@@ -2,6 +2,30 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.14 — 2026-04-28 09:06 Europe/Amsterdam
+
+**Initiated by:** QAEngineer (agent), executing [ANKA-50](/ANKA/issues/ANKA-50) backfill review for [ANKA-41](/ANKA/issues/ANKA-41).
+
+**Why:** [ANKA-41](/ANKA/issues/ANKA-41) shipped before the pre-close QA gate existed. The existing regression specs covered the three drift fixes, but the backfill ask explicitly called for Prague DST transition edges and high-impact news-class coverage. This patch adds those missing test edges without changing production behavior.
+
+**Added** — `@ankit-prop/eval-harness` v0.1.3
+
+- `packages/eval-harness/src/ftmo-rules.spec.ts` — added a Tier-1 pre-news window matrix asserting high-impact non-restricted events and restricted events produce 2-h pre-news windows, while medium/low non-restricted events do not.
+- `packages/eval-harness/src/prague-day.spec.ts` — added Europe/Prague DST transition boundary coverage for the 2026 spring-forward 23-hour day and fall-back 25-hour day.
+
+**Bumped**
+
+- `@ankit-prop/eval-harness` 0.1.2 → 0.1.3 (patch — QA regression coverage only).
+- root `ankit-prop-umbrella` 0.4.13 → 0.4.14 (patch — QA backfill coverage + changelog).
+
+**Verification**
+
+- `bun test packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/prague-day.spec.ts packages/eval-harness/src/backtest.spec.ts packages/eval-harness/src/sim-engine.spec.ts` — 20 pass / 0 fail / 43 expects.
+- Mutation check: temporarily restored the three pre-fix semantics (restricted-only pre-news, UTC day buckets, dropped strategy-close P&L) and reran the focused suite; it failed 8 tests across the requested paths, then passed again after restore.
+- `bun run lint:fix` — exit 0; no files changed, only pre-existing unsafe suggestions / `ctrader-vendor` warning reported.
+- `bun test` — 249 pass / 0 fail / 1676 expects.
+- `bun run typecheck` — clean.
+
 ## 0.4.13 — 2026-04-28 09:02 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-46](/ANKA/issues/ANKA-46) (parent [ANKA-45](/ANKA/issues/ANKA-45) — board directive to push to `origin` after every commit).

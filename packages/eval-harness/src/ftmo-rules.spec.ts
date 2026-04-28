@@ -127,6 +127,26 @@ describe('FtmoSimulator', () => {
     ).toBe(true);
   });
 
+  test('pre-news windows include Tier-1 high-impact and restricted events only', () => {
+    const eventTs = Date.UTC(2026, 0, 5, 13, 30, 0);
+    const windows = buildPreNewsWindows(
+      [
+        { tsMs: eventTs, symbols: ['XAUUSD'], restricted: false, impact: 'high' },
+        { tsMs: eventTs + 60_000, symbols: ['NAS100'], restricted: true, impact: 'medium' },
+        { tsMs: eventTs + 120_000, symbols: ['EURUSD'], restricted: false, impact: 'medium' },
+        { tsMs: eventTs + 180_000, symbols: ['GBPUSD'], restricted: false, impact: 'low' },
+      ],
+      INTERNAL_DEFAULT_MARGINS.preNewsBlackoutMs,
+    );
+
+    expect(windows).toHaveLength(2);
+    expect(windows[0]?.symbols.has('XAUUSD')).toBe(true);
+    expect(windows[0]?.startMs).toBe(eventTs - INTERNAL_DEFAULT_MARGINS.preNewsBlackoutMs);
+    expect(windows[0]?.endMs).toBe(eventTs);
+    expect(windows[1]?.symbols.has('NAS100')).toBe(true);
+    expect(windows.some((w) => w.symbols.has('EURUSD') || w.symbols.has('GBPUSD'))).toBe(false);
+  });
+
   test('min-hold fires for sub-60s holds', () => {
     const sim = new FtmoSimulator(cfg());
     sim.setInitialDay(Date.UTC(2026, 0, 5, 8, 0, 0), 100_000);
