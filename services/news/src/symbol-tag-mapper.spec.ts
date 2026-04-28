@@ -1,12 +1,14 @@
-import { describe, expect, test } from 'bun:test';
+import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+
+import { ConfigError } from '@triplon/config';
+
 import {
   loadSymbolTagMap,
   resolveAffectedSymbols,
   type SymbolTagMap,
-  SymbolTagMapLoadError,
 } from './symbol-tag-mapper.ts';
 
 const MAP: SymbolTagMap = {
@@ -53,74 +55,81 @@ describe('resolveAffectedSymbols', () => {
   });
 });
 
-describe('loadSymbolTagMap', () => {
-  test('falls back to the repo example when the operator file is missing', async () => {
-    const tmp = await mkdtemp(join(tmpdir(), 'symbol-tag-map-'));
-    try {
-      const missingOperatorPath = join(tmp, 'missing.config.yaml');
-      const map = await loadSymbolTagMap(missingOperatorPath, {
-        fallbackPath: 'config/symbol-tag-map.example.yaml',
-      });
+describe('loadSymbolTagMap (via @triplon/config)', () => {
+  let originalCwd: string;
+  let originalXdg: string | undefined;
+  let originalHome: string | undefined;
+  let sandbox: string;
 
-      expect(resolveAffectedSymbols('USD + US Indices + XAUUSD + DXY', map)).toEqual([
-        'NAS100',
-        'XAUUSD',
-      ]);
-    } finally {
-      await rm(tmp, { recursive: true, force: true });
-    }
+  beforeEach(async () => {
+    originalCwd = process.cwd();
+    originalXdg = process.env.XDG_CONFIG_HOME;
+    originalHome = process.env.HOME;
+    sandbox = await mkdtemp(join(tmpdir(), 'symbol-tag-map-'));
+    process.env.XDG_CONFIG_HOME = join(sandbox, 'xdg');
+    process.env.HOME = join(sandbox, 'home');
+    process.chdir(sandbox);
   });
 
-  test('raises structured errors for malformed operator YAML', async () => {
-    const tmp = await mkdtemp(join(tmpdir(), 'symbol-tag-map-'));
-    try {
-      const malformed = join(tmp, 'operator.config.yaml');
-      await writeFile(malformed, 'mappings: [', 'utf8');
-
-      await expect(loadSymbolTagMap(malformed)).rejects.toMatchObject({
-        name: 'SymbolTagMapLoadError',
-        code: 'invalid_yaml',
-        path: malformed,
-      });
-    } finally {
-      await rm(tmp, { recursive: true, force: true });
-    }
+  afterEach(async () => {
+    process.chdir(originalCwd);
+    if (originalXdg === undefined) delete process.env.XDG_CONFIG_HOME;
+    else process.env.XDG_CONFIG_HOME = originalXdg;
+    if (originalHome === undefined) delete process.env.HOME;
+    else process.env.HOME = originalHome;
+    await rm(sandbox, { recursive: true, force: true });
   });
 
-  test('raises structured errors for malformed fallback YAML', async () => {
-    const tmp = await mkdtemp(join(tmpdir(), 'symbol-tag-map-'));
-    try {
-      const missingOperatorPath = join(tmp, 'missing.config.yaml');
-      const malformedFallback = join(tmp, 'fallback.config.yaml');
-      await writeFile(malformedFallback, 'mappings: [', 'utf8');
-
-      await expect(
-        loadSymbolTagMap(missingOperatorPath, { fallbackPath: malformedFallback }),
-      ).rejects.toMatchObject({
-        name: 'SymbolTagMapLoadError',
-        code: 'invalid_yaml',
-        path: malformedFallback,
-        attemptedPaths: [missingOperatorPath, malformedFallback],
-      });
-    } finally {
-      await rm(tmp, { recursive: true, force: true });
-    }
+  test('falls back to the bundled example when neither user nor project file exists', () => {
+    const map = loadSymbolTagMap();
+    expect(resolveAffectedSymbols('USD + US Indices + XAUUSD + DXY', map)).toEqual([
+      'NAS100',
+      'XAUUSD',
+    ]);
   });
 
-  test('raises structured errors for schema-invalid YAML', async () => {
-    const tmp = await mkdtemp(join(tmpdir(), 'symbol-tag-map-'));
-    try {
-      const invalidSchema = join(tmp, 'invalid-schema.config.yaml');
-      await writeFile(invalidSchema, 'mappings:\n  USD: {}\n', 'utf8');
+  test('loads from an explicit override path', async () => {
+    const file = join(sandbox, 'override.config.yaml');
+    await writeFile(file, 'mappings:\n  EUR:\n    affects: [DAX40]\n', 'utf8');
+    const map = loadSymbolTagMap(file);
+    expect(resolveAffectedSymbols('EUR', map)).toEqual(['DAX40']);
+  });
 
-      const err = await loadSymbolTagMap(invalidSchema).catch((error) => error);
-      expect(err).toBeInstanceOf(SymbolTagMapLoadError);
-      expect(err).toMatchObject({
-        code: 'invalid_schema',
-        path: invalidSchema,
-      });
-    } finally {
-      await rm(tmp, { recursive: true, force: true });
+  test('throws ConfigError E_CONFIG_NOT_FOUND for missing override path', () => {
+    const missing = join(sandbox, 'missing.config.yaml');
+    let caught: unknown;
+    try {
+      loadSymbolTagMap(missing);
+    } catch (err) {
+      caught = err;
     }
+    expect(caught).toBeInstanceOf(ConfigError);
+    expect((caught as ConfigError).code).toBe('E_CONFIG_NOT_FOUND');
+  });
+
+  test('throws ConfigError E_CONFIG_PARSE for malformed YAML', async () => {
+    const malformed = join(sandbox, 'malformed.config.yaml');
+    await writeFile(malformed, 'mappings: [', 'utf8');
+    let caught: unknown;
+    try {
+      loadSymbolTagMap(malformed);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(ConfigError);
+    expect((caught as ConfigError).code).toBe('E_CONFIG_PARSE');
+  });
+
+  test('throws ConfigError E_CONFIG_INVALID for schema-invalid YAML', async () => {
+    const bad = join(sandbox, 'bad-schema.config.yaml');
+    await writeFile(bad, 'mappings:\n  USD: {}\n', 'utf8');
+    let caught: unknown;
+    try {
+      loadSymbolTagMap(bad);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(ConfigError);
+    expect((caught as ConfigError).code).toBe('E_CONFIG_INVALID');
   });
 });

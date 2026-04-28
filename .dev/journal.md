@@ -2,6 +2,34 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 13:49 Europe/Amsterdam — v0.4.24 ([ANKA-79](/ANKA/issues/ANKA-79) follow-up — `svc:news/symbol-tag-mapper` on `@triplon/config`)
+
+**What was done**
+
+- Acknowledged board comment on [ANKA-79](/ANKA/issues/ANKA-79) (`@triplon/config` internal package, source `~/Work/Projects/shared/config-loader`, NPM mirror via `~/.npmrc` + `~/.bunfig.toml`).
+- Read `~/Work/Projects/shared/config-loader/{README.md,src/index.ts,src/config.ts,src/error.ts,src/yaml.ts}` to understand the `defineAppConfig` API surface, layered file resolution, `ConfigError` codes (`E_CONFIG_NOT_FOUND` / `E_CONFIG_PARSE` / `E_CONFIG_INVALID`), and the `paths.user()` / `paths.project()` helpers.
+- Rewrote `services/news/src/symbol-tag-mapper.ts` on top of `defineAppConfig({ scope: 'ankit-prop', name: 'symbol-tag-map', schema, envOverrides: false })`. Dropped the bespoke `SymbolTagMapLoadError`, `LoadSymbolTagMapOptions`, manual `~/` expansion, and direct `Bun.YAML.parse` call. Kept the bundled `config/symbol-tag-map.example.yaml` as a final fallback when neither user nor project file exists (set via the loader's override slot). `loadSymbolTagMap` is now synchronous.
+- Rewrote `services/news/src/symbol-tag-mapper.spec.ts` to assert `ConfigError` codes instead of `SymbolTagMapLoadError`; sandboxed `HOME` / `XDG_CONFIG_HOME` / cwd in `beforeEach`/`afterEach` so the bundled-example fallback test cannot accidentally read the operator's real `~/.config/ankit-prop/symbol-tag-map.config.yaml`.
+- Added `@triplon/config ^0.1.0` to `services/news/package.json` and ran `bun install` (2 packages installed via the Triplon mirror, lockfile saved).
+- Bumped `@ankit-prop/news` 0.1.0 → 0.2.0 (minor — public surface changed: removed `SymbolTagMapLoadError`, sync `loadSymbolTagMap`) and root `ankit-prop-umbrella` 0.4.23 → 0.4.24; updated `CHANGELOG.md`.
+
+**Findings**
+
+- `@triplon/config` ships with `Bun.YAML.parse` under the hood (`src/yaml.ts`), so we keep BLUEPRINT §5/§0.2 Bun-built-in-first compliance without owning the parse path ourselves.
+- The repo had no project-local npm/bun config for the Triplon scope — resolution worked purely via `~/.npmrc` (`@triplon:registry=…`) and `~/.bunfig.toml` (`install.scopes.triplon`). The `minimumReleaseAge = 172800` install hold already lists `@triplon/config` in `minimumReleaseAgeExcludes`, so install completed without an age skip override.
+- The loader's `defineAppConfig` cache is per-handle and module-scoped if shared. Used `makeHandle()` per `loadSymbolTagMap()` call so override-path leakage between calls is impossible — the news service loads the mapper once at startup, so the foregone caching is irrelevant.
+- Stacked the work on `anka-77-ftmo-calendar-cassette` (the ANKA-79 branch) rather than `anka-81-news-calendar-db` so this commit is independent of the parallel calendar-db work that CodexExecutor is shipping under [ANKA-81](/ANKA/issues/ANKA-81). Both branches will converge through the parent [ANKA-75](/ANKA/issues/ANKA-75) merge train and will need version-number reconciliation at that point (both branches independently bumped root → 0.4.24).
+
+**Verification**
+
+- `bun test services/news/src/symbol-tag-mapper.spec.ts` — 9 pass / 0 fail / 14 expects.
+- `bun run typecheck` — clean.
+- `bun run lint` — exit 0; reported only pre-existing diagnostics in `packages/market-data-twelvedata` and similar unrelated areas.
+
+**Next**
+
+- Hand back to CodeReviewer for re-review of the `@triplon/config` integration. Once approved, FoundingEngineer closes ANKA-79 again.
+
 ## 2026-04-28 13:19 Europe/Amsterdam — v0.4.23 ([ANKA-79](/ANKA/issues/ANKA-79) — `svc:news/symbol-tag-mapper`)
 
 **What was done**

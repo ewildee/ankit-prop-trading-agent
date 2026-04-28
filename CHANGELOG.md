@@ -2,6 +2,38 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.24 — 2026-04-28 13:49 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing the board-requested follow-up on [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** Board flagged that `svc:news/symbol-tag-mapper` should consume the operator-canonical configuration loader `@triplon/config` (internal NPM mirror; source at `~/Work/Projects/shared/config-loader`) instead of duplicating bespoke YAML loading, ad-hoc path resolution, and a custom `SymbolTagMapLoadError` shape. `@triplon/config` already provides layered file resolution (`~/.config/<scope>/<name>.config.yaml` → `./<name>.config.yaml` → override), Zod validation, and structured `ConfigError` codes — keeping the mapper's surface area minimal and consistent with the rest of Triplon Mac tooling.
+
+**Changed** — `@ankit-prop/news` v0.1.0 → v0.2.0
+
+- `services/news/src/symbol-tag-mapper.ts` — rewritten on top of `defineAppConfig({ scope: 'ankit-prop', name: 'symbol-tag-map', schema: SymbolTagMapSchema, envOverrides: false })`. Removed the bespoke `SymbolTagMapLoadError`, `LoadSymbolTagMapOptions`, the manual `~/`/relative-path expansion, and the direct `Bun.YAML.parse` call. `loadSymbolTagMap` is now synchronous (matches the loader's surface) and falls back to the bundled `config/symbol-tag-map.example.yaml` only when neither user nor project file is present. Errors propagate as `@triplon/config`'s `ConfigError` (`E_CONFIG_NOT_FOUND` / `E_CONFIG_PARSE` / `E_CONFIG_INVALID`).
+- `services/news/src/symbol-tag-mapper.spec.ts` — replaced the `SymbolTagMapLoadError` assertions with `ConfigError` code checks; sandboxed `HOME` / `XDG_CONFIG_HOME` / `cwd` per-test so the bundled-example fallback exercises a clean lookup chain instead of leaking into the operator's real `~/.config/ankit-prop/symbol-tag-map.config.yaml`.
+- `services/news/package.json` — adds `@triplon/config ^0.1.0` as a workspace dependency. `zod` stays direct so other svc:news modules can keep importing it without leaning on the loader's re-export.
+
+**Removed** — `@ankit-prop/news`
+
+- `SymbolTagMapLoadError` class and `SymbolTagMapLoadErrorCode` union — superseded by `ConfigError` from `@triplon/config`.
+- `LoadSymbolTagMapOptions.fallbackPath` — the loader's own override slot covers explicit-path callers; the bundled example is the only implicit fallback now.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.1.0 → 0.2.0 (minor — public mapper API contract changed: sync return + `ConfigError` instead of `SymbolTagMapLoadError`. No external consumers yet — N2/N4 are still out of scope per the parent plan).
+- root `ankit-prop-umbrella` 0.4.23 → 0.4.24 (patch — workspace package version move).
+
+**Verification**
+
+- `bun test services/news/src/symbol-tag-mapper.spec.ts` — 9 pass / 0 fail / 14 expects (single tag, multi-tag dedupe/order, unknown-tag warning, empty input, bundled-example fallback, explicit override path, `E_CONFIG_NOT_FOUND`, `E_CONFIG_PARSE`, `E_CONFIG_INVALID`).
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `bun run lint` — exit 0; only pre-existing diagnostics in unrelated packages (e.g. `packages/market-data-twelvedata/src/rate-limiter.ts`).
+
+**Notes**
+
+- `@triplon/config` is dual-listed in `~/.bunfig.toml` `minimumReleaseAgeExcludes` so the 2-day install hold doesn't apply, and the `@triplon` scope token in `~/.npmrc` already points at the private registry — no repo-side npm/bun config needed.
+
 ## 0.4.23 — 2026-04-28 13:19 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
