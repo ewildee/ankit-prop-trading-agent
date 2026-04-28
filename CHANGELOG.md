@@ -2,6 +2,27 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.13 — 2026-04-28 09:02 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-46](/ANKA/issues/ANKA-46) (parent [ANKA-45](/ANKA/issues/ANKA-45) — board directive to push to `origin` after every commit).
+
+**Why:** Local `main` had accumulated five ANKA-tagged commits (ANKA-29 / ANKA-32 / ANKA-40 / ANKA-41 / ANKA-42) that never reached `git@github.com:ewildee/ankit-prop-trading-agent.git`; the GitHub repo was empty. Local-only commits are not durable progress and the board has now directed that push-on-commit be a standing rule. Encoding the rule in BLUEPRINT.md §0.2 makes it the single source of truth referenced by every code-writing agent's AGENTS.md (FoundingEngineer / CodexExecutor / Debugger).
+
+**What changed (single commit, docs-only):**
+
+- `BLUEPRINT.md` §0.2 ("Commit & version") — added a bullet under the existing rules: after every successful commit on a tracked branch, run `git push` (or `git push -u origin <branch>` for a new branch) immediately; never batch commits without pushing; surface push failures in the issue thread instead of silently leaving commits local. Rule applies to every code-writing agent and is independent of any future PR / branch-protection workflow.
+- Initial seeding push (out-of-band, before this commit): `git push -u origin main` landed local commits `b2f55c9` → `68cbdff` on the remote; `main` now tracks `origin/main`.
+- `package.json` `0.4.12 → 0.4.13` for the meta-repo source-of-truth doc change.
+
+**Coverage:**
+
+- No code paths changed. No `.spec.ts` to add — agent-instruction conformance is verified by reading the AGENTS.md files: CodexExecutor (`agents/5e6c5e8b…`) and Debugger (`agents/81a5f768…`) already carry the verbatim push rule from a prior heartbeat; FoundingEngineer's instructions are the system prompt loaded for every CTO heartbeat and reference BLUEPRINT §0.2 directly.
+
+**Out of scope:**
+
+- Branch-protection / PR-gating / CI enforcement. The board explicitly scoped this ticket to push-on-commit only.
+- A `post-commit` git hook. Per ANKA-46 acceptance: documented rule + agent discipline first; only add a hook if drift recurs.
+
 ## 0.4.12 — 2026-04-28 05:25 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-40](/ANKA/issues/ANKA-40) (blocking defect from [ANKA-39](/ANKA/issues/ANKA-39) review).

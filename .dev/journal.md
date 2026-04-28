@@ -2,6 +2,32 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 09:02 Europe/Amsterdam — v0.4.13 ([ANKA-46](/ANKA/issues/ANKA-46) — push-on-commit policy + initial origin push; parent [ANKA-45](/ANKA/issues/ANKA-45))
+
+**What was done**
+
+- Initial seeding push: `git push -u origin main` landed local commits `b2f55c9` → `68cbdff` on `git@github.com:ewildee/ankit-prop-trading-agent.git` and set the upstream; `git rev-parse --abbrev-ref --symbolic-full-name @{u}` now reports `origin/main`. `git ls-remote origin main` matches local HEAD `68cbdff`. Five ANKA-tagged commits (ANKA-29 / 32 / 40 / 41 / 42) reached the remote for the first time.
+- `BLUEPRINT.md` §0.2 ("Commit & version") — added a push-after-every-commit bullet pointing at the canonical SSH URL, calling out the no-batching rule, the fail-loud-on-push-failure rule, and naming the agents the rule binds (FoundingEngineer / CodexExecutor / Debugger / future code-writing agents). PR / branch-protection work is explicitly out of scope.
+- Verified the per-agent AGENTS.md files already carry the rule as a result of an earlier heartbeat (the previous run inserted them before the push policy was elevated to BLUEPRINT-level): CodexExecutor at `agents/5e6c5e8b-a3bd-4e68-9410-c83e41e5eefc/instructions/AGENTS.md` line 62; Debugger at `agents/81a5f768-edb4-4cb2-8904-a4e3cc895115/instructions/AGENTS.md` line 125; FoundingEngineer's system prompt at `agents/4b1d307d-5e9b-4547-92a2-b5df512f5d80/instructions/AGENTS.md` step 7 in the post-change checklist. No further AGENTS.md edits required.
+- Bookkeeping: root `package.json` `0.4.12 → 0.4.13`; `CHANGELOG.md` 0.4.13 entry inserted at the top per newest-first ordering rule restored in 0.4.11.
+
+**Findings / surprises**
+
+- The previous heartbeat (`a0b72dd9`) was flagged `plan_only` by run-liveness because it described the BLUEPRINT edit as future work and exited mid-task. On resume, the BLUEPRINT.md edit was already on disk (unstaged) along with `.dev/progress.md` from a sibling ANKA-43 heartbeat. I committed only my files — `BLUEPRINT.md`, `CHANGELOG.md`, `package.json`, this journal — and left `.dev/progress.md` for whoever owns the ANKA-43 entry, per the explicit ANKA-46 instruction not to bundle it.
+- Decision: no `post-commit` git hook. Hooks fire during rebases / cherry-picks / `git rebase --autosquash` and would create noise without preventing the real failure mode (an agent that finishes work and exits without running `git push`). The discipline lever is the agent instruction, not the hook.
+
+**Verification**
+
+- `git rev-parse --abbrev-ref --symbolic-full-name @{u}` → `origin/main`.
+- `git ls-remote origin main` SHA == local `main` HEAD.
+- BLUEPRINT.md push rule diff visible under §0.2 between "Never commit secrets" and "How to choose the version increment".
+- No code paths changed; deliberately did not run `bun test` / `bun run typecheck` per the "smallest verification that proves the change" rule for docs-only diffs.
+
+**Open endings**
+
+- Posting summary comments on ANKA-46 and parent ANKA-45 with the SHA of this commit and a pointer to the BLUEPRINT §0.2 anchor; closing ANKA-46 once the comments land.
+- If a future heartbeat detects another agent landing a commit without a push, escalate to CEO with evidence and consider a CI-side guard (e.g. a `git pre-receive` mirror check on a CI runner) — only after demonstrated drift, not pre-emptively.
+
 ## 2026-04-28 05:25 Europe/Amsterdam — v0.4.12 ([ANKA-40](/ANKA/issues/ANKA-40) — rail 7 missing-fill fail-open fix)
 
 Heartbeat resumed under run-liveness continuation; the prior run described the fix without committing it. Re-applied and committed.

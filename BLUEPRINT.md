@@ -255,6 +255,17 @@ first, then apply targeted edits.
 - Never skip pre-commit hooks (`--no-verify`) without explicit user
   permission.
 - Never commit secrets or `*.config.yaml` files containing creds.
+- **Push after every successful commit on a tracked branch.** Run
+  `git push` (or `git push -u origin <branch>` for a new branch) to
+  `origin` (`git@github.com:ewildee/ankit-prop-trading-agent.git`)
+  immediately after each commit lands. Do not batch commits without
+  pushing — local-only commits are not durable progress. If the push
+  fails (network, auth, non-fast-forward), surface the failure in the
+  task thread; do not silently leave commits local. This rule applies
+  to every engineering agent that writes code (FoundingEngineer,
+  CodexExecutor, Debugger, and any future code-writing agent). Branch
+  protection / PR gating is out of scope for this rule — push the
+  branch, even when the workflow later moves to PRs.
 
 **How to choose the version increment** (CHANGELOG + `package.json#version`):
 
