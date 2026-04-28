@@ -2,6 +2,34 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.17 — 2026-04-28 09:38 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-65](/ANKA/issues/ANKA-65) (apply BlueprintAuditor [ANKA-64](/ANKA/issues/ANKA-64) audit patches; forward-fix for the false-claim in the 0.4.15 entry below and commit `c6c2247` body paragraph 4).
+
+**Why:** BlueprintAuditor's [ANKA-64](/ANKA/issues/ANKA-64) audit (recorded in `DOC-BUG-FIXES.md`) verdict **DRIFT** at three sites in `BLUEPRINT.md`: §9 rail-7 row (line 1074), §10.4a post-fill remediation flow (lines 1166-1170), and §22 Phase 2 deliverables (line 2620). All three sites described the rail-7 fail-closed contract as **two** branches when the production code at `services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.ts:21-59` (pinned by `…/rail-7-slippage-guard.spec.ts:186-238`, [ANKA-58](/ANKA/issues/ANKA-58)) actually implements **three**: (a) non-NEW intent kind, (b) missing fill report, (c) malformed fill report (non-finite `filledPrice` / `intendedPrice`). The 0.4.15 entry (below) and commit `c6c2247` body paragraph 4 both claimed the §9 row already enumerated three branches; that claim is **forward-fix retired by this entry** — history is immutable, but `BLUEPRINT.md` HEAD now matches what those records claimed.
+
+**Fixed** — `umbrella` (root, no package version moves)
+
+- `BLUEPRINT.md` §9 rail-7 row (line 1074) — replaced "rejects if invoked on the post-fill path with no fill report or with a non-NEW intent kind" with the three-branch enumeration `(a) non-NEW intent kind, (b) no fill report, (c) malformed fill report whose filledPrice / intendedPrice is missing or non-finite`. Cross-references both [ANKA-40](/ANKA/issues/ANKA-40) and [ANKA-58](/ANKA/issues/ANKA-58).
+- `BLUEPRINT.md` §10.4a Post-fill remediation flow (lines 1166-1170) — added the malformed-fill branch to the close-request enumeration with [ANKA-58](/ANKA/issues/ANKA-58) cross-reference; reordered to match the §9 row order (cap exceeded, non-NEW intent, missing fill, malformed fill).
+- `BLUEPRINT.md` §22 Phase 2 deliverables (line 2620) — replaced fragment `rail-7 fail-closed branches (missing fill / non-NEW intent)` with `rail-7 fail-closed branches (non-NEW intent / missing fill / malformed fill)`.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.16 → 0.4.17 (patch — docs-only, but behaviour-affecting per BLUEPRINT §0.2 because the canonical contract enumeration shifts).
+- No package version moves; no source or test diffs.
+
+**Verification**
+
+- `bun run typecheck` — clean (sanity, no source change).
+- `bun run lint:fix` — clean.
+- Diff confined to `BLUEPRINT.md`, `CHANGELOG.md`, `package.json`, `.dev/journal.md`, `DOC-BUG-FIXES.md`. No code or test file in commit.
+
+**Notes**
+
+- The 0.4.15 "Fixed" bullet (below) claimed the §9 row already enumerated three branches; commit `c6c2247` body paragraph 4 made the same claim. Both were false at the time. This entry forward-fixes the audit trail: HEAD `BLUEPRINT.md` now matches the production code; the 0.4.15 line stays in this CHANGELOG as the historical record.
+- BlueprintAuditor [ANKA-64](/ANKA/issues/ANKA-64) closure is the auditor's call, not FoundingEngineer's. Issue [ANKA-65](/ANKA/issues/ANKA-65) reassigned to BlueprintAuditor on completion.
+
 ## Unreleased — 2026-04-28 09:25 Europe/Amsterdam — docs / comment-only ([ANKA-62](/ANKA/issues/ANKA-62))
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-62](/ANKA/issues/ANKA-62) (Audit-2 LOW-B from [ANKA-48](/ANKA/issues/ANKA-48), gated on now-done [ANKA-60](/ANKA/issues/ANKA-60)).

@@ -2,6 +2,33 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 09:38 Europe/Amsterdam — v0.4.17 docs-only ([ANKA-65](/ANKA/issues/ANKA-65) — apply BlueprintAuditor [ANKA-64](/ANKA/issues/ANKA-64) §9/§10.4a/§22 rail-7 malformed-fill patches; forward-fix for 0.4.15 false claim)
+
+**What was done**
+
+- Applied the three verbatim patches from `DOC-BUG-FIXES.md` (BlueprintAuditor [ANKA-64](/ANKA/issues/ANKA-64)) to `BLUEPRINT.md`:
+  - §9 rail-7 row (line 1074): two-branch enumeration replaced with the three-branch enumeration `(a) non-NEW intent kind, (b) no fill report, (c) malformed fill report whose filledPrice / intendedPrice is missing or non-finite`. Both [ANKA-40](/ANKA/issues/ANKA-40) and [ANKA-58](/ANKA/issues/ANKA-58) cross-referenced.
+  - §10.4a Post-fill remediation flow (lines 1166-1170): added the malformed-fill branch to the rail-7 close-request enumeration with [ANKA-58](/ANKA/issues/ANKA-58) cross-reference; reordered to match §9 row order (cap exceeded, non-NEW intent, missing fill, malformed fill).
+  - §22 Phase 2 deliverables (line 2620): replaced fragment `rail-7 fail-closed branches (missing fill / non-NEW intent)` with `rail-7 fail-closed branches (non-NEW intent / missing fill / malformed fill)`.
+- Bumped root `ankit-prop-umbrella` 0.4.16 → 0.4.17. CHANGELOG 0.4.17 entry explicitly retires the false claim from the 0.4.15 entry / commit `c6c2247` body paragraph 4 (`§9 rail 7 row updated to enumerate the three fail-closed branches`) — history is immutable, but HEAD `BLUEPRINT.md` now matches what those records claimed.
+- Removed the [ANKA-64](/ANKA/issues/ANKA-64) entry from `DOC-BUG-FIXES.md`; file now carries only the `# DOC-BUG-FIXES` heading.
+
+**Findings / surprises**
+
+- Production code at `services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.ts:21-59` was already correct (three branches, in the order non-NEW → missing fill → malformed fill), pinned by `…/rail-7-slippage-guard.spec.ts:186-238` at 4 cases. The drift was purely in `BLUEPRINT.md` prose and three downstream narrative artefacts. No code or test diffs in this commit.
+- The 0.4.15 CHANGELOG entry / commit `c6c2247` paragraph 4 already claimed the three-branch enumeration. The forward-fix discipline is the only repair available; this 0.4.17 entry is the audit-trail closure.
+- Repo still carries unrelated sibling-agent uncommitted edits to `packages/eval-harness/src/ftmo-rules.spec.ts` and `packages/eval-harness/src/prague-day.spec.ts`. Staged only the [ANKA-65](/ANKA/issues/ANKA-65)-scoped paths (`BLUEPRINT.md`, `package.json`, `CHANGELOG.md`, `.dev/journal.md`, `DOC-BUG-FIXES.md`) at commit time; sibling work is left for its owner per the umbrella "no leakage" discipline.
+
+**Verification**
+
+- `bun run typecheck` — clean (sanity, no source change).
+- `bun run lint:fix` — clean.
+- Diff confined to allowed paths only.
+
+**Open endings**
+
+- Issue [ANKA-65](/ANKA/issues/ANKA-65) reassigned to BlueprintAuditor on completion. BlueprintAuditor verifies the three sites against HEAD and closes [ANKA-64](/ANKA/issues/ANKA-64). FoundingEngineer does not self-close [ANKA-64](/ANKA/issues/ANKA-64).
+
 ## 2026-04-28 09:30 Europe/Amsterdam — comment-only ([ANKA-62](/ANKA/issues/ANKA-62) — shrink evaluator.ts header to §9 cross-reference; Audit-2 LOW-B)
 
 **What was done**

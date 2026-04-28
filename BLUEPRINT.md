@@ -1071,7 +1071,7 @@ Checked **twice** — once by Judge (advisory), once by Gateway
 | 4 | **2-h pre-news kill-switch** | no new entries within 2 h of tier-1 event on instrument |
 | 5 | **60-s min hold** | vs previous trade on same symbol |
 | 6 | **Spread guard** | per-symbol multiplier vs typical |
-| 7 | **Slippage guard** | post-fill: close immediately if filled beyond `max(2 × typical_spread, 0.5 × ATR(14))` (decision X). **Fail-closed defence in depth**: rejects if invoked on the post-fill path with no fill report (`broker.fill === undefined`) or with a non-NEW intent kind. Both surface in the structured verdict log as `slippage_guard / reject` ([ANKA-40](/ANKA/issues/ANKA-40)) |
+| 7 | **Slippage guard** | post-fill: close immediately if filled beyond `max(2 × typical_spread, 0.5 × ATR(14))` (decision X). **Fail-closed defence in depth** — three branches reject before the cap math: (a) non-NEW intent kind, (b) no fill report (`broker.fill === undefined`), (c) malformed fill report whose `filledPrice` / `intendedPrice` is missing or non-finite. All surface in the structured verdict log as `slippage_guard / reject` ([ANKA-40](/ANKA/issues/ANKA-40), [ANKA-58](/ANKA/issues/ANKA-58)) |
 | 8 | **Symbol whitelist** | only enabled instruments per `accounts.yaml` |
 | 9 | **Idempotency** | `clientOrderId` (ULID) not previously seen |
 | 10 | **Phase-aware profit target** | auto-flatten at `closed_balance ≥ target+buffer` AND min-days complete (decision N + U) |
@@ -1164,10 +1164,11 @@ on the same `clientOrderId`. The translation contract:
   itself never emits a broker request — it only computes the
   outcome.
 - All rail-7 reject branches map to the same close request: cap
-  exceeded (decision X), missing fill report (`broker.fill ===
-  undefined`), and non-NEW intent kind. The close-emitter does not
-  branch on the rail-7 reason; the structured verdict log preserves
-  the reason for audit.
+  exceeded (decision X), non-NEW intent kind, missing fill report
+  (`broker.fill === undefined`), and malformed fill report (non-finite
+  `filledPrice` / `intendedPrice`, [ANKA-58](/ANKA/issues/ANKA-58)).
+  The close-emitter does not branch on the rail-7 reason; the
+  structured verdict log preserves the reason for audit.
 - The close request reuses the same close-emitter pipeline used by
   rail 13 force-flat (§9 + `services/ctrader-gateway/src/hard-rails/force-flat-scheduler.ts`),
   so a position cannot be enqueued for close twice and an in-flight
@@ -2617,7 +2618,7 @@ Before promoting to FTMO Free Trial, exercise:
 |-------|-------------|-----------|-----------|
 | **0** | Scaffold, specs, ADRs (DONE) | n/a | Foundation commit |
 | **1** | `@triplon/proc-supervisor` | Unit + 7 integration cases | `bun run start` brings up fake services with all transitions verified |
-| **2** | `ctrader-gateway` (FTMO Free Trial) | `ctrader-ts` smoke-test 7 steps; rails matrix | **Offline-runnable deliverables** (no live broker): 14 rails matrix, `ctrader-vendor` scaffold, `/health` endpoint, `pkg:contracts` surface, two-phase pre-submit / post-fill evaluator, fail-closed contract surface (`composeRailVerdict([], …)`), rail-7 fail-closed branches (missing fill / non-NEW intent), FTMO simulator semantics (Tier-1 pre-news, Europe/Prague day bucket, strategy-close balance accumulation). **Live-broker-gated trio** ([ANKA-16](/ANKA/issues/ANKA-16)): place + close + reconcile against the FTMO trial demo with all 14 hard rails enforced. |
+| **2** | `ctrader-gateway` (FTMO Free Trial) | `ctrader-ts` smoke-test 7 steps; rails matrix | **Offline-runnable deliverables** (no live broker): 14 rails matrix, `ctrader-vendor` scaffold, `/health` endpoint, `pkg:contracts` surface, two-phase pre-submit / post-fill evaluator, fail-closed contract surface (`composeRailVerdict([], …)`), rail-7 fail-closed branches (non-NEW intent / missing fill / malformed fill), FTMO simulator semantics (Tier-1 pre-news, Europe/Prague day bucket, strategy-close balance accumulation). **Live-broker-gated trio** ([ANKA-16](/ANKA/issues/ANKA-16)): place + close + reconcile against the FTMO trial demo with all 14 hard rails enforced. |
 | **3** | `eval-harness` + FTMO simulator | Golden fixture suite trips simulator on bad strategies; 12-fold walk-forward harness functional | Library published, regression CI green |
 | **4** | `trader` (modular monolith) | Behavioural anchors §13.5; cassette-replay LLM tests; multi-instance loader test (1 enabled + 3 disabled) | End-to-end through gateway against FTMO Free Trial for 1 hour |
 | **5** | `news` (FTMO calendar JSON) | Cassette replay + contract-change detector | Endpoints green; 2-h staleness blackout fires |
