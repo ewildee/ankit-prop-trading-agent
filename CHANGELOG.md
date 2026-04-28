@@ -2,6 +2,35 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.24 — 2026-04-28 13:40 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-81](/ANKA/issues/ANKA-81) under parent [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** `svc:news` needs a local `bun:sqlite` persistence primitive before the fetcher and endpoint work can share one canonical calendar store. The store must dedupe FTMO re-fetches by `sha256(date|title|instrument)`, preserve the canonical `CalendarItem` contract, and support range reads for later restricted-window and pre-news evaluators.
+
+**Added** — `@ankit-prop/news` v0.1.0 → v0.2.0
+
+- `services/news/sql/init.sql` — idempotent `calendar_items` table plus date and `(instrument, date)` indices for `data/calendar.db`.
+- `services/news/src/calendar-db.ts` — exports `openCalendarDb`, `upsertItems`, `queryRange`, `closeCalendarDb`, `calendarItemId`, and structured `CalendarDbOpenError`. Opens in WAL mode, creates parent directories, runs `init.sql`, hashes IDs with Bun's native `CryptoHasher`, validates rows through `@ankit-prop/contracts` `CalendarItem`, and keeps close idempotent through the wrapper.
+- `services/news/src/calendar-db.spec.ts` — covers table/index init, WAL mode, sorted round-trip reads, idempotent upsert counts and updates, structured unwriteable-path errors, inclusive/exclusive range bounds, verbatim instrument filtering, and idempotent close.
+- `services/news/package.json` — adds `@ankit-prop/contracts` as a workspace dependency for the canonical news calendar contract.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.1.0 → 0.2.0 (minor — new public calendar DB module).
+- root `ankit-prop-umbrella` 0.4.23 → 0.4.24 (patch — workspace package version move).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; Biome formatted the new files and still reports pre-existing unsafe suggestions in unrelated packages.
+- `bun test services/news/src/calendar-db.spec.ts` — 7 pass / 0 fail / 10 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+
+**Notes**
+
+- The issue acceptance names `calendar_items` and a canonical `instrument` column; this implementation uses those names even though the older blueprint DDL sketch called the table `calendar`.
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
 ## 0.4.23 — 2026-04-28 13:19 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
