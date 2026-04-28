@@ -160,6 +160,19 @@ describe('calendar-db', () => {
     });
   });
 
+  test('queryRange includes offset instants when the UTC range crosses midnight', async () => {
+    await withTempDb((db) => {
+      const event = item({
+        title: 'Late US Fed Speaker',
+        date: '2026-04-28T23:30:00-05:00',
+      });
+      upsertItems(db, [event]);
+
+      expect(queryRange(db, '2026-04-29T04:00:00Z', '2026-04-29T05:00:00Z')).toEqual([event]);
+      expect(queryRange(db, '2026-04-28T23:00:00Z', '2026-04-29T00:00:00Z')).toEqual([]);
+    });
+  });
+
   test('upsertItems fails closed on invalid item dates', async () => {
     await withTempDb((db) => {
       expect(() => upsertItems(db, [item({ date: 'not-a-date' })])).toThrow(CalendarDbWriteError);

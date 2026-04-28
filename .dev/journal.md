@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 14:06 Europe/Amsterdam — v0.4.26 ([ANKA-88](/ANKA/issues/ANKA-88) — `svc:news/calendar-db`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-88](/ANKA/issues/ANKA-88). No pending comments; harness had already checked out the issue.
+- Fetched `https://bun.com/llms.txt` at 14:04 Europe/Amsterdam before Bun-runtime test edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0.2, §9, §11.5, §13.5, §22, and §25 plus heartbeat context.
+- Audited `services/news/src/calendar-db.spec.ts` against the ANKA-86 checklist: mixed-offset equivalence, exclusive `to`, deterministic mixed-offset ordering, invalid write instant, invalid range bounds, stale schema fail-closed open, and the 7 prior calendar DB tests were present.
+- Added the requested non-listed UTC-midnight crossing permutation for `2026-04-28T23:30:00-05:00` (= `2026-04-29T04:30:00Z`).
+- Bumped `@ankit-prop/news` 0.2.1 → 0.2.2 and root `ankit-prop-umbrella` 0.4.25 → 0.4.26.
+
+**Findings**
+
+- No ANKA-86 checklist gaps found. The midnight-crossing spot-check was the only missing review permutation.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Kept the extra QA permutation in `calendar-db.spec.ts` rather than only documenting it as a Medium gap, because it is deterministic, cheap, and directly protects the hard-rail calendar query path.
+
+**Unexpected behaviour**
+
+- `bun run lint:fix` still reports unrelated pre-existing unsafe suggestions in `ctrader-vendor`, `eval-harness`, and `market-data-twelvedata`, but exits 0 and did not touch this scope.
+
+**Open endings**
+
+- Verification: `bun test services/news/src/calendar-db.spec.ts` twice, both 14 pass / 0 fail / 24 expects; `bun test` 329 pass / 0 fail / 2029 expects; `bun run typecheck` clean.
+- No `/health` restart is possible yet because `services/news` still has only the placeholder `start` script.
+
 ## 2026-04-28 13:57 Europe/Amsterdam — v0.4.25 ([ANKA-86](/ANKA/issues/ANKA-86) — `svc:news/calendar-db`)
 
 **What was done**
