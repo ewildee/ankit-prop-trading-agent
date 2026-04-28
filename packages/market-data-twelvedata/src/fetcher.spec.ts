@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { FetchOrchestrator, type FetchPlanInput } from './fetcher.ts';
 import { FixtureStore } from './fixture-store.ts';
+import { planFetch } from './planner.ts';
 import { CreditRateLimiter } from './rate-limiter.ts';
 import { TwelveDataClient } from './twelve-data-client.ts';
 
@@ -229,6 +230,125 @@ describe('FetchOrchestrator', () => {
       },
     );
     await expect(orch.run()).rejects.toThrow(/saturated page/);
+  });
+
+  test('XAUUSD 1m 90-day shard stays within 1.2x dry-plan credits under TwelveData latest-N saturation semantics', async () => {
+    const fromMs = Date.UTC(2026, 0, 28);
+    const toMs = Date.UTC(2026, 3, 28);
+    const planInput: FetchPlanInput = {
+      symbols: ['XAUUSD'],
+      intradayTimeframes: ['1m'],
+      intradayFromMs: fromMs,
+      intradayToMs: toMs,
+      dailyTimeframes: ['1d'],
+      dailyFromMs: fromMs,
+      dailyToMs: toMs,
+    };
+    const plan = planFetch(planInput);
+    const records: CallRecord[] = [];
+    const fetchImpl = makeStubFetch(records, (url) => {
+      if (url.pathname === '/symbol_search') {
+        return { data: [{ symbol: 'XAU/USD' }] };
+      }
+      const startMs = Date.parse(`${url.searchParams.get('start_date')}Z`);
+      const endMs = Date.parse(`${url.searchParams.get('end_date')}Z`);
+      const interval = url.searchParams.get('interval') ?? '1min';
+      const stepMs = intervalToMs(interval);
+      const requestedOutputsize = Number(url.searchParams.get('outputsize') ?? '5000');
+      const values: Array<Record<string, string>> = [];
+      for (let t = endMs - stepMs; t >= startMs; t -= stepMs) {
+        values.push({
+          datetime: stepMs >= 86_400_000 ? new Date(t).toISOString().slice(0, 10) : isoUtc(t),
+          open: '2000',
+          high: '2001',
+          low: '1999',
+          close: '2000.5',
+          volume: '0',
+        });
+      }
+      return {
+        status: 'ok',
+        meta: { symbol: 'XAU/USD' },
+        values: values.slice(0, requestedOutputsize),
+      };
+    });
+    const client = new TwelveDataClient({
+      apiKey: 'test',
+      rateLimiter: new CreditRateLimiter({ creditsPerMinute: 1000 }),
+      fetchImpl,
+    });
+    const store = new FixtureStore({ rootDir: root });
+    const orch = new FetchOrchestrator(
+      {
+        client,
+        store,
+        fixtureVersion: 'v-xau-credit-cap',
+        fetchProviderTier: 'grow',
+        estimatedCredits: plan.totalCredits,
+        gitCommit: null,
+        gitDirty: false,
+      },
+      planInput,
+    );
+    const result = await orch.run();
+    const tsCalls = records.filter((r) => r.url.startsWith('/time_series')).length;
+    expect(result.creditsSpent).toBeLessThanOrEqual(Math.ceil(plan.totalCredits * 1.2));
+    expect(tsCalls).toBe(plan.totalCredits - plan.symbolSearchCalls);
+    const intradayShard = result.shards.find((s) => s.timeframe === '1m');
+    expect(intradayShard).toBeDefined();
+    if (!intradayShard) throw new Error('missing XAUUSD/1m shard');
+    expect(intradayShard.barCount).toBe(90 * 24 * 60);
+  });
+
+  test('saturation no-progress cap aborts runaway backfill cascades', async () => {
+    const fromMs = Date.UTC(2026, 0, 1, 0);
+    const toMs = Date.UTC(2026, 0, 1, 6);
+    const fetchImpl = makeStubFetch([], (url) => {
+      if (url.pathname === '/symbol_search') return { data: [{ symbol: 'NDX' }] };
+      const startMs = Date.parse(`${url.searchParams.get('start_date')}Z`);
+      return {
+        status: 'ok',
+        meta: { symbol: 'NDX' },
+        values: [1, 2, 3].map((i) => ({
+          datetime: isoUtc(startMs + i * 60_000),
+          open: '17000',
+          high: '17010',
+          low: '16990',
+          close: '17005',
+          volume: '0',
+        })),
+      };
+    });
+    const client = new TwelveDataClient({
+      apiKey: 'test',
+      rateLimiter: new CreditRateLimiter({ creditsPerMinute: 1000 }),
+      fetchImpl,
+    });
+    const store = new FixtureStore({ rootDir: root });
+    const orch = new FetchOrchestrator(
+      {
+        client,
+        store,
+        fixtureVersion: 'v-saturation-cap',
+        fetchProviderTier: 'grow',
+        estimatedCredits: 0,
+        gitCommit: null,
+        gitDirty: false,
+        timeSeriesOutputsize: 3,
+      },
+      {
+        symbols: ['NAS100'],
+        intradayTimeframes: ['1h'],
+        intradayFromMs: fromMs,
+        intradayToMs: toMs,
+        dailyTimeframes: [],
+        dailyFromMs: fromMs,
+        dailyToMs: toMs,
+      },
+    );
+    await expect(orch.run()).rejects.toThrow(
+      /NAS100\/1h: 3 consecutive saturated pages at cursor 2026-01-01T00:00:00\.000Z/,
+    );
   });
 
   test('orchestrator counts HTTP attempts (not logical calls) toward creditsSpent (ANKA-72 major)', async () => {

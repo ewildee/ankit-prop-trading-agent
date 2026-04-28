@@ -1,6 +1,6 @@
 export { buildCuratedAdversarialWindows } from './adversarial-windows.ts';
 export type { CliRunResult } from './cli.ts';
-export { runCli } from './cli.ts';
+export { resolveDefaultRootDir, runCli } from './cli.ts';
 export type { FetchPlanInput, FetchRunCfg, FetchRunResult } from './fetcher.ts';
 export { FetchOrchestrator } from './fetcher.ts';
 export type { FixtureStoreCfg } from './fixture-store.ts';
@@ -14,6 +14,7 @@ export {
   TWELVEDATA_CREDITS_PER_SYMBOL_SEARCH,
   TWELVEDATA_CREDITS_PER_TIMESERIES_CALL,
   TWELVEDATA_MAX_BARS_PER_CALL,
+  TWELVEDATA_PAGE_BAR_SAFETY_MARGIN,
 } from './planner.ts';
 export type { RateLimiterCfg } from './rate-limiter.ts';
 export { CreditRateLimiter } from './rate-limiter.ts';

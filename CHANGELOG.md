@@ -2,6 +2,195 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.26 — 2026-04-28 18:20 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-113](/ANKA/issues/ANKA-113) — `infra:tooling` PR #1 merge-conflict resolution on the Wave-1 news branch `anka-77-ftmo-calendar-cassette`.
+
+**Why:** GitHub reported PR #1 (`anka-77-ftmo-calendar-cassette`, head `e8bac186`) `mergeable: false` against `origin/main` after main moved on with [ANKA-76](/ANKA/issues/ANKA-76)/[ANKA-101](/ANKA/issues/ANKA-101)/[ANKA-102](/ANKA/issues/ANKA-102)/[ANKA-104](/ANKA/issues/ANKA-104)/[ANKA-107](/ANKA/issues/ANKA-107)/[ANKA-111](/ANKA/issues/ANKA-111). Parent [ANKA-77](/ANKA/issues/ANKA-77) is `blocked` waiting for the PR to become mergeable. The cassette/schema gates were already revalidated green by QA on the PR head.
+
+**What changed (umbrella merge integration only — no production code modified)**
+
+- Merged `origin/main` into `anka-77-ftmo-calendar-cassette` with a single non-rewriting merge commit (no force-push; PR #1 identity preserved).
+- Conflicts isolated to FE-owned metadata only. `bun.lock` and `TODOS.md` auto-merged; `.dev/journal.md`, `.dev/progress.md`, `CHANGELOG.md`, and root `package.json` resolved manually:
+  - `.dev/progress.md` → take `origin/main` + fresh ANKA-113 session block (replace-each-session file per AGENTS.md).
+  - `.dev/journal.md` and `CHANGELOG.md` → union with `origin/main` entries placed before PR entries inside each conflict region. Newest-first ordering is preserved across the seam; PR-side entries (13:13–13:49) land below `origin/main` entries (14:30–18:10) which is the correct chronological order. Both lineages independently bumped through 0.4.21–0.4.24, so duplicate version headings remain as audit history of what each lineage shipped under each label.
+  - Root `package.json` → `0.4.26` (strictly above `max(main 0.4.25, PR 0.4.24)`). Sub-package versions auto-merged unchanged from PR (e.g. `@ankit-prop/news` 0.2.0).
+- No Bun-runtime, service, package, or contract source files were modified by this heartbeat. BLUEPRINT §0.2 `bun.com/llms.txt` proof not applicable.
+
+**Verification**
+
+- `git merge-tree --write-tree --name-only origin/main HEAD` after resolution: empty output (no remaining conflicts).
+- `bun test packages/shared-contracts/src/news.spec.ts services/news/src/symbol-tag-mapper.spec.ts` re-run on the merged tree (see [ANKA-113](/ANKA/issues/ANKA-113) thread for log).
+- `bunx biome check` re-run on the news/contracts surface (see [ANKA-113](/ANKA/issues/ANKA-113) thread for log).
+- Backup tag `anka-77-pr1-backup-pre-merge` retained at the pre-merge PR head `e8bac186` for rollback.
+
+**Open endings**
+
+- After push, GitHub PR #1 should flip to `mergeable: true`. [ANKA-113](/ANKA/issues/ANKA-113) hands back to the parent ([ANKA-77](/ANKA/issues/ANKA-77)) — QAEngineer to do the final cassette/contract revalidation against the merged tree, or assignee to land directly.
+
+## 0.4.25 — 2026-04-28 18:10 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-76](/ANKA/issues/ANKA-76) as the live operational follow-through for [ANKA-68](/ANKA/issues/ANKA-68).
+
+**Why:** ANKA-68's TwelveData scaffold had shipped and passed review, leaving the two operational acceptance bullets open: commit the live fixture tree with manifest/checksums, and log the real `td-fetch fetch --apply` spend and final byte size.
+
+**Added**
+
+- `data/market-data/twelvedata/v1.0.0-2026-04-28/` — live TwelveData fixture tree for explicit ANKA-68 windows:
+  - intraday: `2026-01-28T00:00:00.000Z` → `2026-04-28T00:00:00.000Z`
+  - daily tail: `2025-10-28T00:00:00.000Z` → `2026-04-28T00:00:00.000Z`
+  - symbols: `NAS100`, `XAUUSD`
+  - timeframes: `1m`, `5m`, `15m`, `1h`, `1d`
+- `manifest.json` and `fetch-log.jsonl` for the run. `ManifestSchema` parses, all 10 shards are present, `fetch-log.jsonl` has 61 entries, and `adversarial-windows.json` has 20 windows.
+
+**Shard manifest**
+
+| Shard | Bars | Bytes gz | SHA-256 |
+|-------|------|----------|---------|
+| `bars/NAS100/1m.jsonl.gz` | 186 | 1,468 | `dfc4ddc3bd470253b4fa090d6d7b6a9fa03f6b3fdb67738d3771b37d1a43353b` |
+| `bars/NAS100/5m.jsonl.gz` | 109 | 1,080 | `f5f005da2d2eff52eece6b9f61d6fac4fbabe381d513f1a8d863dbfde4dae386` |
+| `bars/NAS100/15m.jsonl.gz` | 108 | 1,080 | `d4bef009f376dcd11191c4349da9064b1a842ce6741e9df41d7decf1e38301cd` |
+| `bars/NAS100/1h.jsonl.gz` | 104 | 1,071 | `24a15b0ec6422e139a855048910c694d2cae7bcb3178e8ca6dd4b700a5c58f89` |
+| `bars/NAS100/1d.jsonl.gz` | 123 | 1,506 | `db72cc6b4b5bfb9652fb3e8319074c36cbbad524a48f08f3028a27f5cc3d40d6` |
+| `bars/XAUUSD/1m.jsonl.gz` | 129,531 | 2,476,539 | `e8149937d8177843befcce468c86dbdfbcda87d90f3918de2df33eda9431784e` |
+| `bars/XAUUSD/5m.jsonl.gz` | 25,901 | 556,712 | `6c5664941e23017ce4e76d9c1043964a3ca9c1256b6ac5bafef317ab1d47bc4c` |
+| `bars/XAUUSD/15m.jsonl.gz` | 8,636 | 195,600 | `ae77ce3506d673cb40e8b44063f0168ee01bd1d6b257537155947807756be8e1` |
+| `bars/XAUUSD/1h.jsonl.gz` | 2,159 | 50,276 | `9303e3244e60a05750c43529ae70615b84275820456207c13dca73e887717f88` |
+| `bars/XAUUSD/1d.jsonl.gz` | 179 | 5,002 | `5dd677bbc36281e5b9294a9a07ba17c227180001be16c2423468c18a41902dff` |
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.24 → 0.4.25 (patch — committed live fixture audit artifacts).
+
+**Run results**
+
+- `td-fetch fetch --apply` spent 61 TwelveData credits, produced 10 shards, and completed in 63 seconds.
+- Final compressed shard byte total: 3,290,334 bytes (3.14 MiB / 3.29 MB).
+- Note: the first invocation exited before any API call because `bun run --cwd packages/market-data-twelvedata ...` did not propagate the root `.env`; the successful invocation explicitly exported `.env` first.
+
+**Verification**
+
+- `bun run --cwd packages/market-data-twelvedata td-fetch plan --intraday-from=2026-01-28 --intraday-to=2026-04-28 --daily-from=2025-10-28 --daily-to=2026-04-28` — 10 shards, 61 total credits, ≈4.74 MB estimated compressed.
+- Manifest/schema audit script — `schemaVersion: 1`, 10 shards, 61 spent credits, 3,290,334 compressed bytes, 61 fetch-log lines, 20 adversarial windows; both symbol meta files have populated aliases/raw search payloads.
+- `shasum -a 256 data/market-data/twelvedata/v1.0.0-2026-04-28/bars/*/*.jsonl.gz` — matches all manifest shard hashes above.
+- `bun run lint:fix` — exit 0; no fixes applied; pre-existing warnings remain in unrelated/generated surfaces and existing package files.
+- `bun test --cwd packages/market-data-twelvedata` — 41 pass / 0 fail / 149 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+
+## 0.4.24 — 2026-04-28 17:59 Europe/Amsterdam
+
+**Initiated by:** SecurityReviewer (agent), executing [ANKA-111](/ANKA/issues/ANKA-111) as security review remediation for [ANKA-102](/ANKA/issues/ANKA-102).
+
+**Why:** The ANKA-102 hook/postinstall surface had two local tooling bypasses: ordinary commits could spoof `Merge`, `fixup!`, or `squash!` subjects to avoid the Paperclip co-author footer, and the inline root `postinstall` would set `core.hooksPath` on any parent git work tree if this package script ran from a nested package path.
+
+**Changed**
+
+- `.githooks/commit-msg` now bypasses the footer only when Git passes the actual `MERGE_MSG` file, not merely when the commit subject looks like a merge, fixup, or squash commit.
+- Root `postinstall` now delegates to `.githooks/install.sh`, which sets `core.hooksPath` only when the script's package root is the current git top-level. Nested package executions leave the parent repository untouched.
+
+**Added**
+
+- Regression coverage for spoofed merge/fixup/squash subjects, actual merge message allowance, own-repo hook installation, and nested consumer-repo non-mutation.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.23 → 0.4.24 (patch — security hardening of tooling enforcement).
+
+**Verification**
+
+- `bun install` — exit 0; `.githooks/install.sh` ran and kept `core.hooksPath=.githooks` for this repo.
+- `bun test --filter commit-msg` — 7 pass / 0 fail / 17 expects.
+- `bun run lint:fix` — exit 0; pre-existing workspace warnings remain in unrelated packages/files.
+- `bun test` — 325 pass / 0 fail / 2062 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+
+## 0.2.12 — 2026-04-28 17:19 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-103](/ANKA/issues/ANKA-103) as child fix for [ANKA-100](/ANKA/issues/ANKA-100).
+
+**Why:** Rails 3 and 4 rejected stale news only when `broker.nowMs - lastSuccessfulFetchAtMs > newsStaleMaxMs`. Future-dated or non-finite fetch timestamps could make that age non-positive or invalid and fail open, violating BLUEPRINT §9, §11.7, and the §0.2 fail-closed default.
+
+**Changed** — `@ankit-prop/ctrader-gateway` v0.2.11 → v0.2.12
+
+- `src/hard-rails/rail-3-news-blackout.ts` and `rail-4-news-pre-kill.ts` now reject non-finite `lastSuccessfulFetchAtMs` and strict future timestamps before stale-age arithmetic. Rejection reasons include `fail-closed`; detail carries `{ lastSuccessfulFetchAtMs, nowMs, newsStaleMaxMs }`.
+- `src/hard-rails/news-client.ts` fixture defaults now document the fail-closed sentinel. Omitted `lastSuccessfulFetchAtMs` uses `nowMs?.()` when supplied; omitted without a clock keeps `Number.MAX_SAFE_INTEGER`, which now trips the future-timestamp guard.
+- Hard-rail fixture specs that do not exercise news freshness now pass explicit fresh timestamps.
+
+**Added**
+
+- `src/hard-rails/news-staleness.spec.ts` coverage for rail 3 and rail 4 future timestamps, `NaN`, `+Infinity`, `-Infinity`, omitted-without-clock fail-closed, and omitted-with-clock fresh-now behaviour.
+
+**Bumped**
+
+- `@ankit-prop/ctrader-gateway` 0.2.11 → 0.2.12 (patch — hard-rail fail-closed bug fix).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; pre-existing workspace warnings remain in unrelated packages/files.
+- `bun test services/ctrader-gateway/src/hard-rails/news-staleness.spec.ts` — 16 pass / 0 fail / 57 expects.
+- `bun test services/ctrader-gateway` — 107 pass / 0 fail / 606 expects.
+- Gateway-scoped `tsc --ignoreConfig ... services/ctrader-gateway/src/**/*.ts` — exit 0.
+
+## 0.4.23 — 2026-04-28 17:14 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-102](/ANKA/issues/ANKA-102) as follow-up from [ANKA-101](/ANKA/issues/ANKA-101).
+
+**Why:** The Paperclip co-author footer was required by BLUEPRINT §0.2 and AGENTS.md but only enforced by agent diligence. The ANKA-101 governance decision kept `main` history intact and delegated a repo-local hook so future commits fail before landing without the audit footer.
+
+**Added**
+
+- `.githooks/commit-msg` — pure POSIX shell hook that allows merge, `fixup!`, and `squash!` commits, and rejects normal commit messages missing the exact `Co-Authored-By: Paperclip <noreply@paperclip.ing>` line.
+- `.githooks/commit-msg.spec.ts` — Bun regression coverage for missing-footer rejection, valid-footer acceptance, merge commit bypass, and `fixup!`/`squash!` bypass.
+- Root `postinstall` wiring sets `core.hooksPath` to `.githooks` when `bun install` runs inside a git work tree.
+
+**Changed**
+
+- `AGENTS.md` now points at `.githooks/commit-msg` as the enforcement surface for the existing footer rule.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.22 → 0.4.23 (patch — tooling enforcement).
+
+**Verification**
+
+- `bun install` — exit 0; `postinstall` set `git config core.hooksPath` to `.githooks`.
+- `bun test --filter commit-msg` — 4 pass / 0 fail / 6 expects.
+- `bun run lint:fix` — exit 0; existing warnings only, no fixes applied.
+- `bun test` — 322 pass / 0 fail / 2051 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `git commit --allow-empty -m "chore: test"` — failed as expected and named the missing `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer.
+- Re-run after [ANKA-103](/ANKA/issues/ANKA-103) blocker resolution at 17:50 Europe/Amsterdam: same commands pass on current `main`; `bun run lint:fix` exits 0 with existing unrelated warnings only.
+
+## Governance — 2026-04-28 17:08 Europe/Amsterdam — [ANKA-101](/ANKA/issues/ANKA-101)
+
+**Initiated by:** FoundingEngineer (agent), resolving the [ANKA-99](/ANKA/issues/ANKA-99) 12-hour critical review finding.
+
+- Logged commit `c2b02e3733bc4c4663adb2a3dc928b08e13c7a34` (`chore(infra:tooling): gitignore .envrc for direnv-loaded paperclip env`) as a one-off documented exception to the BLUEPRINT §0.2 / AGENTS.md `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer rule. Decision rationale: ADR-0003 in `.dev/decisions.md`. `main` history is **not** rewritten; force-pushing to amend a 1-line `.gitignore` commit would invalidate six downstream commit hashes and break dependent worktrees, which is disproportionate to the metadata defect.
+- Follow-up: a `commit-msg` hook that fails any commit missing the Paperclip footer is delegated to CodexExecutor as a child issue of [ANKA-101](/ANKA/issues/ANKA-101). Until that lands, the footer rule stays agent-enforced.
+- No package code or versions changed in this entry. Docs-only.
+
+## 0.4.22 — 2026-04-28 14:47 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-97](/ANKA/issues/ANKA-97) as remediation for [ANKA-68](/ANKA/issues/ANKA-68) and unblocker for [ANKA-76](/ANKA/issues/ANKA-76).
+
+**Why:** The first live `td-fetch fetch --apply` attempt hit 100+ `time_series` calls while still inside the first `XAUUSD/1m` shard. The scaffold had underestimated TwelveData's XAUUSD bar density and used a relative default fixture root that landed under the package cwd. The live rerun must not spend credits until the dry plan and fetcher chunker agree on realistic call counts and runaway saturation fails closed.
+
+**Changed** — `@ankit-prop/market-data-twelvedata` v0.1.1 → v0.1.2
+
+- `src/planner.ts` — XAUUSD intraday density now plans at 24 trading hours per calendar day (TwelveData live behavior), while NAS100 keeps the US-equity session estimate. Planned calls now use the same 0.75 safety-adjusted page capacity as the fetcher so dry credits match intended chunk size.
+- `src/fetcher.ts` — page safety margin tightened from 0.9 to 0.75 through the shared planner constant. Intraday chunk sizing now uses exact millisecond windows instead of flooring to whole days, preventing avoidable over-fetch while keeping the safety margin. A 3-page saturated/no-progress cap aborts runaway backfill cascades with a clear symbol/timeframe/cursor error.
+- `src/cli.ts` — default `--root-dir` resolves from `import.meta.url` up to the workspace root package and writes under repo-root `data/market-data/twelvedata/<fixtureVersion>`, regardless of `bun run --cwd packages/market-data-twelvedata ...`. Explicit `--root-dir` remains unchanged.
+- `src/index.ts` — exports the default-root resolver and shared TwelveData page safety margin for tests and package consumers.
+
+**Added**
+
+- `src/cli.spec.ts` — regression test proving the default fixture root stays anchored at repo root even after `process.chdir()` into the package directory.
+- `src/fetcher.spec.ts` — regression coverage for a 90-day `XAUUSD/1m` shard using TwelveData's "latest N rows in window" saturation semantics; verifies actual credits stay within 1.2× of dry-plan credits. Also covers the saturated/no-progress cap.
+- `src/planner.spec.ts` — assertions for XAUUSD 24h density, safety-adjusted call planning, and the new locked-window estimate.
+
+**Bumped**
+
+- `@ankit-prop/market-data-twelvedata` 0.1.1 → 0.1.2 (patch — fetch safety and default-path bug fix).
 ## 0.4.24 — 2026-04-28 13:49 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing the board-requested follow-up on [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
@@ -83,6 +272,46 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 **Verification**
 
+- `bun install` — no dependency changes.
+- `bun run lint:fix` — exit 0; full-workspace pre-existing warnings remain in unrelated/generated surfaces and existing market-data helper files.
+- `bun test --cwd packages/market-data-twelvedata` — 41 pass / 0 fail / 149 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `bun run --cwd packages/market-data-twelvedata td-fetch plan` — 10 shards, 59 `time_series` calls, 61 total credits; `XAUUSD/1m` now estimates 35 calls.
+
+**Notes**
+
+- No live `fetch --apply` rerun here; that remains scoped to [ANKA-76](/ANKA/issues/ANKA-76) after review.
+- No service restart required: package is a CLI utility, not a long-running `/health` service.
+
+## 0.4.21 — 2026-04-28 14:30 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-31](/ANKA/issues/ANKA-31) (REVIEW-FINDINGS H-5 from [ANKA-19](/ANKA/issues/ANKA-19)).
+
+**Why:** Rails 3 (`news_blackout_5m`) and 4 (`news_pre_kill_2h`) used to fail-closed by reading `news.lastFetchAgeMs(now)` and comparing against `newsStaleMaxMs` — but the `NewsClient` contract permitted *any* number, so a faulty `svc:news` HTTP client could return `0` after a 5xx/timeout and lie about freshness. The §11.7 staleness guard was only as strong as the client's good behaviour. Per ANKA-31 the rail layer now owns the comparison: the client only surfaces a wall-clock timestamp, and the rail does the math. ANKA-9 (live `svc:news` client) hasn't started yet, so this contract revision lands first and the live client implements the cleaner shape from day one.
+
+**Changed** — `@ankit-prop/ctrader-gateway` v0.2.10 → v0.2.11
+
+- `src/hard-rails/types.ts` — `NewsClient.lastFetchAgeMs(atMs: number): number` replaced by `lastSuccessfulFetchAtMs(): number | null`. Documented the contract obligation: implementations MUST return `null` until at least one successful fetch has completed and MUST NOT lie about freshness on a failed fetch.
+- `src/hard-rails/rail-3-news-blackout.ts` — rail now reads `lastSuccessfulFetchAtMs()`. `null` → hard reject with `reason: "news client has never reported a successful fetch — fail-closed"` (exported as `NEWS_NEVER_FETCHED_REASON`). Otherwise computes `ageMs = broker.nowMs - lastSuccessfulFetchAtMs` itself and rejects when `ageMs > config.newsStaleMaxMs`. Detail payload now carries `lastSuccessfulFetchAtMs` and `ageMs` (both honest), not a client-reported `lastFetchAgeMs`.
+- `src/hard-rails/rail-4-news-pre-kill.ts` — same staleness ownership flip; reuses `NEWS_NEVER_FETCHED_REASON` from rail-3 to keep the failure string identical between rails.
+- `src/hard-rails/news-client.ts` — `InMemoryNewsClient` fixture migrated. Option renamed `lastFetchAgeMs` → `lastSuccessfulFetchAtMs: number | null`. Omitted defaults to `Number.MAX_SAFE_INTEGER` (always-fresh sentinel) so spec files that don't care about §11.7 (rail-1, rail-7, rail-10, rail-11, rail-13, force-flat-scheduler, idempotency-record-on-allow, pre-post-fill-split) keep working unchanged.
+- `src/hard-rails/matrix.spec.ts` — `buildCtx`'s `newsAgeMs` option renamed `newsLastSuccessfulFetchAtMs: number | null` and threaded through to the new fixture shape. No matrix case currently exercises staleness, so all 28 cases still pass — the staleness positive/negative coverage now lives in the dedicated spec below.
+
+**Added** — `src/hard-rails/news-staleness.spec.ts`
+
+- 8 dedicated cases locking the §11.7 contract end-to-end:
+  1. rail 3 `lastSuccessfulFetchAtMs() === null` → `reject` with `NEWS_NEVER_FETCHED_REASON`.
+  2. rail 4 same.
+  3. rail 3 `ageMs = staleMax + 1s` → `reject` with `news stale ... fail-closed` and detail `{ lastSuccessfulFetchAtMs, ageMs, newsStaleMaxMs }`.
+  4. rail 4 same.
+  5. rail 3 `ageMs === staleMax` (boundary) → `allow` (rail uses strict `>`).
+  6. rail 4 same.
+  7. rail 3 negative-age (lying client reports a future timestamp) → `allow` per current arithmetic and detail records the negative age so log analysis can detect upstream clock skew. The proof for the bug is structural: there is no `age` accessor on the contract any more, so a client can no longer return `0` after a failed fetch.
+  8. omitted `lastSuccessfulFetchAtMs` → fresh sentinel → rail 4 allows; locks the fixture default for the rest of the test suite.
+
+**Bumped**
+
+- `@ankit-prop/ctrader-gateway` 0.2.10 → 0.2.11 (patch — contract refactor; no behavioural change for non-news rails).
 - `bun test packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/index.spec.ts` — 9 pass / 0 fail / 17 expects.
 - `bun run lint:fix` — exit 0; Biome reported pre-existing unsafe suggestions/warnings in unrelated packages and applied no fixes.
 - `bun test` — 341 pass / 0 fail / 2089 expects.
@@ -115,6 +344,16 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 **Verification**
 
+- `bun test services/ctrader-gateway/src/hard-rails/news-staleness.spec.ts` — 8 pass / 0 fail / 22 expects.
+- `bun test services/ctrader-gateway/src/hard-rails/` — 95 pass / 0 fail / 558 expects (matrix's 28 cases + the 8 new staleness cases + sibling rail specs all green on the new contract).
+- `bun test` (full workspace) — 306 pass / 1 fail (`packages/proc-supervisor` integration case 7 — flaky port collision under parallel-heartbeat tree churn; passes 7/7 in isolation immediately after).
+- `bunx biome check` on the 6 touched files — 0 diagnostics. Workspace-wide lint still surfaces the pre-existing `packages/market-data-twelvedata` `noNonNullAssertion` warnings already noted in 0.4.20 (unrelated).
+- `bun run typecheck` clean (root `tsc --noEmit`).
+
+**Notes**
+
+- `NewsClient.lastSuccessfulFetchAtMs()` is the contract surface ANKA-9 will implement; the live svc:news socket should record the wall-clock timestamp of the *last 200/OK calendar response* and surface it unchanged. A failed poll (5xx, socket close, parse error) MUST NOT advance this value — that's how the §11.7 guard stays honest.
+- This commit landed via an isolated `git worktree add` at `/tmp/anka-31-newsclient` because parallel heartbeats kept stomping the main checkout's branch state during the previous two retries (5 collision stashes + recurring `git reset` reflog entries). The worktree isolation pattern is the right answer for any multi-file change while parallel heartbeats are active.
 - `jq` contract probe — cassette has 193 items, at least one high-impact USD event, at least one `restriction:true` event, the multi-tag `USD + US Indices + XAUUSD + DXY` NFP event, and both `+01:00` / `+02:00` offsets across Prague DST.
 - `cmp -s /tmp/ftmo-2026-03-23.json services/news/test/cassettes/ftmo-2026-03-23-week.json` — confirms the committed cassette is byte-for-byte the downloaded raw JSON.
 - `bunx biome check services/news/test/cassettes/ftmo-2026-03-23-week.json services/news/test/cassettes/contract-baseline.json package.json services/news/package.json` — intentionally fails before the Biome exclusion because raw JSON would be reformatted.

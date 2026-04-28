@@ -99,7 +99,7 @@ function makeCtx(overrides: {
   const b = broker(overrides.broker ?? {});
   return {
     broker: b,
-    news: new InMemoryNewsClient({ events: [] }),
+    news: new InMemoryNewsClient({ events: [], lastSuccessfulFetchAtMs: b.nowMs }),
     idempotency: overrides.idempotency ?? new InMemoryIdempotencyStore(),
     throttle: overrides.throttle ?? new InMemoryThrottleStore(),
     logger: silentLogger,

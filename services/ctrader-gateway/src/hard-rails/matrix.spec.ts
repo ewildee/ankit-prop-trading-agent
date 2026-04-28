@@ -99,17 +99,19 @@ interface MatrixCase {
 function buildCtx(overrides: {
   broker?: Partial<BrokerSnapshot>;
   events?: readonly NewsEvent[];
-  newsAgeMs?: number;
+  newsLastSuccessfulFetchAtMs?: number | null;
   idempotency?: IdempotencyStore;
   throttle?: ThrottleStore;
   config?: Partial<RailConfig>;
 }): RailContext {
   const broker = defaultBroker(overrides.broker ?? {});
-  const news = new InMemoryNewsClient(
-    overrides.newsAgeMs !== undefined
-      ? { events: overrides.events ?? [], lastFetchAgeMs: overrides.newsAgeMs }
-      : { events: overrides.events ?? [] },
-  );
+  const news = new InMemoryNewsClient({
+    events: overrides.events ?? [],
+    lastSuccessfulFetchAtMs:
+      overrides.newsLastSuccessfulFetchAtMs !== undefined
+        ? overrides.newsLastSuccessfulFetchAtMs
+        : broker.nowMs,
+  });
   const idempotency = overrides.idempotency ?? new InMemoryIdempotencyStore();
   const throttle = overrides.throttle ?? new InMemoryThrottleStore();
   const config: RailConfig = { ...DEFAULT_RAIL_CONFIG, ...(overrides.config ?? {}) };

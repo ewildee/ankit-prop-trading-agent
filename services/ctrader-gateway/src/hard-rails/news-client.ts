@@ -13,17 +13,27 @@ export interface NewsEvent {
 
 export interface InMemoryNewsClientOptions {
   readonly events?: readonly NewsEvent[];
-  // Age (ms) reported by lastFetchAgeMs(); fixed for deterministic tests.
-  readonly lastFetchAgeMs?: number;
+  // Wall-clock ms of the most recent successful calendar fetch. `null` models
+  // "never fetched" (process just started; rails 3/4 fail-closed). Omitted →
+  // `nowMs?.()` for fresh-now fixtures; omitted without a clock keeps the
+  // legacy future sentinel, which now fails closed per BLUEPRINT §9/§11.7 and
+  // AGENTS.md / BLUEPRINT §0.2. No trades > wrong trades.
+  readonly lastSuccessfulFetchAtMs?: number | null;
+  readonly nowMs?: () => number;
 }
+
+const FRESH_SENTINEL_MS = Number.MAX_SAFE_INTEGER;
 
 export class InMemoryNewsClient implements NewsClient {
   private readonly events: NewsEvent[];
-  private readonly fetchAge: number;
+  private readonly lastFetchAtMs: number | null;
+  private readonly nowMs: (() => number) | undefined;
 
   constructor(opts: InMemoryNewsClientOptions = {}) {
     this.events = [...(opts.events ?? [])].sort((a, b) => a.atMs - b.atMs);
-    this.fetchAge = opts.lastFetchAgeMs ?? 0;
+    this.lastFetchAtMs =
+      opts.lastSuccessfulFetchAtMs === undefined ? FRESH_SENTINEL_MS : opts.lastSuccessfulFetchAtMs;
+    this.nowMs = opts.lastSuccessfulFetchAtMs === undefined ? opts.nowMs : undefined;
   }
 
   isInBlackout(symbol: string, atMs: number): { blocked: boolean; reason?: string } {
@@ -59,7 +69,7 @@ export class InMemoryNewsClient implements NewsClient {
     return null;
   }
 
-  lastFetchAgeMs(): number {
-    return this.fetchAge;
+  lastSuccessfulFetchAtMs(): number | null {
+    return this.nowMs?.() ?? this.lastFetchAtMs;
   }
 }

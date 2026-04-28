@@ -1,0 +1,142 @@
+{
+  "schemaVersion": 1,
+  "fixtureVersion": "v1.0.0-2026-04-28",
+  "fetchProvider": "twelvedata",
+  "fetchProviderTier": "grow",
+  "fetchedAtStart": "2026-04-28T16:08:22.903Z",
+  "fetchedAtEnd": "2026-04-28T16:09:25.972Z",
+  "intraday": {
+    "from": "2026-01-28T00:00:00.000Z",
+    "to": "2026-04-28T00:00:00.000Z"
+  },
+  "dailyTail": {
+    "from": "2025-10-28T00:00:00.000Z",
+    "to": "2026-04-28T00:00:00.000Z"
+  },
+  "symbols": [
+    "NAS100",
+    "XAUUSD"
+  ],
+  "timeframes": {
+    "intraday": [
+      "1m",
+      "5m",
+      "15m",
+      "1h"
+    ],
+    "daily": [
+      "1d"
+    ]
+  },
+  "shards": [
+    {
+      "path": "bars/NAS100/1m.jsonl.gz",
+      "symbol": "NAS100",
+      "timeframe": "1m",
+      "barCount": 186,
+      "firstBarStart": 1769583600000,
+      "lastBarStart": 1777270620000,
+      "byteSizeCompressed": 1468,
+      "sha256": "dfc4ddc3bd470253b4fa090d6d7b6a9fa03f6b3fdb67738d3771b37d1a43353b"
+    },
+    {
+      "path": "bars/NAS100/5m.jsonl.gz",
+      "symbol": "NAS100",
+      "timeframe": "5m",
+      "barCount": 109,
+      "firstBarStart": 1769583600000,
+      "lastBarStart": 1777270500000,
+      "byteSizeCompressed": 1080,
+      "sha256": "f5f005da2d2eff52eece6b9f61d6fac4fbabe381d513f1a8d863dbfde4dae386"
+    },
+    {
+      "path": "bars/NAS100/15m.jsonl.gz",
+      "symbol": "NAS100",
+      "timeframe": "15m",
+      "barCount": 108,
+      "firstBarStart": 1769583600000,
+      "lastBarStart": 1777270500000,
+      "byteSizeCompressed": 1080,
+      "sha256": "d4bef009f376dcd11191c4349da9064b1a842ce6741e9df41d7decf1e38301cd"
+    },
+    {
+      "path": "bars/NAS100/1h.jsonl.gz",
+      "symbol": "NAS100",
+      "timeframe": "1h",
+      "barCount": 104,
+      "firstBarStart": 1769583600000,
+      "lastBarStart": 1777269600000,
+      "byteSizeCompressed": 1071,
+      "sha256": "24a15b0ec6422e139a855048910c694d2cae7bcb3178e8ca6dd4b700a5c58f89"
+    },
+    {
+      "path": "bars/NAS100/1d.jsonl.gz",
+      "symbol": "NAS100",
+      "timeframe": "1d",
+      "barCount": 123,
+      "firstBarStart": 1761609600000,
+      "lastBarStart": 1777248000000,
+      "byteSizeCompressed": 1506,
+      "sha256": "db72cc6b4b5bfb9652fb3e8319074c36cbbad524a48f08f3028a27f5cc3d40d6"
+    },
+    {
+      "path": "bars/XAUUSD/1m.jsonl.gz",
+      "symbol": "XAUUSD",
+      "timeframe": "1m",
+      "barCount": 129531,
+      "firstBarStart": 1769558400000,
+      "lastBarStart": 1777334340000,
+      "byteSizeCompressed": 2476539,
+      "sha256": "e8149937d8177843befcce468c86dbdfbcda87d90f3918de2df33eda9431784e"
+    },
+    {
+      "path": "bars/XAUUSD/5m.jsonl.gz",
+      "symbol": "XAUUSD",
+      "timeframe": "5m",
+      "barCount": 25901,
+      "firstBarStart": 1769558400000,
+      "lastBarStart": 1777334100000,
+      "byteSizeCompressed": 556712,
+      "sha256": "6c5664941e23017ce4e76d9c1043964a3ca9c1256b6ac5bafef317ab1d47bc4c"
+    },
+    {
+      "path": "bars/XAUUSD/15m.jsonl.gz",
+      "symbol": "XAUUSD",
+      "timeframe": "15m",
+      "barCount": 8636,
+      "firstBarStart": 1769558400000,
+      "lastBarStart": 1777333500000,
+      "byteSizeCompressed": 195600,
+      "sha256": "ae77ce3506d673cb40e8b44063f0168ee01bd1d6b257537155947807756be8e1"
+    },
+    {
+      "path": "bars/XAUUSD/1h.jsonl.gz",
+      "symbol": "XAUUSD",
+      "timeframe": "1h",
+      "barCount": 2159,
+      "firstBarStart": 1769558400000,
+      "lastBarStart": 1777330800000,
+      "byteSizeCompressed": 50276,
+      "sha256": "9303e3244e60a05750c43529ae70615b84275820456207c13dca73e887717f88"
+    },
+    {
+      "path": "bars/XAUUSD/1d.jsonl.gz",
+      "symbol": "XAUUSD",
+      "timeframe": "1d",
+      "barCount": 179,
+      "firstBarStart": 1761696000000,
+      "lastBarStart": 1777248000000,
+      "byteSizeCompressed": 5002,
+      "sha256": "5dd677bbc36281e5b9294a9a07ba17c227180001be16c2423468c18a41902dff"
+    }
+  ],
+  "credits": {
+    "estimated": 61,
+    "spent": 61
+  },
+  "adversarialWindowsCount": 20,
+  "git": {
+    "commit": "00a4761ecf84f9b7fafc5a49f6ff4b7ad0de4894",
+    "dirty": true
+  }
+}

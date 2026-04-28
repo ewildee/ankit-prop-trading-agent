@@ -1,4 +1,7 @@
 #!/usr/bin/env bun
+import { existsSync, readFileSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { buildCuratedAdversarialWindows } from './adversarial-windows.ts';
 import { FetchOrchestrator } from './fetcher.ts';
@@ -57,7 +60,7 @@ export async function runCli(argv: ReadonlyArray<string>): Promise<CliRunResult>
     console.log('\n[fetch] dry-run (default). Pass --apply to actually call TwelveData.');
     return { plan, applied: false };
   }
-  const apiKey = process.env['TWELVEDATA_API_KEY'];
+  const apiKey = process.env.TWELVEDATA_API_KEY;
   if (!apiKey) throw new Error('TWELVEDATA_API_KEY env var is required for --apply');
   const limiter = new CreditRateLimiter({ creditsPerMinute: flags.tierCreditsPerMinute });
   const client = new TwelveDataClient({ apiKey, rateLimiter: limiter });
@@ -142,7 +145,7 @@ function parseFlags(args: ReadonlyArray<string>, sub: string): CliFlags {
     parseDate(values['daily-from']) ?? subtractMonths(dailyToMs, DEFAULT_DAILY_TAIL_MONTHS);
   const fixtureVersion =
     values['fixture-version'] ?? `v1.0.0-${new Date(intradayToMs).toISOString().slice(0, 10)}`;
-  const rootDir = values['root-dir'] ?? `data/market-data/twelvedata/${fixtureVersion}`;
+  const rootDir = values['root-dir'] ?? resolveDefaultRootDir(fixtureVersion);
   const tierCreditsPerMinute = values['tier-cpm']
     ? Number(values['tier-cpm'])
     : DEFAULT_TIER_CREDITS_PER_MIN;
@@ -187,6 +190,30 @@ function subtractMonths(ms: number, months: number): number {
   return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - months, d.getUTCDate());
 }
 
+export function resolveDefaultRootDir(
+  fixtureVersion: string,
+  fromDir = dirname(fileURLToPath(import.meta.url)),
+): string {
+  const repoRoot = findWorkspaceRoot(fromDir);
+  return join(repoRoot, 'data', 'market-data', 'twelvedata', fixtureVersion);
+}
+
+function findWorkspaceRoot(fromDir: string): string {
+  let dir = fromDir;
+  while (true) {
+    const pkgPath = join(dir, 'package.json');
+    if (existsSync(pkgPath)) {
+      const pkg = JSON.parse(readFileSync(pkgPath, 'utf8')) as { workspaces?: unknown };
+      if (Array.isArray(pkg.workspaces)) return dir;
+    }
+    const parent = dirname(dir);
+    if (parent === dir) {
+      throw new Error(`unable to find workspace root from ${fromDir}`);
+    }
+    dir = parent;
+  }
+}
+
 function printHelp(): void {
   console.log(`td-fetch — TwelveData historical-bars fetch & cache (ANKA-68)
 
@@ -206,7 +233,7 @@ FLAGS (defaults match BLUEPRINT/plan rev 2)
   --daily-from=YYYY-MM-DD        (default: today − 6 months UTC)
   --daily-to=YYYY-MM-DD          (default: today UTC)
   --fixture-version=v1.0.0-YYYY-MM-DD
-  --root-dir=data/market-data/twelvedata/<fixture-version>
+  --root-dir=<repo>/data/market-data/twelvedata/<fixture-version>
   --tier-cpm=55                  (Grow tier credit-per-minute ceiling)
   --apply                        opt-in flag for fetch subcommand
 

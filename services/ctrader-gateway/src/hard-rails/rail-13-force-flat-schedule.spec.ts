@@ -80,7 +80,7 @@ function malformedCtx(): RailContext {
   } as unknown as BrokerSnapshot;
   return {
     broker,
-    news: new InMemoryNewsClient(), // no events → nextRestrictedEvent === null
+    news: new InMemoryNewsClient({ lastSuccessfulFetchAtMs: NOW }), // no events → nextRestrictedEvent === null
     idempotency: new InMemoryIdempotencyStore(),
     throttle: new InMemoryThrottleStore(),
     logger: captureLogger(),

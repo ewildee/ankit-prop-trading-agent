@@ -2,11 +2,12 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 13:14 Europe/Amsterdam — [ANKA-79](/ANKA/issues/ANKA-79) `svc:news/symbol-tag-mapper`
+## 2026-04-28 18:20 Europe/Amsterdam — [ANKA-113](/ANKA/issues/ANKA-113) PR #1 merge-conflict resolution
 
-- Wake payload had no pending comments; task is scoped and already checked out by the harness.
-- BLUEPRINT §0.2 Bun-runtime proof: fetched `https://bun.com/llms.txt` at 13:14 Europe/Amsterdam (33,157 bytes) before editing Bun-runtime code.
-- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §17, §22, §25 plus issue context. §5 says YAML is Bun-native and forbids adding `yaml` / `js-yaml`; existing supervisor loader uses `Bun.YAML.parse`.
-- Implemented `services/news/src/symbol-tag-mapper.ts` + `.spec.ts`: default operator config with example fallback, structured load errors, multi-tag split on `" + "`, deterministic dedupe, unknown-tag warnings.
-- Verification: `bun run lint:fix`, `bun test services/news/src/symbol-tag-mapper.spec.ts`, `bun test`, `bun run typecheck`; fixed the concurrent [ANKA-78](/ANKA/issues/ANKA-78) duplicate export so root typecheck could run.
-- Remaining: commit, push, and move [ANKA-79](/ANKA/issues/ANKA-79) to CodeReviewer.
+- Scoped Paperclip wake on [ANKA-113](/ANKA/issues/ANKA-113) (child of [ANKA-77](/ANKA/issues/ANKA-77)). PR #1 head `e8bac186` reported `mergeable: false` against `origin/main`.
+- Conflict scope confirmed via `git merge-tree` — only FE-owned append-only / version metadata: `.dev/journal.md`, `.dev/progress.md`, `CHANGELOG.md`, `package.json` (bun.lock, TODOS.md auto-merged).
+- These are exactly the files in the FE non-delegation list (BLUEPRINT §25 `infra:tooling`, AGENTS.md "What FE keeps"); not a Codex brief.
+- Strategy: regular merge commit on `anka-77-ftmo-calendar-cassette` against `origin/main` (no force-push, PR identity preserved).
+- Resolutions: `.dev/progress.md` → take main (replace-each-session); `.dev/journal.md` + `CHANGELOG.md` → union with main entries first, then PR entries (newest-first preserved across the boundary; both lineages independently bumped 0.4.21–0.4.24 so duplicate version headings remain as audit history); `package.json` → bumped to 0.4.26 above max(main 0.4.25, PR 0.4.24).
+- BLUEPRINT §0.2 Bun-runtime proof not required: this heartbeat is metadata reconciliation only, no Bun-runtime code touched.
+- Next: regenerate lockfile, re-run news-side regression tests + biome, commit the merge with Paperclip footer, push, then move [ANKA-77](/ANKA/issues/ANKA-77) forward to QA / final landing.

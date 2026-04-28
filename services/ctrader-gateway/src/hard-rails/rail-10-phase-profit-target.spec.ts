@@ -56,7 +56,7 @@ function ctx(overrides: { closedBalance: number; profitTarget: ProfitTarget }): 
   };
   return {
     broker,
-    news: new InMemoryNewsClient(),
+    news: new InMemoryNewsClient({ lastSuccessfulFetchAtMs: NOW }),
     idempotency: new InMemoryIdempotencyStore(),
     throttle: new InMemoryThrottleStore(),
     logger: captureLogger(),

@@ -2,6 +2,7 @@ import type { CanonicalSymbol } from './symbols.ts';
 import { type Timeframe, timeframeMs } from './timeframes.ts';
 
 export const TWELVEDATA_MAX_BARS_PER_CALL = 5000 as const;
+export const TWELVEDATA_PAGE_BAR_SAFETY_MARGIN = 0.75 as const;
 export const TWELVEDATA_CREDITS_PER_TIMESERIES_CALL = 1 as const;
 export const TWELVEDATA_CREDITS_PER_SYMBOL_SEARCH = 1 as const;
 export const ESTIMATED_GZIP_BYTES_PER_BAR = 25 as const;
@@ -38,7 +39,7 @@ export type FetchPlan = {
 
 const TRADING_HOURS_PER_CALENDAR_DAY: Record<CanonicalSymbol, number> = {
   NAS100: (6.5 * 5) / 7,
-  XAUUSD: (24 * 5) / 7,
+  XAUUSD: 24,
 };
 
 export function estimateBars(
@@ -64,7 +65,8 @@ function planShard(
   toMs: number,
 ): ShardPlan {
   const bars = estimateBars(symbol, tf, fromMs, toMs);
-  const calls = bars === 0 ? 0 : Math.ceil(bars / TWELVEDATA_MAX_BARS_PER_CALL);
+  const effectiveBarsPerCall = TWELVEDATA_MAX_BARS_PER_CALL * TWELVEDATA_PAGE_BAR_SAFETY_MARGIN;
+  const calls = bars === 0 ? 0 : Math.ceil(bars / effectiveBarsPerCall);
   return {
     symbol,
     timeframe: tf,

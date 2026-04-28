@@ -68,7 +68,7 @@ describe('isInsideForceFlatWindow', () => {
 describe('ForceFlatScheduler', () => {
   test('enqueues each open position exactly once', () => {
     const sched = new ForceFlatScheduler();
-    const news = new InMemoryNewsClient();
+    const news = new InMemoryNewsClient({ lastSuccessfulFetchAtMs: NOW });
     const positions = [pos('p1'), pos('p2')];
     const fresh = sched.tick({
       nowMs: NOW,
@@ -95,6 +95,7 @@ describe('ForceFlatScheduler', () => {
 
   test('chooses the earliest applicable window when multiple overlap', () => {
     const news = new InMemoryNewsClient({
+      lastSuccessfulFetchAtMs: NOW,
       events: [
         // Restricted event 4m out — earliest under preNewsLead 6m.
         { atMs: NOW + 4 * 60_000, symbol: 'XAUUSD', impact: 'high', restriction: true },
@@ -116,7 +117,7 @@ describe('ForceFlatScheduler', () => {
 
   test('does not enqueue across symbols', () => {
     const sched = new ForceFlatScheduler();
-    const news = new InMemoryNewsClient();
+    const news = new InMemoryNewsClient({ lastSuccessfulFetchAtMs: NOW });
     const fresh = sched.tick({
       nowMs: NOW,
       symbol: 'NAS100',
@@ -131,7 +132,7 @@ describe('ForceFlatScheduler', () => {
 
   test('quiet outside all windows', () => {
     const sched = new ForceFlatScheduler();
-    const news = new InMemoryNewsClient();
+    const news = new InMemoryNewsClient({ lastSuccessfulFetchAtMs: NOW });
     const fresh = sched.tick({
       nowMs: NOW,
       symbol: 'XAUUSD',
