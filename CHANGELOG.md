@@ -2,6 +2,66 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## Unreleased — 2026-04-28 09:25 Europe/Amsterdam — docs / comment-only ([ANKA-62](/ANKA/issues/ANKA-62))
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-62](/ANKA/issues/ANKA-62) (Audit-2 LOW-B from [ANKA-48](/ANKA/issues/ANKA-48), gated on now-done [ANKA-60](/ANKA/issues/ANKA-60)).
+
+**Why:** [ANKA-60](/ANKA/issues/ANKA-60) MED-A landed the binding two-phase evaluation sub-bullet under BLUEPRINT.md §9 (line 1083). With BLUEPRINT.md §9 now the source of truth for the dispatcher contract, the multi-paragraph comment header in `services/ctrader-gateway/src/hard-rails/evaluator.ts` was duplicate spec text and a future drift hazard. LOW-B asks for a one-line cross-reference instead.
+
+**Changed** — `@ankit-prop/ctrader-gateway` (`svc:gateway/hard-rails`)
+
+- `services/ctrader-gateway/src/hard-rails/evaluator.ts` — replaced the 28-line dispatcher-contract header (ANKA-29 / ANKA-19 H-2 paraphrase + post-fill invariant note) with the one-liner `// Two-phase rail dispatch — see BLUEPRINT.md §9 "Two-phase gateway evaluation".`. No behaviour change, no symbol change, no test-surface change.
+
+**Bumped**
+
+- None — pure code-comment-only change. Per BLUEPRINT.md §0.2 narrowed chore-skip rule (post-[ANKA-60](/ANKA/issues/ANKA-60) MED-3), this remains a CHANGELOG entry with a journal cross-reference because no behaviour, no public surface, and no published artefact moved.
+
+**Verification**
+
+- `bun run typecheck` — clean.
+- `bun run lint:fix` — clean.
+
+**Notes**
+
+- Source of truth for the two-phase evaluation contract is now BLUEPRINT.md §9 only. Future evaluator dispatcher edits must re-read §9 before changing the file header.
+
+## 0.4.16 — 2026-04-28 09:25 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-61](/ANKA/issues/ANKA-61) (HIGH-3 from [ANKA-18](/ANKA/issues/ANKA-18) Audit-1 + HIGH-C from [ANKA-48](/ANKA/issues/ANKA-48) Audit-2 — install pinned `pino` + `pino-pretty`).
+
+**Why:** BLUEPRINT.md §5.2 row 580 has declared `pino@10.3.1` + `pino-pretty@13.1.3` as the canonical structured-log surface for two consecutive audits. The umbrella was carrying a hand-rolled `RailLogger` interface (`services/ctrader-gateway/src/hard-rails/types.ts`) shaped exactly like pino's `info(obj, msg?)` signature against an unspecified consumer — no actual pino install, no factory, no §23.6 redact list. CEO decision recorded on [ANKA-61](/ANKA/issues/ANKA-61) is **install** rather than soften §5.2: spec is already specific, hand-rolled adapter is debt, cost is a single bookkeeping commit. Auditor recommended `@ankit-prop/contracts` as the bootstrap home (matches the §20.3 `obs/otel-bootstrap.ts` pattern).
+
+**Added** — `@ankit-prop/contracts` v0.3.3 (`pkg:contracts/obs`)
+
+- `packages/shared-contracts/src/obs/pino-logger.ts` — new `createPinoLogger(opts)` factory plus `DEFAULT_REDACT_PATHS` constant and `CreatePinoLoggerOptions` / `PinoLogger` types. Pretty transport (`pino-pretty`, colorised, `SYS:standard` time) when `NODE_ENV !== 'production'` (or `pretty: true`); JSON-line stdout otherwise. ISO timestamps, `service` stamp on every record via `base`, `level` defaults to `info`. Redact list covers the BLUEPRINT §23.6 axes: `OPENROUTER_API_KEY`, `BROKER_CREDS_HOST/USER/PASS/REFRESH_TOKEN`, root and one-level-nested `token` / `refreshToken` / `accessToken` / `secret` / `apiKey` / `password` (pino's `*` segment wildcard, censor `[REDACTED]`).
+- `packages/shared-contracts/src/index.ts` — surfaces `createPinoLogger`, `DEFAULT_REDACT_PATHS`, `CreatePinoLoggerOptions`, `PinoLogger` so any service workspace can `import { createPinoLogger } from '@ankit-prop/contracts'` without re-declaring the dep.
+- `packages/shared-contracts/src/obs/pino-logger.spec.ts` — pins (a) the `(payload, msg?)` shape every project `*Logger` interface mirrors, (b) `service` and `base` field merging via `bindings()`, (c) the §23.6 redact axes are present in `DEFAULT_REDACT_PATHS`, (d) `level: 'silent'` honours so tests do not write to stdout.
+
+**Added** — `@ankit-prop/ctrader-gateway` v0.2.10 (`svc:gateway/hard-rails`)
+
+- `services/ctrader-gateway/src/hard-rails/logger.ts` — new `pinoRailLogger(opts)` factory wraps `createPinoLogger` and narrows the return type to `RailLogger`. Default `service` stamp `ctrader-gateway/hard-rails`. Method shims keep the type assignment honest in the face of pino's wider `LogFn` overloads (`(msg: string)` is wider than `RailLogger`'s payload-first contract). Existing `captureLogger` / `silentLogger` left unchanged so all existing rail tests stay no-op against the seam. `exactOptionalPropertyTypes: true` honoured by spreading the input rather than enumerating optional keys.
+- `services/ctrader-gateway/src/hard-rails/index.ts` — re-exports `pinoRailLogger` and `PinoRailLoggerOptions` alongside the existing capture/silent surface.
+- `services/ctrader-gateway/src/hard-rails/pino-rail-logger.spec.ts` — pins that the production factory returns a `RailLogger`-shaped value and accepts both `(payload)` and `(payload, msg)` calls without throwing.
+
+**Bumped**
+
+- `@ankit-prop/contracts` 0.3.2 → 0.3.3 (minor — new `obs/pino-logger` export surface, new `pino` + `pino-pretty` runtime deps).
+- `@ankit-prop/ctrader-gateway` 0.2.9 → 0.2.10 (patch — new `pinoRailLogger` export; existing call sites unchanged).
+- root `ankit-prop-umbrella` 0.4.15 → 0.4.16 (patch — workspace dep surface change; lockfile refreshed).
+- `bun.lock` — refreshed; 54 packages installed, lockfile diff confined to the `pino@10.3.1` + `pino-pretty@13.1.3` transitive set.
+
+**Verification**
+
+- `bun test packages/shared-contracts/src/obs/ services/ctrader-gateway/src/hard-rails/` — 92 pass / 0 fail / 553 expects (existing 84 ANKA-29 / ANKA-40 / ANKA-56 / ANKA-58 hard-rail specs + 8 new pino-factory specs).
+- `bun run typecheck` — clean against root tsconfig.
+- `bun run lint:fix` — clean (Biome 2.4.13).
+- `bun install` — exit 0; 54 packages installed.
+
+**Notes**
+
+- No production call site is wired to `pinoRailLogger` yet — the service entrypoint (`services/ctrader-gateway/src/start.ts`) lands in [ANKA-15](/ANKA/issues/ANKA-15) (Phase 2, gateway socket). Today's commit closes the §5.2 carry-over by making the pino factory available at the canonical home; the seam is the same `RailLogger` interface every existing rail evaluator already consumes via `RailContext.logger`.
+- §23.6 redact list lives in one place (`DEFAULT_REDACT_PATHS` in contracts) so future services consume the same baseline; callers can extend via `extraRedactPaths` without re-declaring the §23.6 axes.
+
 ## 0.4.15 — 2026-04-28 09:21 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-58](/ANKA/issues/ANKA-58) (REQUEST CHANGES from QAEngineer's [ANKA-52](/ANKA/issues/ANKA-52) backfill review of [ANKA-40](/ANKA/issues/ANKA-40) commit `cec4a6a`).

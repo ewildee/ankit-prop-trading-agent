@@ -8,8 +8,8 @@ export {
 export type { FlattenEnqueue, FlattenReason, FlattenTickInput } from './force-flat-scheduler.ts';
 export { ForceFlatScheduler, isInsideForceFlatWindow } from './force-flat-scheduler.ts';
 export { InMemoryIdempotencyStore, SqliteIdempotencyStore } from './idempotency-store.ts';
-export type { CaptureLogger, LoggedRailEvent } from './logger.ts';
-export { captureLogger, silentLogger } from './logger.ts';
+export type { CaptureLogger, LoggedRailEvent, PinoRailLoggerOptions } from './logger.ts';
+export { captureLogger, pinoRailLogger, silentLogger } from './logger.ts';
 export type { InMemoryNewsClientOptions, NewsEvent } from './news-client.ts';
 export { InMemoryNewsClient } from './news-client.ts';
 export { evaluateDailyBreaker } from './rail-1-daily-breaker.ts';

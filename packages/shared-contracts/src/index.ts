@@ -37,3 +37,5 @@ export {
   ServiceStatus,
   SUPERVISOR_SERVICE_STATES,
 } from './health.ts';
+export type { CreatePinoLoggerOptions, PinoLogger } from './obs/pino-logger.ts';
+export { createPinoLogger, DEFAULT_REDACT_PATHS } from './obs/pino-logger.ts';

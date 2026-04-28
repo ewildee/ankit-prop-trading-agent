@@ -2,6 +2,34 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 09:25 Europe/Amsterdam — v0.4.16 ([ANKA-61](/ANKA/issues/ANKA-61) — install pinned `pino` + `pino-pretty`; HIGH-3 [ANKA-18](/ANKA/issues/ANKA-18) Audit-1 + HIGH-C [ANKA-48](/ANKA/issues/ANKA-48) Audit-2 carry-over)
+
+**What was done**
+
+- Verified BLUEPRINT.md §5.2 row 580 (canonical pinned versions `pino@10.3.1` / `pino-pretty@13.1.3`), §20.1 (structured-logging shape), §20.3 (`obs/` bootstrap home pattern in `packages/shared-contracts`), and §23.6 (redact list axes) before placing the install.
+- Added the deps to `@ankit-prop/contracts` (auditor's recommendation; aligns with §20.3 `obs/` bootstrap precedent). New file `packages/shared-contracts/src/obs/pino-logger.ts` exports `createPinoLogger(opts)` with a `service` stamp, ISO timestamps, dev-vs-prod transport switch (`pino-pretty` on dev, JSON-line on prod), and `DEFAULT_REDACT_PATHS` covering all §23.6 axes (`OPENROUTER_API_KEY`, `BROKER_CREDS_*`, root + `*.token` / `*.refreshToken` / `*.accessToken` / `*.secret` / `*.apiKey` / `*.password`, censor `[REDACTED]`). Surface re-exported from `packages/shared-contracts/src/index.ts`.
+- Added a thin `pinoRailLogger(opts)` factory in `services/ctrader-gateway/src/hard-rails/logger.ts`. Wraps `createPinoLogger`, narrows the return type to `RailLogger`, default `service` stamp `ctrader-gateway/hard-rails`. Existing `captureLogger` and `silentLogger` left untouched so every `RailContext.logger` consumer stays no-op against the seam. Re-exported from `services/ctrader-gateway/src/hard-rails/index.ts`.
+- Specs: `packages/shared-contracts/src/obs/pino-logger.spec.ts` (5 cases — `(payload, msg?)` shape, `service` stamp via `bindings()`, `base` merge, redact-axis presence, `level: 'silent'`). `services/ctrader-gateway/src/hard-rails/pino-rail-logger.spec.ts` (2 cases — production factory returns RailLogger, service override).
+- Bumps: `@ankit-prop/contracts` 0.3.2 → 0.3.3 (minor, new export surface + runtime deps), `@ankit-prop/ctrader-gateway` 0.2.9 → 0.2.10 (patch, new export only), root 0.4.15 → 0.4.16 (patch, lockfile refresh). `bun install` refreshed `bun.lock` with the pino transitive set; 54 packages installed.
+
+**Verification**
+
+- `bun test packages/shared-contracts/src/obs/ services/ctrader-gateway/src/hard-rails/` — 92 pass / 0 fail / 553 expects.
+- `bun run typecheck` — clean. First pass tripped on `exactOptionalPropertyTypes: true` because I was forwarding `opts.pretty` etc. as `boolean | undefined`; switched to a `{ ...rest, service: ... }` spread so omitted keys stay omitted, second pass clean.
+- `bun run lint:fix` — clean (Biome 2.4.13, single quotes / semis / 2-space / 120 col).
+- `bun install` — exit 0.
+
+**Findings / surprises**
+
+- The shared worktree was again hot at heartbeat start: snapshot showed me holding the previous run's incomplete ANKA-58 fix uncommitted, but a sibling commit (`c6c2247`) had already landed the rail-7 fix and bumped to 0.4.15 between the snapshot and my first read. Working tree quietly settled clean before I started ANKA-61, so there was nothing to reconcile. Mitigation pattern (record-only): always re-`git status` after `cd` rather than trusting the wake-payload snapshot.
+- Picked `@ankit-prop/contracts` over root `package.json` for the dep declaration. Root would have worked via Bun workspace hoisting, but contracts is the canonical home for cross-service infra modules per §20.3, and other services (`trader`, `news`, `dashboard`) will get the factory for free without re-declaring the dep. `zod` follows the same pattern (declared in both root and contracts).
+- pino's `LogFn` is wider than the project `RailLogger` interface (it accepts `(msg: string)` too), so I kept explicit method shims on `pinoRailLogger` rather than returning the raw pino instance. The shims are zero-overhead but stop the wider type from leaking through.
+
+**Next**
+
+- Commit with `feat(pkg:contracts/obs): ANKA-61 install pino + pino-pretty + canonical createPinoLogger`, push to `origin main` per BLUEPRINT §0.2, return ANKA-61 to done. No reviewer routing required: this is a pure dep-install + factory-add change, no behaviour change in any rail evaluator, BLUEPRINT §5.2 already pins the versions.
+- Future: when `services/ctrader-gateway/src/start.ts` lands in [ANKA-15](/ANKA/issues/ANKA-15), wire `pinoRailLogger()` into the production `RailContext` there. The factory is dep-only today, no runtime call site.
+
 ## 2026-04-28 09:21 Europe/Amsterdam — v0.4.15 ([ANKA-58](/ANKA/issues/ANKA-58) — rail 7 malformed-fill fail-closed; REQUEST CHANGES from [ANKA-52](/ANKA/issues/ANKA-52))
 
 **What was done**
