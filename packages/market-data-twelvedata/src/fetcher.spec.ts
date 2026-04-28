@@ -108,6 +108,196 @@ describe('FetchOrchestrator', () => {
     expect(manifest?.credits.spent).toBeGreaterThan(0);
   });
 
+  test('saturated page: TwelveData returns outputsize bars, fetcher backfills the missing prefix (ANKA-72 BLOCK)', async () => {
+    const tfMs = 3_600_000;
+    const fromMs = Date.UTC(2026, 0, 1, 0);
+    const toMs = Date.UTC(2026, 0, 1, 12);
+    const totalBars = 12;
+    const outputsize = 5;
+    const records: CallRecord[] = [];
+    const fetchImpl = makeStubFetch(records, (url) => {
+      if (url.pathname === '/symbol_search') {
+        return { data: [{ symbol: 'NDX' }] };
+      }
+      const startMs = Date.parse(`${url.searchParams.get('start_date')}Z`);
+      const endMs = Date.parse(`${url.searchParams.get('end_date')}Z`);
+      const requestedOutputsize = Number(url.searchParams.get('outputsize') ?? '5000');
+      const allBars: Array<{
+        datetime: string;
+        open: string;
+        high: string;
+        low: string;
+        close: string;
+        volume: string;
+      }> = [];
+      for (let t = endMs - tfMs; t >= startMs; t -= tfMs) {
+        allBars.push({
+          datetime: isoUtc(t),
+          open: '17000',
+          high: '17010',
+          low: '16990',
+          close: '17005',
+          volume: '0',
+        });
+      }
+      const truncated = allBars.slice(0, requestedOutputsize);
+      return { status: 'ok', meta: { symbol: 'NDX' }, values: truncated };
+    });
+    const limiter = new CreditRateLimiter({ creditsPerMinute: 1000 });
+    const client = new TwelveDataClient({ apiKey: 'test', rateLimiter: limiter, fetchImpl });
+    const store = new FixtureStore({ rootDir: root });
+    const orch = new FetchOrchestrator(
+      {
+        client,
+        store,
+        fixtureVersion: 'v-saturation-test',
+        fetchProviderTier: 'grow',
+        estimatedCredits: 5,
+        gitCommit: null,
+        gitDirty: false,
+        timeSeriesOutputsize: outputsize,
+      },
+      {
+        symbols: ['NAS100'],
+        intradayTimeframes: ['1h'],
+        intradayFromMs: fromMs,
+        intradayToMs: toMs,
+        dailyTimeframes: ['1d'],
+        dailyFromMs: Date.UTC(2025, 11, 31),
+        dailyToMs: Date.UTC(2026, 0, 1),
+      },
+    );
+    const result = await orch.run();
+    const intradayShard = result.shards.find((s) => s.timeframe === '1h')!;
+    expect(intradayShard.barCount).toBe(totalBars);
+    const merged = await store.readShardBars('NAS100', '1h');
+    expect(merged.map((b) => b.t)).toEqual(
+      Array.from({ length: totalBars }, (_, i) => fromMs + i * tfMs),
+    );
+    const tsCalls = records.filter((r) => r.url.startsWith('/time_series')).length;
+    expect(tsCalls).toBeGreaterThanOrEqual(Math.ceil(totalBars / outputsize));
+  });
+
+  test('saturated page that cannot advance fails closed (ANKA-72 BLOCK)', async () => {
+    const tfMs = 3_600_000;
+    const fromMs = Date.UTC(2026, 0, 1, 0);
+    const toMs = Date.UTC(2026, 0, 1, 5);
+    const records: CallRecord[] = [];
+    const fetchImpl = makeStubFetch(records, (url) => {
+      if (url.pathname === '/symbol_search') return { data: [{ symbol: 'NDX' }] };
+      const startMs = Date.parse(`${url.searchParams.get('start_date')}Z`);
+      const requestedOutputsize = Number(url.searchParams.get('outputsize') ?? '5000');
+      const values: Array<Record<string, string>> = [];
+      for (let i = 0; i < requestedOutputsize; i++) {
+        const t = startMs - (i + 1) * tfMs;
+        values.push({
+          datetime: isoUtc(t),
+          open: '17000',
+          high: '17010',
+          low: '16990',
+          close: '17005',
+          volume: '0',
+        });
+      }
+      return { status: 'ok', meta: { symbol: 'NDX' }, values };
+    });
+    const client = new TwelveDataClient({
+      apiKey: 'test',
+      rateLimiter: new CreditRateLimiter({ creditsPerMinute: 1000 }),
+      fetchImpl,
+    });
+    const store = new FixtureStore({ rootDir: root });
+    const orch = new FetchOrchestrator(
+      {
+        client,
+        store,
+        fixtureVersion: 'v-saturation-fail',
+        fetchProviderTier: 'grow',
+        estimatedCredits: 5,
+        gitCommit: null,
+        gitDirty: false,
+        timeSeriesOutputsize: 3,
+      },
+      {
+        symbols: ['NAS100'],
+        intradayTimeframes: ['1h'],
+        intradayFromMs: fromMs,
+        intradayToMs: toMs,
+        dailyTimeframes: ['1d'],
+        dailyFromMs: Date.UTC(2025, 11, 31),
+        dailyToMs: Date.UTC(2026, 0, 1),
+      },
+    );
+    await expect(orch.run()).rejects.toThrow(/saturated page/);
+  });
+
+  test('orchestrator counts HTTP attempts (not logical calls) toward creditsSpent (ANKA-72 major)', async () => {
+    const tfMs = 3_600_000;
+    const fromMs = Date.UTC(2026, 0, 1, 0);
+    const toMs = Date.UTC(2026, 0, 1, 2);
+    let tsCalls = 0;
+    const fetchImpl = (async (input: RequestInfo | URL): Promise<Response> => {
+      const url = new URL(typeof input === 'string' ? input : input.toString());
+      if (url.pathname === '/symbol_search') {
+        return new Response(JSON.stringify({ data: [{ symbol: 'NDX' }] }), {
+          status: 200,
+          headers: { 'content-type': 'application/json' },
+        });
+      }
+      tsCalls++;
+      if (tsCalls === 1) {
+        return new Response(JSON.stringify({ message: 'rl' }), { status: 429 });
+      }
+      const startMs = Date.parse(`${url.searchParams.get('start_date')}Z`);
+      const endMs = Date.parse(`${url.searchParams.get('end_date')}Z`);
+      const values: Array<Record<string, string>> = [];
+      for (let t = endMs - tfMs; t >= startMs; t -= tfMs) {
+        values.push({
+          datetime: isoUtc(t),
+          open: '1',
+          high: '1',
+          low: '1',
+          close: '1',
+          volume: '0',
+        });
+      }
+      return new Response(JSON.stringify({ status: 'ok', meta: {}, values }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as unknown as typeof fetch;
+    const client = new TwelveDataClient({
+      apiKey: 'test',
+      rateLimiter: new CreditRateLimiter({ creditsPerMinute: 1000 }),
+      fetchImpl,
+      retryBackoffMs: 1,
+    });
+    const store = new FixtureStore({ rootDir: root });
+    const orch = new FetchOrchestrator(
+      {
+        client,
+        store,
+        fixtureVersion: 'v-credit-attempts',
+        fetchProviderTier: 'grow',
+        estimatedCredits: 0,
+        gitCommit: null,
+        gitDirty: false,
+      },
+      {
+        symbols: ['NAS100'],
+        intradayTimeframes: ['1h'],
+        intradayFromMs: fromMs,
+        intradayToMs: toMs,
+        dailyTimeframes: ['1d'],
+        dailyFromMs: Date.UTC(2025, 11, 31),
+        dailyToMs: Date.UTC(2026, 0, 1),
+      },
+    );
+    const result = await orch.run();
+    // 1 successful symbol_search (1 attempt) + 1 retried time_series (2 attempts) + 1 successful daily (1 attempt) = 4
+    expect(result.creditsSpent).toBe(4);
+  });
+
   test('resume: pre-existing shard means re-run fetches only the missing tail', async () => {
     const store = new FixtureStore({ rootDir: root });
     const tfMs = 3_600_000;

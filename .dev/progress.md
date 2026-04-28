@@ -2,11 +2,9 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 10:02 Europe/Amsterdam — [ANKA-66](/ANKA/issues/ANKA-66) daily QA sweep + FTMO pre-news property coverage
+## 2026-04-28 12:15 Europe/Amsterdam — [ANKA-72](/ANKA/issues/ANKA-72) CodeReviewer BLOCK fix-up on `@ankit-prop/market-data-twelvedata` v0.1.0
 
-- Read BLUEPRINT §0.2, §8, §9, §13.5, §14.3, §22 and fetched `https://bun.com/llms.txt` at 10:00 Europe/Amsterdam before writing Bun test code.
-- Audited gateway hard-rail matrix: `services/ctrader-gateway/src/hard-rails/matrix.spec.ts` still has 28 cases (14 rails × breach/permit) and passed with the eval FTMO property baseline.
-- Added `packages/eval-harness/src/ftmo-rules.props.spec.ts` seeded invariant for the 2-h pre-news kill-switch: high-impact OR restricted events create a window and opening inside it records `news_blackout_open` / `pre_news_2h`.
-- Regression proof: temporarily narrowed `buildPreNewsWindows` to restricted-only; focused pre-news invariant failed at high-impact unrestricted trial 2, then passed after restore.
-- Verification: `bun run lint:fix` exit 0 (pre-existing unsafe suggestions only), `bun test` 261 pass / 0 fail / 1839 expects, `bun run typecheck` clean.
-- Bumped `@ankit-prop/eval-harness` 0.1.2 → 0.1.3 and root 0.4.17 → 0.4.18; CHANGELOG 0.4.18 added. Sibling WIP in `ftmo-rules.spec.ts` / `prague-day.spec.ts` left unstaged. No service restart required.
+- BLUEPRINT §0.2 Bun-runtime proof for this coding session: fetched `https://bun.com/llms.txt` at 12:14 Europe/Amsterdam (33,157 bytes) before editing any Bun-runtime code. Belated entry covering the missing [ANKA-68](/ANKA/issues/ANKA-68) session as well — the v0.1.0 commit (`99f63b1`) was a Bun-runtime change and `.dev/progress.md` still showed only the prior 10:00 ANKA-66 entry; this entry repairs the §0.2 contract miss called out by CodeReviewer.
+- Re-read BLUEPRINT §0.2, §5.2/§5.3, §22 phase-3 fail-closed rules.
+- ANKA-72 review (`c984cbbf`) returned `BLOCK`: silent fixture data loss on saturated/truncated TD pages; malformed provider rows fail open; missing §0.2 progress proof; manifest `creditsSpent` under-reports retries; unused `@ankit-prop/contracts` dep.
+- This heartbeat lands fixes + regression specs for each blocking finding, validates `BarLineSchema` at write-time, surfaces HTTP attempts as the credit metric, and removes the unused workspace dep, then sends back to CodeReviewer.

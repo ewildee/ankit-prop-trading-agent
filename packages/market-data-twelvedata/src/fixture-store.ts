@@ -4,6 +4,7 @@ import {
   type AdversarialWindowsFile,
   AdversarialWindowsFileSchema,
   type BarLine,
+  BarLineSchema,
   type Manifest,
   ManifestSchema,
   type ShardEntry,
@@ -63,7 +64,16 @@ export class FixtureStore {
   ): Promise<ShardEntry> {
     const path = this.shardPath(symbol, tf);
     await ensureParent(path);
-    const text = bars.map((b) => JSON.stringify(b)).join('\n');
+    const validated: BarLine[] = bars.map((b, i) => {
+      const parsed = BarLineSchema.safeParse(b);
+      if (!parsed.success) {
+        throw new Error(
+          `writeShardBars(${symbol}/${tf}) bar[${i}] failed schema validation: ${parsed.error.message}`,
+        );
+      }
+      return parsed.data;
+    });
+    const text = validated.map((b) => JSON.stringify(b)).join('\n');
     const buf = new TextEncoder().encode(text);
     const compressed = Bun.gzipSync(buf);
     await Bun.write(path, compressed);

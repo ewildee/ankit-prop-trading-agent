@@ -2,6 +2,44 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.20 — 2026-04-28 12:25 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-72](/ANKA/issues/ANKA-72) (CodeReviewer BLOCK fix-up on the [ANKA-68](/ANKA/issues/ANKA-68) v0.1.0 scaffold).
+
+**Why:** [ANKA-72](/ANKA/issues/ANKA-72) review verdict was `BLOCK` on the [ANKA-68](/ANKA/issues/ANKA-68) commit `99f63b1` because (1) `fillShard` advanced its cursor past saturated/truncated TwelveData pages and would silently lose the missing prefix, (2) malformed provider rows (bad datetime, non-finite OHLCV) failed open and could land `NaN` bars in the gzipped JSONL fixtures, (3) `.dev/progress.md` did not record the BLUEPRINT §0.2 Bun `llms.txt` fetch for the [ANKA-68](/ANKA/issues/ANKA-68) coding session, (4) `creditsSpent` only counted logical TD calls so the manifest would under-report HTTP attempts on degraded runs, and (5) the package declared an unused `@ankit-prop/contracts` dep. The live `--apply` run is gated on a clean re-review, so each blocking finding has to fail closed with a regression spec before the API key lands.
+
+**Changed** — `@ankit-prop/market-data-twelvedata` v0.1.0 → v0.1.1
+
+- `src/twelve-data-client.ts` — `parseTwelveDataDatetime` malformed rows now throw `TwelveDataApiError` instead of being silently skipped; OHLCV fields are converted via a finite-number guard that throws on `NaN` / non-finite inputs; `TimeSeriesResponse` and `SymbolSearchResponse` now expose `attempts` (the actual HTTP attempt count from `callWithRetry`, including 429 retries) and `outputsizeRequested` so the orchestrator can detect saturated pages and bill the right credit number.
+- `src/fetcher.ts` — `fillShard` no longer advances `cursor = chunkEnd` blindly: when a returned page is saturated (`bars.length >= outputsizeRequested`) and its earliest bar is later than `cursor`, the orchestrator caps the next chunk's `chunkEnd` to that earliest bar and re-issues the fetch to backfill the missing prefix; if a saturated page cannot advance the cursor at all, the run throws and refuses to write a successful manifest. Manifest `creditsSpent` and the append-only `fetch-log.jsonl` now record `attempts` per call (HTTP attempts) instead of always `1`.
+- `src/fixture-store.ts` — `writeShardBars` now validates every bar against `BarLineSchema` before gzipping, so any `NaN` / non-finite OHLCV that survives an upstream guard fails the run instead of being persisted as `null` in JSON.
+- `package.json` — removed unused `@ankit-prop/contracts` workspace dep.
+
+**Added** — regression specs for [ANKA-72](/ANKA/issues/ANKA-72) blockers
+
+- `src/twelve-data-client.spec.ts` — three new tests: malformed datetime row throws `TwelveDataApiError`; non-finite OHLCV (e.g. `high: 'not-a-number'`) throws `TwelveDataApiError`; `attempts` counter reflects HTTP retries on a transient 429.
+- `src/fetcher.spec.ts` — three new tests: saturated page (`outputsize=5` over 12 hourly bars) backfills the missing prefix and ends with all 12 bars on disk; saturated page that cannot advance the cursor (TwelveData returns rows entirely before `cursor`) raises `/saturated page/` instead of silently dropping data; orchestrator-level `creditsSpent` equals total HTTP attempts (4 = 1 symbol_search + 1 retried 429 time_series + 1 daily time_series + 1 daily symbol_search? actually 1 sym + 2 ts + 1 ts = 4) when retries occur.
+- `src/fixture-store.spec.ts` — `writeShardBars` rejects a bar with `NaN` `high` at write time.
+
+**Bumped**
+
+- `@ankit-prop/market-data-twelvedata` 0.1.0 → 0.1.1 (patch — fail-closed ingestion + credit accuracy + dep cleanup).
+- root `ankit-prop-umbrella` 0.4.19 → 0.4.20 (patch — workspace package version move).
+
+**Verification**
+
+- `bun test packages/market-data-twelvedata/` — 38 pass / 0 fail / 139 expects.
+- `bun test` (full workspace) — 325 pass / 0 fail / 2062 expects.
+- `bun run lint:fix` exit 0; pre-existing unsafe suggestions on sibling `packages/market-data/` (ANKA-69 in-flight) only.
+- `bun run typecheck` clean (root `tsc --noEmit`).
+- `bun run --cwd packages/market-data-twelvedata td-fetch plan --intraday-from=2026-01-28 --intraday-to=2026-04-28 --daily-from=2025-10-28 --daily-to=2026-04-28` — still prints 10 shards, totals 40 calls / 40 credits / ≈3.61 MB compressed; budget unchanged.
+
+**Notes**
+
+- `TWELVEDATA_API_KEY` is still not provisioned; `--apply` remains un-run. This commit only re-arms the gate for [ANKA-72](/ANKA/issues/ANKA-72) re-review.
+- `.dev/progress.md` updated with the §0.2 Bun `llms.txt` fetch proof for this heartbeat (12:14 Europe/Amsterdam, 33,157 bytes) and a note that the prior [ANKA-68](/ANKA/issues/ANKA-68) coding session entry was missing.
+- No service restart required: package is a CLI utility, no service `/health` surface changed.
+
 ## 0.4.19 — 2026-04-28 12:06 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-68](/ANKA/issues/ANKA-68) (TwelveData fetch & cache script — sibling A under [ANKA-67](/ANKA/issues/ANKA-67) plan rev 2).

@@ -32,6 +32,7 @@ export type FetchRunCfg = {
   gitCommit: string | null;
   gitDirty: boolean;
   log?: (msg: string) => void;
+  timeSeriesOutputsize?: number;
 };
 
 export type FetchRunResult = {
@@ -84,14 +85,15 @@ export class FetchOrchestrator {
       let raw: unknown = null;
       for (const alias of candidates) {
         const res = await this.cfg.client.symbolSearch(alias);
-        this.creditsSpent += 1;
+        this.creditsSpent += res.attempts;
         await this.cfg.store.appendFetchLog({
           t: new Date().toISOString(),
           op: 'symbol_search',
           symbol,
           query: alias,
           matched: res.bestMatch?.symbol ?? null,
-          credits: 1,
+          credits: res.attempts,
+          attempts: res.attempts,
         });
         if (res.bestMatch && res.bestMatch.symbol) {
           resolvedAlias = res.bestMatch.symbol;
@@ -140,16 +142,27 @@ export class FetchOrchestrator {
     } else {
       this.log(`[shard] ${symbol}/${tf}: full pull from ${new Date(cursor).toISOString()}`);
     }
+    let chunkEndOverride: number | null = null;
     while (cursor < toMs) {
-      const chunkEnd = Math.min(toMs, this.computeChunkEnd(symbol, tf, cursor, toMs));
+      const plannedEnd =
+        chunkEndOverride ?? Math.min(toMs, this.computeChunkEnd(symbol, tf, cursor, toMs));
+      const chunkEnd = Math.min(toMs, plannedEnd);
+      if (chunkEnd <= cursor) {
+        throw new Error(
+          `[shard] ${symbol}/${tf}: cannot make progress at ${new Date(cursor).toISOString()} (chunkEnd=${new Date(chunkEnd).toISOString()})`,
+        );
+      }
       const t0 = Date.now();
       const res = await this.cfg.client.timeSeries({
         tdSymbol,
         timeframe: tf,
         startMs: cursor,
         endMs: chunkEnd,
+        ...(this.cfg.timeSeriesOutputsize !== undefined
+          ? { outputsize: this.cfg.timeSeriesOutputsize }
+          : {}),
       });
-      this.creditsSpent += 1;
+      this.creditsSpent += res.attempts;
       const durationMs = Date.now() - t0;
       let added = 0;
       for (const bar of res.bars) {
@@ -157,6 +170,27 @@ export class FetchOrchestrator {
         if (haveByTs.has(bar.t)) continue;
         haveByTs.set(bar.t, bar);
         added += 1;
+      }
+      const saturated = res.bars.length >= res.outputsizeRequested && res.bars.length > 0;
+      const earliest = res.bars.length > 0 ? res.bars[0]!.t : null;
+      let nextCursor: number;
+      let nextChunkEndOverride: number | null = null;
+      if (saturated && earliest !== null && earliest > cursor) {
+        nextCursor = cursor;
+        nextChunkEndOverride = earliest;
+        this.log(
+          `[shard] ${symbol}/${tf}: page saturated (${res.bars.length}/${res.outputsizeRequested}); backfilling ${new Date(cursor).toISOString()} → ${new Date(earliest).toISOString()}`,
+        );
+      } else if (saturated && earliest !== null && earliest <= cursor) {
+        const last = res.bars[res.bars.length - 1]!.t;
+        if (last + tfMs <= cursor) {
+          throw new Error(
+            `[shard] ${symbol}/${tf}: saturated page at ${new Date(cursor).toISOString()} could not advance cursor (last=${new Date(last).toISOString()}); refusing to silently drop bars`,
+          );
+        }
+        nextCursor = last + tfMs;
+      } else {
+        nextCursor = chunkEnd;
       }
       await this.cfg.store.appendFetchLog({
         t: new Date().toISOString(),
@@ -167,13 +201,17 @@ export class FetchOrchestrator {
         to: chunkEnd,
         bars: res.bars.length,
         added,
-        credits: 1,
+        credits: res.attempts,
+        attempts: res.attempts,
+        outputsizeRequested: res.outputsizeRequested,
+        saturated,
         durationMs,
       });
       this.log(
-        `[shard] ${symbol}/${tf}: ${new Date(cursor).toISOString()} → ${new Date(chunkEnd).toISOString()} bars=${res.bars.length} added=${added}`,
+        `[shard] ${symbol}/${tf}: ${new Date(cursor).toISOString()} → ${new Date(chunkEnd).toISOString()} bars=${res.bars.length} added=${added}${saturated ? ' [saturated]' : ''}`,
       );
-      cursor = chunkEnd;
+      cursor = nextCursor;
+      chunkEndOverride = nextChunkEndOverride;
     }
     const merged = [...haveByTs.values()].sort((a, b) => a.t - b.t);
     return await this.cfg.store.writeShardBars(symbol, tf, merged);

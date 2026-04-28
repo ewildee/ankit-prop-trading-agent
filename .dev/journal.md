@@ -2,6 +2,45 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 12:25 Europe/Amsterdam — v0.4.20 ([ANKA-72](/ANKA/issues/ANKA-72) — CodeReviewer BLOCK fix-up on `@ankit-prop/market-data-twelvedata` v0.1.0)
+
+**What was done**
+
+- Fetched `https://bun.com/llms.txt` at 12:14 Europe/Amsterdam (33,157 bytes) before any Bun-runtime code edit. Recorded the proof in `.dev/progress.md` and explicitly flagged that the prior [ANKA-68](/ANKA/issues/ANKA-68) v0.1.0 commit had not — a §0.2 contract miss the reviewer caught.
+- Read CodeReviewer verdict `BLOCK` from comment `c984cbbf` on [ANKA-72](/ANKA/issues/ANKA-72). Five findings: (1) `fillShard` saturated-page silent data loss, (2) malformed-row fail-open in client + writer, (3) missing §0.2 progress proof, (4) `creditsSpent` ignores HTTP retries, (5) unused `@ankit-prop/contracts` dep.
+- Fixed each finding with fail-closed semantics:
+  - `twelve-data-client.ts`: malformed datetime → `TwelveDataApiError`. OHLCV `Number(...)` replaced with `parseFiniteNumber` that throws on non-finite. `TimeSeriesResponse` / `SymbolSearchResponse` now carry `attempts` and (`time_series` only) `outputsizeRequested`. `callWithRetry` returns `{ json, attempts }` so the orchestrator can credit HTTP attempts directly.
+  - `fetcher.ts`: introduced `chunkEndOverride` so when a saturated page returns bars whose earliest `t > cursor`, the next iteration shrinks `chunkEnd` to that earliest bar and re-fetches the prefix. If the page is saturated but its last bar is `<= cursor`, the orchestrator throws (`saturated page ... refusing to silently drop bars`). `creditsSpent` and the append-only `fetch-log.jsonl` now use `res.attempts` per call, plus a new `saturated` boolean and `outputsizeRequested`.
+  - `fixture-store.ts`: `writeShardBars` parses every bar through `BarLineSchema` before gzipping; non-finite OHLCV that ever leaks past the client also fails closed at write time.
+  - `package.json`: removed `@ankit-prop/contracts` (unused).
+- Added regression specs:
+  - `twelve-data-client.spec.ts`: malformed datetime throws; non-finite OHLCV throws; `attempts === 2` after a single 429 retry.
+  - `fetcher.spec.ts`: saturated `outputsize=5` page backfills 12-bar window; saturated page that cannot advance throws `/saturated page/`; orchestrator `creditsSpent` includes the retried HTTP attempt (asserted 4-attempt total for the seeded scenario).
+  - `fixture-store.spec.ts`: `writeShardBars` rejects a bar with `NaN` `high`.
+- For testability, `FetchRunCfg.timeSeriesOutputsize?: number` now flows into `client.timeSeries({ outputsize })` so unit tests can drive saturation with small numbers without hand-writing 5,000-row stubs.
+
+**Findings**
+
+- The reviewer's saturation worry is real: `computeChunkEnd` uses `barsPerDay × 0.9` as a safety margin, but `estimateBars` is symbol-aware approximations from `planner.ts`; if NAS100/XAUUSD bar density spikes (e.g. odd holiday session with extended hours), a 30-day 5m chunk could return 5,000 latest bars and silently truncate the early part. The fail-closed split-and-retry in `fillShard` covers it without estimator changes.
+- Per-call HTTP attempts are bounded by `retries=2` (3 total attempts), so the credit drift is small but the manifest's "spent" line is now accurate, not just close.
+- The unused `@ankit-prop/contracts` dep was a copy-paste from the sibling `packages/market-data/` package; removing it doesn't change build output and trims the module-graph for this CLI.
+
+**Decisions**
+
+- Chose split-and-retry over throw-on-saturation. The reviewer accepted either, but split-and-retry is friendlier to the live run (TwelveData subscription expires ~2026-05-12; we want this to recover from a single bad estimate, not abort and burn credits restarting). Throw remains for the impossible case where the saturated page is entirely before the cursor — that's a real bug we want to surface, not paper over.
+- Did not refactor `computeChunkEnd`. The estimator stays the first line of defence, the saturation handler is the safety net.
+- Did not journal the failed re-link of the `fixture-schema` doc onto [ANKA-69](/ANKA/issues/ANKA-69) — sibling-side concern, out of scope here.
+
+**Surprises**
+
+- Lint:fix touched `packages/market-data-twelvedata/src/twelve-data-client.spec.ts`, `src/fetcher.spec.ts`, and `src/twelve-data-client.ts` (formatting). No semantic changes.
+
+**Open endings**
+
+- [ANKA-72](/ANKA/issues/ANKA-72) goes back to CodeReviewer for a fresh pass (5 BLOCK findings now have fail-closed code + spec coverage). Reassigning via comment.
+- Live `--apply` run still gated on `TWELVEDATA_API_KEY` provisioning + clean re-review.
+- [QAEngineer](/ANKA/agents/qaengineer) sanity-check on the new regression specs is welcome once CodeReviewer signs off.
+
 ## 2026-04-28 12:06 Europe/Amsterdam — v0.4.19 ([ANKA-68](/ANKA/issues/ANKA-68) — TwelveData fetch & cache script scaffold + tests, no live run yet)
 
 **What was done**

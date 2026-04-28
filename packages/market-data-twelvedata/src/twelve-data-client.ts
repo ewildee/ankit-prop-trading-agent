@@ -14,12 +14,17 @@ export type TwelveDataClientCfg = {
 export type TimeSeriesResponse = {
   bars: BarLine[];
   rawMeta: unknown;
+  outputsizeRequested: number;
+  attempts: number;
 };
 
 export type SymbolSearchResponse = {
   raw: unknown;
   bestMatch: { symbol: string; exchange?: string; type?: string; currency?: string } | null;
+  attempts: number;
 };
+
+export const TWELVEDATA_DEFAULT_OUTPUTSIZE = 5000;
 
 export class TwelveDataApiError extends Error {
   constructor(
@@ -57,82 +62,101 @@ export class TwelveDataClient {
     endMs: number;
     outputsize?: number;
   }): Promise<TimeSeriesResponse> {
+    const outputsizeRequested = args.outputsize ?? TWELVEDATA_DEFAULT_OUTPUTSIZE;
     const url = new URL('/time_series', this.baseUrl);
     url.searchParams.set('symbol', args.tdSymbol);
     url.searchParams.set('interval', twelveDataInterval(args.timeframe));
     url.searchParams.set('start_date', formatTwelveDataInstant(args.startMs));
     url.searchParams.set('end_date', formatTwelveDataInstant(args.endMs));
-    url.searchParams.set('outputsize', String(args.outputsize ?? 5000));
+    url.searchParams.set('outputsize', String(outputsizeRequested));
     url.searchParams.set('format', 'JSON');
     url.searchParams.set('timezone', 'UTC');
     url.searchParams.set('apikey', this.apiKey);
-    const json = (await this.callWithRetry(url)) as Record<string, unknown>;
-    if (json['status'] === 'error') {
+    const { json, attempts } = await this.callWithRetry(url);
+    const obj = json as Record<string, unknown>;
+    if (obj['status'] === 'error') {
       throw new TwelveDataApiError(
-        typeof json['code'] === 'number' ? (json['code'] as number) : null,
-        String(json['message'] ?? 'twelvedata error'),
-        json,
+        typeof obj['code'] === 'number' ? (obj['code'] as number) : null,
+        String(obj['message'] ?? 'twelvedata error'),
+        obj,
       );
     }
-    const values = Array.isArray(json['values']) ? (json['values'] as unknown[]) : [];
+    const values = Array.isArray(obj['values']) ? (obj['values'] as unknown[]) : [];
     const bars: BarLine[] = [];
-    for (const v of values) {
+    for (let i = 0; i < values.length; i++) {
+      const v = values[i];
+      if (v === null || typeof v !== 'object') {
+        throw new TwelveDataApiError(
+          null,
+          `time_series row[${i}] is not an object: ${JSON.stringify(v)}`,
+          v,
+        );
+      }
       const row = v as Record<string, unknown>;
-      const dt = String(row['datetime'] ?? '');
+      const dtRaw = row['datetime'];
+      const dt = typeof dtRaw === 'string' ? dtRaw : '';
       const t = parseTwelveDataDatetime(dt, args.timeframe);
-      if (t === null) continue;
-      bars.push({
-        t,
-        o: Number(row['open']),
-        h: Number(row['high']),
-        l: Number(row['low']),
-        c: Number(row['close']),
-        v: Number(row['volume'] ?? 0),
-      });
+      if (t === null) {
+        throw new TwelveDataApiError(
+          null,
+          `time_series row[${i}] has malformed datetime ${JSON.stringify(dtRaw)} for tf=${args.timeframe}`,
+          row,
+        );
+      }
+      const o = parseFiniteNumber(row['open'], 'open', i, row);
+      const h = parseFiniteNumber(row['high'], 'high', i, row);
+      const l = parseFiniteNumber(row['low'], 'low', i, row);
+      const c = parseFiniteNumber(row['close'], 'close', i, row);
+      const v_ = parseFiniteNumber(row['volume'] ?? 0, 'volume', i, row);
+      bars.push({ t, o, h, l, c, v: v_ });
     }
     bars.sort((a, b) => a.t - b.t);
-    return { bars, rawMeta: json['meta'] ?? null };
+    return { bars, rawMeta: obj['meta'] ?? null, outputsizeRequested, attempts };
   }
 
   async symbolSearch(symbol: string): Promise<SymbolSearchResponse> {
     const url = new URL('/symbol_search', this.baseUrl);
     url.searchParams.set('symbol', symbol);
     url.searchParams.set('apikey', this.apiKey);
-    const json = (await this.callWithRetry(url)) as Record<string, unknown>;
-    if (json['status'] === 'error') {
+    const { json, attempts } = await this.callWithRetry(url);
+    const obj = json as Record<string, unknown>;
+    if (obj['status'] === 'error') {
       throw new TwelveDataApiError(
-        typeof json['code'] === 'number' ? (json['code'] as number) : null,
-        String(json['message'] ?? 'twelvedata error'),
-        json,
+        typeof obj['code'] === 'number' ? (obj['code'] as number) : null,
+        String(obj['message'] ?? 'twelvedata error'),
+        obj,
       );
     }
-    const data = Array.isArray(json['data']) ? (json['data'] as unknown[]) : [];
+    const data = Array.isArray(obj['data']) ? (obj['data'] as unknown[]) : [];
     const first = data[0] as Record<string, unknown> | undefined;
-    if (!first) return { raw: json, bestMatch: null };
+    if (!first) return { raw: obj, bestMatch: null, attempts };
     const bestMatch: { symbol: string; exchange?: string; type?: string; currency?: string } = {
       symbol: String(first['symbol'] ?? ''),
     };
     if (typeof first['exchange'] === 'string') bestMatch.exchange = first['exchange'];
     if (typeof first['instrument_type'] === 'string') bestMatch.type = first['instrument_type'];
     if (typeof first['currency'] === 'string') bestMatch.currency = first['currency'];
-    return { raw: json, bestMatch };
+    return { raw: obj, bestMatch, attempts };
   }
 
-  private async callWithRetry(url: URL): Promise<unknown> {
+  private async callWithRetry(url: URL): Promise<{ json: unknown; attempts: number }> {
     let lastErr: unknown;
+    let attempts = 0;
     for (let attempt = 0; attempt <= this.retries; attempt++) {
       await this.rateLimiter.acquire(1);
+      attempts = attempt + 1;
       try {
         const res = await this.fetchImpl(url.toString(), { method: 'GET' });
         if (res.status === 429) {
           lastErr = new TwelveDataApiError(429, 'rate-limited (HTTP 429)', null);
+          if (attempt === this.retries) break;
           await sleep(this.retryBackoffMs * (attempt + 1));
           continue;
         }
         if (!res.ok) {
           throw new TwelveDataApiError(res.status, `HTTP ${res.status}`, await safeText(res));
         }
-        return await res.json();
+        return { json: await res.json(), attempts };
       } catch (err) {
         lastErr = err;
         if (attempt === this.retries) break;
@@ -141,6 +165,18 @@ export class TwelveDataClient {
     }
     throw lastErr instanceof Error ? lastErr : new Error(String(lastErr));
   }
+}
+
+function parseFiniteNumber(raw: unknown, field: string, rowIndex: number, row: unknown): number {
+  const n = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isFinite(n)) {
+    throw new TwelveDataApiError(
+      null,
+      `time_series row[${rowIndex}] field "${field}" is not a finite number: ${JSON.stringify(raw)}`,
+      row,
+    );
+  }
+  return n;
 }
 
 function sleep(ms: number): Promise<void> {

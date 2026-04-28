@@ -36,6 +36,14 @@ describe('FixtureStore', () => {
     expect(readBack).toEqual(bars);
   });
 
+  test('writeShardBars rejects malformed bar (NaN OHLCV) at write time (ANKA-72 BLOCK)', async () => {
+    const store = new FixtureStore({ rootDir: root });
+    const bars = [
+      { t: 1_700_000_000_000, o: 100, h: Number.NaN, l: 99, c: 100, v: 0 },
+    ] as unknown as Array<{ t: number; o: number; h: number; l: number; c: number; v: number }>;
+    await expect(store.writeShardBars('NAS100', '1m', bars)).rejects.toThrow(/schema validation/);
+  });
+
   test('readShardBars on missing shard returns empty (so resume from-scratch is safe)', async () => {
     const store = new FixtureStore({ rootDir: root });
     expect(await store.readShardBars('XAUUSD', '1h')).toEqual([]);

@@ -100,6 +100,102 @@ describe('TwelveDataClient', () => {
     ).rejects.toBeInstanceOf(TwelveDataApiError);
   });
 
+  test('throws on malformed datetime row (fail-closed for ANKA-72 BLOCK)', async () => {
+    const fetchImpl = (async () =>
+      new Response(
+        JSON.stringify({
+          status: 'ok',
+          meta: { symbol: 'XAU/USD', interval: '5min' },
+          values: [
+            {
+              datetime: 'not-a-date',
+              open: '2300.0',
+              high: '2301.0',
+              low: '2299.0',
+              close: '2300.5',
+              volume: '0',
+            },
+          ],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      )) as unknown as typeof fetch;
+    const client = new TwelveDataClient({
+      apiKey: 'test',
+      rateLimiter: new CreditRateLimiter({ creditsPerMinute: 1000 }),
+      fetchImpl,
+    });
+    await expect(
+      client.timeSeries({
+        tdSymbol: 'XAU/USD',
+        timeframe: '5m',
+        startMs: 0,
+        endMs: 1,
+      }),
+    ).rejects.toBeInstanceOf(TwelveDataApiError);
+  });
+
+  test('throws on non-finite OHLCV (fail-closed for ANKA-72 BLOCK)', async () => {
+    const fetchImpl = (async () =>
+      new Response(
+        JSON.stringify({
+          status: 'ok',
+          meta: { symbol: 'XAU/USD', interval: '5min' },
+          values: [
+            {
+              datetime: '2026-01-28 14:30:00',
+              open: '2300.0',
+              high: 'not-a-number',
+              low: '2299.0',
+              close: '2300.5',
+              volume: '0',
+            },
+          ],
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      )) as unknown as typeof fetch;
+    const client = new TwelveDataClient({
+      apiKey: 'test',
+      rateLimiter: new CreditRateLimiter({ creditsPerMinute: 1000 }),
+      fetchImpl,
+    });
+    await expect(
+      client.timeSeries({
+        tdSymbol: 'XAU/USD',
+        timeframe: '5m',
+        startMs: 0,
+        endMs: 1,
+      }),
+    ).rejects.toBeInstanceOf(TwelveDataApiError);
+  });
+
+  test('attempts counter exposes HTTP retries on transient 429 (ANKA-72 manifest credit accuracy)', async () => {
+    let calls = 0;
+    const fetchImpl = (async () => {
+      calls++;
+      if (calls === 1) {
+        return new Response(JSON.stringify({ message: 'rl' }), { status: 429 });
+      }
+      return new Response(JSON.stringify({ status: 'ok', meta: {}, values: [] }), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    }) as unknown as typeof fetch;
+    const client = new TwelveDataClient({
+      apiKey: 'test',
+      rateLimiter: new CreditRateLimiter({ creditsPerMinute: 1000 }),
+      fetchImpl,
+      retryBackoffMs: 1,
+    });
+    const res = await client.timeSeries({
+      tdSymbol: 'XAU/USD',
+      timeframe: '5m',
+      startMs: 0,
+      endMs: 1,
+    });
+    expect(res.attempts).toBe(2);
+    expect(calls).toBe(2);
+  });
+
   test('symbolSearch returns first match shape', async () => {
     const fetchImpl = (async () =>
       new Response(
