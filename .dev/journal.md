@@ -2,6 +2,44 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 23:39 Europe/Amsterdam — docs-only ([ANKA-125](/ANKA/issues/ANKA-125) — strategy indicator/scoring spec)
+
+**What was done**
+
+- Followed the scoped Paperclip wake for [ANKA-125](/ANKA/issues/ANKA-125), child of [ANKA-122](/ANKA/issues/ANKA-122). There were no pending comments to answer.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §13.4, §13.5, §15.1, §21.6, and §25.2, plus the existing shared-contract strict Zod style in `packages/shared-contracts/src/news.ts` and `packages/shared-contracts/src/eval.ts`.
+- Fetched and read `https://bun.com/llms.txt` at 2026-04-28 23:33 Europe/Amsterdam before touching repo artifacts.
+- Added `.dev/specs/strategy-indicator-scoring.md` defining the future `pkg:contracts/strategy` scoring contract target without implementing runtime schemas or engines.
+- Isolated the commit in clean worktree `../anka-125-strategy-scoring-spec` because the shared workspace already had unrelated ANKA-121/123/124 staged and dirty work.
+
+**Findings**
+
+- BLUEPRINT §13.4 permits string examples for `v2_discrete_buckets`, but the implementation spec must not evaluate arbitrary strings. The spec locks a bounded predicate AST and allows strings only as a limited grammar parsed into that AST.
+- V1 needs deterministic neutral/tie behaviour beyond the blueprint summary. The spec makes equality, missing evidence, and equal passing long/short scores non-passing with diagnostics.
+- `atr` is part of the required indicator catalogue and LLM evidence, but the default v1 score formula does not use it.
+
+**Decisions**
+
+- Contract target remains `packages/shared-contracts/src/strategy/scoring.ts` plus root barrel export; no implementation was added in this heartbeat because [ANKA-125](/ANKA/issues/ANKA-125) explicitly scopes the work to a committed spec.
+- Docs-only spec commit: no package code changed, so no package version bump, `.spec.ts` update, or service restart applies.
+
+**Unexpected behaviour**
+
+- The assigned shared workspace was on `anka-121-dashboard-shell` with an unrelated dashboard commit ahead of `origin/main` and staged ANKA-124 metadata. A sibling clean worktree avoided committing or pushing another issue's changes.
+- The clean worktree initially had no `node_modules`, so the first targeted test/typecheck attempt failed before project code ran (`zod`, `pino`, and Bun types missing). `bun install --frozen-lockfile` fixed the local worktree dependency state without changing tracked files.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — installed locked dependencies in the clean sibling worktree.
+- `bun run lint:fix` — exit 0; no fixes applied, pre-existing workspace warnings/infos remain in unrelated packages.
+- `bun test packages/shared-contracts` — 43 pass / 0 fail / 88 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+
+**Open endings**
+
+- [ANKA-122](/ANKA/issues/ANKA-122) needs a parent-thread comment linking `.dev/specs/strategy-indicator-scoring.md` after commit/push.
+- The next implementation task should add `packages/shared-contracts/src/strategy/scoring.ts`, a barrel export, and strict Zod `.spec.ts` coverage from this spec.
+
 ## 2026-04-28 18:20 Europe/Amsterdam — v0.4.26 ([ANKA-113](/ANKA/issues/ANKA-113) — PR #1 `anka-77-ftmo-calendar-cassette` merge-conflict resolution)
 
 **What was done**

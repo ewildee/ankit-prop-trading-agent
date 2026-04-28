@@ -2,12 +2,14 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 18:20 Europe/Amsterdam — [ANKA-113](/ANKA/issues/ANKA-113) PR #1 merge-conflict resolution
+## 2026-04-28 23:39 Europe/Amsterdam — [ANKA-125](/ANKA/issues/ANKA-125) strategy scoring spec
 
-- Scoped Paperclip wake on [ANKA-113](/ANKA/issues/ANKA-113) (child of [ANKA-77](/ANKA/issues/ANKA-77)). PR #1 head `e8bac186` reported `mergeable: false` against `origin/main`.
-- Conflict scope confirmed via `git merge-tree` — only FE-owned append-only / version metadata: `.dev/journal.md`, `.dev/progress.md`, `CHANGELOG.md`, `package.json` (bun.lock, TODOS.md auto-merged).
-- These are exactly the files in the FE non-delegation list (BLUEPRINT §25 `infra:tooling`, AGENTS.md "What FE keeps"); not a Codex brief.
-- Strategy: regular merge commit on `anka-77-ftmo-calendar-cassette` against `origin/main` (no force-push, PR identity preserved).
-- Resolutions: `.dev/progress.md` → take main (replace-each-session); `.dev/journal.md` + `CHANGELOG.md` → union with main entries first, then PR entries (newest-first preserved across the boundary; both lineages independently bumped 0.4.21–0.4.24 so duplicate version headings remain as audit history); `package.json` → bumped to 0.4.26 above max(main 0.4.25, PR 0.4.24).
-- BLUEPRINT §0.2 Bun-runtime proof not required: this heartbeat is metadata reconciliation only, no Bun-runtime code touched.
-- Next: regenerate lockfile, re-run news-side regression tests + biome, commit the merge with Paperclip footer, push, then move [ANKA-77](/ANKA/issues/ANKA-77) forward to QA / final landing.
+- Scoped Paperclip wake on [ANKA-125](/ANKA/issues/ANKA-125), child of [ANKA-122](/ANKA/issues/ANKA-122); no pending comments to answer.
+- Fetched and read `https://bun.com/llms.txt` at 2026-04-28 23:33 Europe/Amsterdam.
+- Task class: scoped docs/spec handoff. Acceptance is `.dev/specs/strategy-indicator-scoring.md`; no runtime scoring implementation.
+- Relevant sources reread: BLUEPRINT §0, §0.1, §0.2, §13.4, §13.5, §15.1, §21.6, §25.2 plus shared-contract strict Zod style.
+- Shared workspace had unrelated staged/dirty ANKA-121/123/124 work, so this commit was isolated in clean worktree `../anka-125-strategy-scoring-spec`.
+- Added spec covering indicator catalogue, v1/v2 scoring semantics, bounded predicate AST, output evidence, determinism, fixture shape, and §13.5 verification seed.
+- Verification: `bun install --frozen-lockfile`; `bun run lint:fix` (exit 0 with pre-existing unrelated diagnostics); `bun test packages/shared-contracts` (43 pass); `bun run typecheck` (clean).
+- Docs-only: no runtime code, package version, `.spec.ts` update, or service restart required.
+- Next: commit + push branch `anka-125-strategy-scoring-spec`, comment on [ANKA-122](/ANKA/issues/ANKA-122), then close [ANKA-125](/ANKA/issues/ANKA-125).
