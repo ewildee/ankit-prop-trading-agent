@@ -1247,9 +1247,13 @@ A `news-calendar-fetcher` runs **inside** `services/news/`:
 ```ts
 GET /health                                     → HealthSnapshot
 GET /calendar/window?from&to&instruments[]      → CalendarItem[]
-GET /calendar/restricted?at&instruments[]       → { restricted: bool, reasons: string[] }
-GET /calendar/pre-news-2h?at&instruments[]      → { restricted: bool, reasons: string[] }
+GET /calendar/restricted?at&instruments[]       → RestrictedReply
+GET /calendar/pre-news-2h?at&instruments[]      → RestrictedReply
 GET /calendar/next-restricted?at&instrument     → { item: CalendarItem | null, eta_seconds: number }
+
+// `RestrictedReply` is the canonical machine-consumable shape used by
+// gateway rails 7 and 13: `{ restricted: bool, reasons: { event, eta_seconds }[] }`.
+// Schema is defined in `pkg:contracts/news` and pinned in §19.2.
 ```
 
 ### 11.5 Two distinct rules — both enforced
@@ -2365,9 +2369,13 @@ POST /accounts/<id>/reconcile         → trigger reconciliation
 ```
 GET /health                           → HealthSnapshot { last_successful_fetch_at, item_count_14d, contract_changes_count }
 GET /calendar/window?from&to&instruments[]  → CalendarItem[]
-GET /calendar/restricted?at&instruments[]   → { restricted: bool, reasons: { event, eta_seconds }[] }
-GET /calendar/pre-news-2h?at&instruments[]  → { restricted: bool, reasons: ... }
+GET /calendar/restricted?at&instruments[]   → RestrictedReply  // { restricted: bool, reasons: { event, eta_seconds }[] }
+GET /calendar/pre-news-2h?at&instruments[]  → RestrictedReply  // same shape
 GET /calendar/next-restricted?at&instrument → { item: CalendarItem | null, eta_seconds: number }
+
+// Canonical `RestrictedReply` schema lives in `pkg:contracts/news` (added in N1).
+// `reasons[]` is an array of objects (not strings) so gateway rails 7 and 13 can
+// render the blocking event(s) and time-to-event without re-querying news.
 ```
 
 ### 19.3 `trader` (port 9202)
