@@ -2,6 +2,40 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 14:14 Europe/Amsterdam — v0.4.27 ([ANKA-89](/ANKA/issues/ANKA-89) — `svc:news/calendar-db`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-89](/ANKA/issues/ANKA-89). No pending comments; harness had already checked out the issue.
+- Fetched `https://bun.com/llms.txt` at 14:10 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0.2, §5, §11.2-§11.8, §17, §18.1, §22, and §25 plus heartbeat context.
+- Confirmed [ANKA-88](/ANKA/issues/ANKA-88) was committed at `bd2712f`, the worktree was clean, and versions were root 0.4.26 / `@ankit-prop/news` 0.2.2 before editing.
+- Added explicit timezone-offset validation before `Date.parse` in `parseItemInstant` and `parseRangeInstant`.
+- Added regressions for offsetless item datetimes, date-only item strings, offsetless `fromIso`, offsetless `toIso`, and legacy v0 `calendar_items` without `instant_ms`.
+- Bumped `@ankit-prop/news` 0.2.2 → 0.2.3 and root `ankit-prop-umbrella` 0.4.26 → 0.4.27.
+
+**Findings**
+
+- Bun 1.3.13 accepts offsetless calendar datetimes via `Date.parse`, so the guard must run before parsing to avoid process-local timezone interpretation.
+- The legacy v0 stale-schema path is already caught by `assertSchemaCanInitialize` because `user_version = 0` with an existing `calendar_items` table is not a fresh DB.
+
+**Contradictions**
+
+- None. The issue description's [ANKA-88](/ANKA/issues/ANKA-88) blocker note was stale; the wake payload reported no unresolved blockers and the QA commit was present.
+
+**Decisions**
+
+- Kept the offset check private to `calendar-db.ts` and did not tighten `@ankit-prop/contracts` because contract-layer Zod validation is explicitly out of scope for [ANKA-89](/ANKA/issues/ANKA-89).
+
+**Unexpected behaviour**
+
+- `bun run lint:fix` still reports unrelated pre-existing unsafe suggestions in other packages, but exits 0 and only fixed import ordering in the touched spec.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; `bun test services/news/src/calendar-db.spec.ts` 19 pass / 0 fail / 34 expects; `bun run typecheck` clean; modified-code debug grep clean.
+- No `/health` restart is possible yet because `services/news` still has only the placeholder `start` script.
+
 ## 2026-04-28 14:06 Europe/Amsterdam — v0.4.26 ([ANKA-88](/ANKA/issues/ANKA-88) — `svc:news/calendar-db`)
 
 **What was done**
