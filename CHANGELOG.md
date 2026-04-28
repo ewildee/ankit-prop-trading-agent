@@ -2,6 +2,44 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.28 — 2026-04-28 23:35 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-121](/ANKA/issues/ANKA-121) — `svc:dashboard` Phase 6 shell kickoff.
+
+**Why:** BLUEPRINT §16.0 requires a persistent version-matrix banner so operators can spot stale service processes at a glance before dashboard live views and controls exist.
+
+**Added** — `@ankit-prop/dashboard` v0.0.1 → v0.1.0
+
+- `services/dashboard/src/build.ts` — Bun bundler entry for the browser shell.
+- `services/dashboard/src/server.ts` and `src/start.ts` — `Bun.serve()` app on default `:9601` with `/`, `/assets/*`, `/api/version-matrix`, and `/health`.
+- `services/dashboard/src/health-server.ts` — shared `HealthSnapshot` construction with the dashboard package version loaded from `package.json`.
+- `services/dashboard/src/version-matrix.ts` — polls supervisor/gateway/trader/news/dashboard `/health` URLs and classifies rows as `current`, `mismatch`, `stale`, or `unreachable`.
+- `services/dashboard/src/client/*` — React 19 + Tailwind v4 shell with top version banner, empty §16.1 tree panel, and mocked SSE feed seam.
+
+**Added coverage**
+
+- `version-matrix.spec.ts` covers exact, stale, mismatch, and unreachable classifications.
+- `health-server.spec.ts` validates the dashboard `/health` snapshot against the shared contract.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.26 → 0.4.28 (patch — workspace service scaffold and lockfile update).
+
+**Verification**
+
+- `bun test services/dashboard/src/version-matrix.spec.ts services/dashboard/src/health-server.spec.ts` — 6 pass / 0 fail / 10 expects.
+- `bun run --cwd services/dashboard build` — clean.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `bun run lint:fix` — exit 0; Biome formatted touched files and reported pre-existing unrelated warnings outside `svc:dashboard`.
+- `bun run --cwd services/dashboard dev` + `curl http://127.0.0.1:9601/health` — returned `service: "dashboard"`, `version: "0.1.0"`, `status: "healthy"`.
+- `curl http://127.0.0.1:9601/api/version-matrix` — returned current rows for gateway/dashboard and `unreachable` rows for services not running in this workspace.
+- `rg -n "console\\.log|debugger|TODO|HACK" services/dashboard/src services/dashboard/package.json package.json` — no matches.
+
+**Notes**
+
+- Live §16.1 views, SSE wire format, kill-switch, force-close, and phase-advance controls remain out of scope for [ANKA-121](/ANKA/issues/ANKA-121).
+- The primary checkout had unrelated ANKA-124 edits appear mid-heartbeat, so this release was completed in an isolated clean worktree at `../anka-121-dashboard-shell-clean`.
+
 ## 0.4.26 — 2026-04-28 18:20 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-113](/ANKA/issues/ANKA-113) — `infra:tooling` PR #1 merge-conflict resolution on the Wave-1 news branch `anka-77-ftmo-calendar-cassette`.

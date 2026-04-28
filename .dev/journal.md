@@ -2,6 +2,32 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 23:35 Europe/Amsterdam — v0.4.28 ([ANKA-121](/ANKA/issues/ANKA-121) — dashboard shell + version matrix)
+
+**What was done**
+
+- Followed the scoped Paperclip wake for [ANKA-121](/ANKA/issues/ANKA-121); no pending comments and the harness had already checked out the issue.
+- Re-read BLUEPRINT §0/§0.1/§0.2/§5/§16/§17/§19/§22/§25 and fetched `https://bun.com/llms.txt` at 23:30 Europe/Amsterdam before Bun-runtime work.
+- Added a `services/dashboard` Bun app with build/dev/start scripts, React 19.2.5, ReactDOM 19.2.5, Tailwind 4.2.4, and the workspace contracts package.
+- Implemented `Bun.serve()` routes for `/`, `/assets/*`, `/api/version-matrix`, and `/health` on default `:9601`.
+- Added `HealthSnapshot` construction from dashboard `package.json` version and a pure version-matrix module that flags exact, stale, mismatch, and unreachable service versions.
+- Added a minimal React shell: sticky top version banner, empty system-tree panel, and an SSE feed seam placeholder.
+- Added `.spec.ts` coverage for version comparisons and dashboard health snapshot shape.
+- Bumped `@ankit-prop/dashboard` to v0.1.0 and root to v0.4.28.
+
+**Findings**
+
+- React 19.2.5 does not ship TypeScript declarations in this install path. To stay inside the issue's dependency bound, the dashboard includes a narrow local `react-shim.d.ts` instead of adding `@types/react` / `@types/react-dom`.
+- The issue explicitly uses `:9601` for dashboard `/health`, while BLUEPRINT §23.2 still mentions `:9204`; ANKA-121's exit gate was followed for this scaffold.
+
+**Unexpected behaviour**
+
+- The primary checkout gained unrelated [ANKA-124](/ANKA/issues/ANKA-124) edits mid-heartbeat. I left them untouched and finished ANKA-121 in a clean sibling worktree from `origin/main`.
+
+**Open endings**
+
+- Browser/visual validation is still a QA-owned follow-up. Live §16.1 views, real SSE contracts, and operator controls remain separate dashboard issues.
+
 ## 2026-04-28 18:20 Europe/Amsterdam — v0.4.26 ([ANKA-113](/ANKA/issues/ANKA-113) — PR #1 `anka-77-ftmo-calendar-cassette` merge-conflict resolution)
 
 **What was done**

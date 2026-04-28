@@ -1,10 +1,20 @@
 {
   "name": "@ankit-prop/dashboard",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "React 19 + Tailwind 4 cockpit — Phase 6 deliverable. Port 9204.",
+  "description": "React 19 + Tailwind 4 cockpit shell with version-matrix banner. Port 9601.",
+  "main": "src/start.ts",
   "scripts": {
-    "start": "echo 'dashboard: not yet implemented (Phase 6)'"
+    "build": "bun run src/build.ts",
+    "dev": "bun run src/start.ts --dev",
+    "start": "bun run src/start.ts",
+    "test": "bun test src"
+  },
+  "dependencies": {
+    "@ankit-prop/contracts": "workspace:*",
+    "react": "19.2.5",
+    "react-dom": "19.2.5",
+    "tailwindcss": "4.2.4"
   }
 }
