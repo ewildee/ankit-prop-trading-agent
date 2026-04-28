@@ -2,6 +2,82 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 13:19 Europe/Amsterdam — v0.4.23 ([ANKA-79](/ANKA/issues/ANKA-79) — `svc:news/symbol-tag-mapper`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-79](/ANKA/issues/ANKA-79). No pending comments; harness had already checked out the issue.
+- Fetched `https://bun.com/llms.txt` at 13:14 Europe/Amsterdam (33,157 bytes) before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §17, §22, §25 plus heartbeat context. Confirmed Bun-native YAML means no `yaml` dependency.
+- Added `services/news/src/symbol-tag-mapper.ts` with inline Zod `SymbolTagMapSchema`, structured `SymbolTagMapLoadError`, operator config load with example fallback, and deterministic multi-tag symbol resolution with injected warning logger.
+- Added `services/news/src/symbol-tag-mapper.spec.ts` for the required mapping, warning, empty input, fallback, malformed YAML, and schema-invalid cases.
+- Added `zod` to `@ankit-prop/news`, bumped `@ankit-prop/news` 0.0.2 → 0.1.0 and root 0.4.22 → 0.4.23, updated `CHANGELOG.md` and `TODOS.md`.
+
+**Findings**
+
+- `@ankit-prop/contracts` still has no `config` namespace, so the issue's fallback instruction applies: keep `SymbolTagMap` inline and track the lift as a follow-up.
+- Existing supervisor config loading already uses `Bun.YAML.parse`, validating the same Bun-native approach for this loader.
+
+**Contradictions**
+
+- The issue body suggested adding `yaml`, but BLUEPRINT §5.1/§5.3 and Bun's `llms.txt` say YAML is built in and `yaml` / `js-yaml` are forbidden. The blueprint wins.
+
+**Decisions**
+
+- Missing default operator config falls back to `config/symbol-tag-map.example.yaml`; an explicit custom path only falls back when a test/operator passes `fallbackPath`.
+- `resolveAffectedSymbols` splits first and maps tag-by-tag rather than matching the full combined string, matching BLUEPRINT §11.3 and preventing composite-map drift.
+
+**Unexpected behaviour**
+
+- Concurrent [ANKA-78](/ANKA/issues/ANKA-78) staged work had duplicate news exports in `packages/shared-contracts/src/index.ts`, which blocked root `bun run typecheck`. Applied the minimal export fix because it was my own assigned concurrent work and a workspace verification blocker.
+
+**Adaptations**
+
+- Kept staging/commit scope focused on [ANKA-79](/ANKA/issues/ANKA-79) despite concurrent [ANKA-77](/ANKA/issues/ANKA-77), [ANKA-78](/ANKA/issues/ANKA-78), and market-data worktree changes.
+
+**Open endings**
+
+- [ANKA-79](/ANKA/issues/ANKA-79) should move to CodeReviewer. No `/health` restart was possible because `services/news` still has only the placeholder `start` script.
+
+## 2026-04-28 13:15 Europe/Amsterdam — v0.4.22 ([ANKA-78](/ANKA/issues/ANKA-78) — shared news calendar contracts)
+
+**What was done**
+
+- Followed the scoped Paperclip wake for [ANKA-78](/ANKA/issues/ANKA-78). No pending comments in the wake payload; harness had already claimed checkout, so no duplicate checkout call.
+- Fetched `https://bun.com/llms.txt` at 13:14 Europe/Amsterdam (33,157 bytes) and prepared the `.dev/progress.md` commit entry before writing Bun-runtime TypeScript.
+- Re-read BLUEPRINT §0.2, §5.1–§5.3, §11.2, §17, and §25; confirmed scope is `pkg:contracts` only.
+- Added `packages/shared-contracts/src/news.ts` with `CalendarImpact`, `CalendarItem`, `CalendarResponse`, `RestrictedReason`, `RestrictedReply`, and `NextRestrictedReply`.
+- Wired the new contracts through `packages/shared-contracts/src/index.ts`.
+- Added `packages/shared-contracts/src/news.spec.ts` coverage for successful parse, unknown `eventType`, both tier-1 routes, restricted reply round-trip, closed `rule` enum, nullable next-restricted item, and closed impact enum.
+- Bumped `@ankit-prop/contracts` 0.3.3 → 0.4.0 and root `ankit-prop-umbrella` 0.4.21 → 0.4.22; updated CHANGELOG and `TODOS.md`.
+
+**Findings**
+
+- BLUEPRINT §11.2 only names `CalendarItem` / `CalendarResponse`; the issue body explicitly adds `RestrictedReply` and `NextRestrictedReply`, matching §11.4 endpoint shapes and later gateway/news consumers.
+- Existing `packages/shared-contracts` convention is direct `z.strictObject` exports plus same-name inferred types, then explicit `index.ts` re-exports.
+
+**Contradictions**
+
+- None. The issue body is a scoped extension of §11.2 rather than a conflict.
+
+**Decisions**
+
+- Kept `eventType` as unconstrained `z.string()` per blueprint; unknown-value logging belongs to `svc:news` runtime metrics, not this contract.
+- Did not add fetcher, DB, service, or symbol-tag config types; [ANKA-78](/ANKA/issues/ANKA-78) marks those out of scope.
+
+**Unexpected behaviour**
+
+- Worktree already contained unrelated uncommitted edits from sibling work (`ANKA-79` symbol-tag mapper plus older market-data/eval-harness changes). Left those untouched and staged only [ANKA-78](/ANKA/issues/ANKA-78) files/hunks.
+
+**Adaptations**
+
+- Because `.dev/progress.md` was concurrently edited for [ANKA-79](/ANKA/issues/ANKA-79), the [ANKA-78](/ANKA/issues/ANKA-78) progress entry is staged against HEAD for this commit while the [ANKA-79](/ANKA/issues/ANKA-79) worktree progress remains preserved unstaged.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 (pre-existing unrelated suggestions only), `bun test` 341 pass / 0 fail / 2089 expects, `bun run typecheck` clean, and modified-code debug grep had no matches.
+- [ANKA-78](/ANKA/issues/ANKA-78) should go to CodeReviewer after commit/push. No service restart is required because only the shared contracts package changed.
+
 ## 2026-04-28 13:13 Europe/Amsterdam — v0.4.21 ([ANKA-77](/ANKA/issues/ANKA-77) — FTMO calendar cassette provenance)
 
 **What was done**

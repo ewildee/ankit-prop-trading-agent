@@ -2,6 +2,65 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.23 — 2026-04-28 13:19 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** `svc:news` needs the symbol-tag-mapper sub-module before the calendar fetcher can turn FTMO `instrument` strings into the tracked trading symbols that restricted-window and pre-news evaluators consume. BLUEPRINT §11.3 requires splitting FTMO tags on `" + "` and §17.3 defines the operator-canonical `symbol-tag-map.config.yaml` shape. BLUEPRINT §5 forbids adding `yaml` / `js-yaml`, so this loader uses Bun's native `Bun.YAML.parse`.
+
+**Added** — `@ankit-prop/news` v0.0.2 → v0.1.0
+
+- `src/symbol-tag-mapper.ts` — exports `SymbolTagMapSchema`, `SymbolTagMap`, `SymbolTagMapLoadError`, `loadSymbolTagMap(path?, options?)`, and `resolveAffectedSymbols(rawInstrument, map, logger?)`. The loader reads the operator config path by default and falls back to `config/symbol-tag-map.example.yaml` when the operator file is absent. YAML and schema failures raise structured `SymbolTagMapLoadError` values with `code`, `path`, and `attemptedPaths`.
+- `src/symbol-tag-mapper.ts` — resolves FTMO `instrument` strings by splitting on `" + "`, trimming tags, mapping each tag through the config, warning on unknown tags through the injected logger, and returning deterministic de-duplicated symbols in first-seen order.
+- `src/symbol-tag-mapper.spec.ts` — covers single-tag mapping, multi-tag split/dedupe, unknown-tag warning, empty/whitespace input, example fallback, malformed operator YAML, malformed fallback YAML, and schema-invalid YAML.
+- `package.json` — adds `zod` as the news service dependency for the inline mapper config schema. `yaml` was intentionally not added because Bun ships native YAML parsing and BLUEPRINT §5.3 forbids that dependency.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.0.2 → 0.1.0 (minor — new public mapper module).
+- root `ankit-prop-umbrella` 0.4.22 → 0.4.23 (patch — workspace package version move).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; Biome applied safe formatting only and still reports pre-existing unsafe suggestions in unrelated packages.
+- `bun test services/news/src/symbol-tag-mapper.spec.ts` — 8 pass / 0 fail / 11 expects.
+- `bun test` — 341 pass / 0 fail / 2089 expects.
+- `bun run typecheck` — clean after correcting the concurrent [ANKA-78](/ANKA/issues/ANKA-78) duplicate export in `packages/shared-contracts/src/index.ts`.
+
+**Notes**
+
+- The `SymbolTagMap` schema stays inline for now because `@ankit-prop/contracts` has no `config` namespace yet; follow-up [T009.c](TODOS.md) tracks lifting it once that shared surface exists.
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
+## 0.4.22 — 2026-04-28 13:15 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-78](/ANKA/issues/ANKA-78) under parent [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** The news service and gateway rail-7 `NewsClient` need one shared contract surface before the `svc:news` runtime lands. BLUEPRINT §11.2 pins the FTMO calendar item shape; [ANKA-78](/ANKA/issues/ANKA-78) extends that package surface with the restricted-window replies consumed by the later endpoint and force-flat work.
+
+**Added** — `@ankit-prop/contracts` v0.3.3 → v0.4.0
+
+- `src/news.ts` — exports `CalendarImpact`, `CalendarItem`, `CalendarResponse`, `RestrictedReason`, `RestrictedReply`, and `NextRestrictedReply` as Zod strict schemas plus inferred TypeScript types.
+- `src/index.ts` — re-exports the news contracts from `@ankit-prop/contracts`.
+- `src/news.spec.ts` — covers minimal calendar item parsing, unknown `eventType` acceptance, both tier-1 routes (`restriction: true` and `impact: high`), restricted reply round-trip, closed `rule` enum, nullable next-restricted item, and closed impact enum.
+
+**Bumped**
+
+- `@ankit-prop/contracts` 0.3.3 → 0.4.0 (minor — new public schema surface).
+- root `ankit-prop-umbrella` 0.4.21 → 0.4.22 (patch — workspace package version move).
+
+**Verification**
+
+- `bun test packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/index.spec.ts` — 9 pass / 0 fail / 17 expects.
+- `bun run lint:fix` — exit 0; Biome reported pre-existing unsafe suggestions/warnings in unrelated packages and applied no fixes.
+- `bun test` — 341 pass / 0 fail / 2089 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" packages/shared-contracts/src/news.ts packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/index.ts` — no matches.
+
+**Notes**
+
+- No service restart required: only the shared contracts package changed, and no service `/health` surface was running from this package.
+
 ## 0.4.21 — 2026-04-28 13:13 Europe/Amsterdam
 
 **Initiated by:** DocumentSpecialist (agent), executing [ANKA-77](/ANKA/issues/ANKA-77) under [ANKA-75](/ANKA/issues/ANKA-75).

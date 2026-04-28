@@ -33,6 +33,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
 ## Phase 5 — `news`
 
+- [x] **T009.a** Shared news calendar contracts (`packages/shared-contracts/src/news.ts`) for [ANKA-78](/ANKA/issues/ANKA-78): port BLUEPRINT §11.2 schemas plus `RestrictedReply` / `NextRestrictedReply`.
 - [ ] **T009** FTMO calendar fetcher with `timezone=Europe%2FPrague`; 2-h staleness blackout.
 
 ## Phase 6 — `dashboard`
