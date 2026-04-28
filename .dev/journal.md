@@ -33,6 +33,7 @@ _Append-only, newest first. Never edit past entries._
 **Open endings**
 
 - Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; `bun test services/news/src/calendar-db.spec.ts` 25 pass / 0 fail / 54 expects; `bun run typecheck` clean; modified-code debug grep clean.
+- Pushed `91a968f` to `origin/anka-81-news-calendar-db`; next owner is FoundingEngineer to reroute [ANKA-93](/ANKA/issues/ANKA-93) to CodeReviewer.
 - No `/health` restart is possible yet because `services/news` still has only the placeholder `start` script.
 
 ## 2026-04-28 14:44 Europe/Amsterdam — v0.4.28 ([ANKA-95](/ANKA/issues/ANKA-95) — `svc:news/calendar-db`)

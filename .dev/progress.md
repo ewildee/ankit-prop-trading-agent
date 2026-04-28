@@ -11,4 +11,4 @@ _Replace this section every session — keep ≤ 20 lines._
 - Narrowed the calendar instant regex to ANKA-96's exact full ISO shape and removed the permissive minute-precision acceptance spec.
 - Bumped `@ankit-prop/news` 0.2.4 → 0.2.5 and root `ankit-prop-umbrella` 0.4.28 → 0.4.29.
 - Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; targeted spec 25 pass / 0 fail / 54 expects; `bun run typecheck` clean; modified-code debug grep clean.
-- Remaining: commit, push `HEAD:anka-81-news-calendar-db`, and comment back with the commit SHA.
+- Completed: committed and pushed `91a968f`; comment back on [ANKA-96](/ANKA/issues/ANKA-96) remains before exit.
