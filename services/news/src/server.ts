@@ -5,20 +5,43 @@ import {
   RestrictedReply,
   type RestrictedReply as RestrictedReplyType,
 } from '@ankit-prop/contracts/news';
-import { pragueDayBucket } from '@ankit-prop/eval-harness/prague-day';
 import { z } from 'zod';
 import { queryRange as queryCalendarRange } from './calendar-db.ts';
+import {
+  resolveAffectedSymbols,
+  type SymbolTagMap,
+  type SymbolTagMapLogger,
+} from './symbol-tag-mapper.ts';
 
 const DEFAULT_PORT = 9203;
 const STALE_AFTER_SECONDS = 2 * 60 * 60;
 const BLACKOUT_WINDOW_MS = 5 * 60 * 1000;
 const PRE_NEWS_WINDOW_MS = 2 * 60 * 60 * 1000;
-const DAY_MS = 24 * 60 * 60 * 1000;
+const QUERY_RANGE_END_PADDING_MS = 1;
+const EXPLICIT_TIMEZONE_OFFSET_RE = /(?:Z|[+-]\d{2}:?\d{2}(?::\d{2})?)$/;
+const DEFAULT_SYMBOL_TAG_MAP: SymbolTagMap = {
+  mappings: {
+    USD: { affects: ['NAS100', 'XAUUSD'] },
+    'US Indices': { affects: ['NAS100'] },
+    NAS100: { affects: ['NAS100'] },
+    Gold: { affects: ['XAUUSD'] },
+    XAUUSD: { affects: ['XAUUSD'] },
+    EUR: { affects: [] },
+    GBP: { affects: [] },
+    CAD: { affects: [] },
+    AUD: { affects: [] },
+    NZD: { affects: [] },
+    CHF: { affects: [] },
+    'Crude Oil': { affects: [] },
+    DXY: { affects: [] },
+  },
+};
 
 const CalendarQuery = z.strictObject({
   at: z
     .string()
     .min(1)
+    .refine(hasExplicitTimezoneOffset, 'expected explicit Z or numeric offset')
     .refine((value) => !Number.isNaN(Date.parse(value)), 'expected ISO timestamp'),
   instruments: z
     .array(
@@ -41,6 +64,7 @@ export interface FetcherHealth {
 
 export interface NewsLogger {
   error?(payload: Record<string, unknown>, message?: string): void;
+  warn?(payload: Record<string, unknown>, message?: string): void;
 }
 
 export interface CreateServerOptions {
@@ -49,6 +73,7 @@ export interface CreateServerOptions {
   readonly port?: number;
   readonly logger?: NewsLogger;
   readonly queryRange?: CalendarQueryFn;
+  readonly symbolTagMap?: SymbolTagMap;
   readonly version?: string;
 }
 
@@ -60,6 +85,7 @@ export interface NewsServer {
 export function createServer(opts: CreateServerOptions): NewsServer {
   const port = opts.port ?? DEFAULT_PORT;
   const queryRange = opts.queryRange ?? queryCalendarRange;
+  const symbolTagMap = opts.symbolTagMap ?? DEFAULT_SYMBOL_TAG_MAP;
   const version = opts.version ?? '0.3.0';
 
   return {
@@ -94,7 +120,9 @@ export function createServer(opts: CreateServerOptions): NewsServer {
         if (!events.ok) return json(staleRestrictedReply());
         const reasons = events.items
           .filter(
-            (event) => event.restriction && affectsAnyInstrument(event, query.data.instruments),
+            (event) =>
+              event.restriction &&
+              affectsAnyInstrument(event, query.data.instruments, symbolTagMap, opts.logger),
           )
           .filter((event) => Math.abs(Date.parse(event.date) - atMs) <= BLACKOUT_WINDOW_MS)
           .map((event) => reasonFor(event, atMs, 'blackout_pm5'));
@@ -114,7 +142,9 @@ export function createServer(opts: CreateServerOptions): NewsServer {
         if (!events.ok) return json(staleRestrictedReply());
         const reasons = events.items
           .filter(isTier1Event)
-          .filter((event) => affectsAnyInstrument(event, query.data.instruments))
+          .filter((event) =>
+            affectsAnyInstrument(event, query.data.instruments, symbolTagMap, opts.logger),
+          )
           .filter((event) => {
             const eventMs = Date.parse(event.date);
             return atMs >= eventMs - PRE_NEWS_WINDOW_MS && atMs <= eventMs;
@@ -171,9 +201,8 @@ function queryEvents(
   atMs: number,
   logger?: NewsLogger,
 ): { readonly ok: true; readonly items: CalendarItemType[] } | { readonly ok: false } {
-  const bucket = pragueDayBucket(atMs);
-  const fromIso = new Date(bucket - PRE_NEWS_WINDOW_MS).toISOString();
-  const toIso = new Date(bucket + DAY_MS + PRE_NEWS_WINDOW_MS).toISOString();
+  const fromIso = new Date(atMs - BLACKOUT_WINDOW_MS).toISOString();
+  const toIso = new Date(atMs + PRE_NEWS_WINDOW_MS + QUERY_RANGE_END_PADDING_MS).toISOString();
 
   try {
     return {
@@ -213,10 +242,30 @@ function isTier1Event(event: CalendarItemType): boolean {
   return event.impact === 'high' || event.restriction;
 }
 
-function affectsAnyInstrument(event: CalendarItemType, instruments: readonly string[]): boolean {
+function affectsAnyInstrument(
+  event: CalendarItemType,
+  instruments: readonly string[],
+  symbolTagMap: SymbolTagMap,
+  logger?: NewsLogger,
+): boolean {
   if (event.instrument === 'ALL') return true;
-  const tags = event.instrument.split(' + ').map((tag) => tag.trim());
-  return instruments.some((instrument) => tags.includes(instrument));
+  const affectedSymbols = resolveAffectedSymbols(
+    event.instrument,
+    symbolTagMap,
+    symbolTagMapLogger(logger),
+  );
+  return instruments.some((instrument) => affectedSymbols.includes(instrument));
+}
+
+function symbolTagMapLogger(logger?: NewsLogger): SymbolTagMapLogger | undefined {
+  if (!logger?.warn) return undefined;
+  return {
+    warn: (message, context) => logger.warn?.(context ?? {}, message),
+  };
+}
+
+function hasExplicitTimezoneOffset(value: string): boolean {
+  return EXPLICIT_TIMEZONE_OFFSET_RE.test(value.trim());
 }
 
 function json(body: unknown, status = 200): Response {

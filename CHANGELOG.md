@@ -2,6 +2,35 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.29 — 2026-04-28 18:38 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), fixing CodeReviewer blockers on [ANKA-116](/ANKA/issues/ANKA-116) for [ANKA-83](/ANKA/issues/ANKA-83).
+
+**Why:** CodeReviewer found `svc:news/server` still failed open for mapped FTMO tags and a Prague-midnight blackout overlap. Hard rails #3/#4 depend on these endpoints rejecting trades when mapped news windows apply.
+
+**Changed** — `@ankit-prop/news` v0.3.0 → v0.3.1
+
+- `services/news/src/server.ts` — routes now evaluate instruments through `resolveAffectedSymbols()` so tags such as `USD` block tracked symbols (`XAUUSD`, `NAS100`) instead of requiring exact raw-string matches.
+- `services/news/src/server.ts` — DB reads now use the actual evaluator window around `at` (`at - 5m` through `at + 2h`) with inclusive end padding, avoiding Prague-day-key misses around local midnight.
+- `services/news/src/server.ts` — `at` must include an explicit `Z` or numeric timezone offset before `Date.parse()` runs.
+- `services/news/src/server.spec.ts` — adds regressions for mapped `USD` tag restrictions, mapped pre-news restrictions, the CEST Prague-midnight ±5m overlap, and offsetless `at` rejection.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.28 → 0.4.29 (patch — workspace package version move).
+- `@ankit-prop/news` 0.3.0 → 0.3.1 (patch — fail-closed news route corrections).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; Biome still reports pre-existing unrelated unsafe suggestions outside this scope.
+- `bun test services/news/src/server.spec.ts services/news/src/symbol-tag-mapper.spec.ts packages/shared-contracts/src/news.spec.ts` — 31 pass / 0 fail / 60 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- Modified-file debug grep clean.
+
+**Notes**
+
+- `services/news` still has only the placeholder `start` script, so there is no running `/health` service version to restart and verify until [ANKA-84](/ANKA/issues/ANKA-84).
+
 ## 0.4.28 — 2026-04-28 18:22 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-83](/ANKA/issues/ANKA-83) under parent [ANKA-75](/ANKA/issues/ANKA-75).

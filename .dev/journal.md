@@ -2,6 +2,34 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 18:38 Europe/Amsterdam — v0.4.29 ([ANKA-116](/ANKA/issues/ANKA-116) — `svc:news/server` review fix)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-116](/ANKA/issues/ANKA-116), acknowledged CodeReviewer verdict `BLOCK`, and treated the two fail-open findings plus offsetless `at` parsing as the heartbeat scope.
+- Fetched `https://bun.com/llms.txt` at 18:35 Europe/Amsterdam before Bun-runtime route edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0-§0.2, §5, §9, §11, §17, §22, and §25 before editing.
+- Updated `services/news/src/server.ts` to route instrument checks through `resolveAffectedSymbols()` so FTMO tags such as `USD` affect tracked symbols (`XAUUSD`, `NAS100`).
+- Replaced the Prague-day-key query range with the actual evaluator window around `at`, covering the previous Prague-day restricted-event overlap after Prague midnight.
+- Tightened `at` query validation to require an explicit `Z` or numeric timezone offset before parsing.
+- Added `server.spec.ts` regressions for mapped tags on `/calendar/restricted` and `/calendar/pre-news-2h`, the CEST Prague-midnight blackout overlap, and offsetless `at` rejection.
+- Bumped root `0.4.28 → 0.4.29` and `@ankit-prop/news 0.3.0 → 0.3.1`.
+
+**Findings**
+
+- The primary workspace is on `anka-82-news-fetcher` with unrelated dirty fetcher files, so the fix stayed in `../ankit-prop-trading-agent-paperclip-anka83` on `anka-83-news-server`.
+- `services/news` still has only the placeholder `start` script; service restart and `/health` version confirmation remain blocked on [ANKA-84](/ANKA/issues/ANKA-84).
+
+**Decisions**
+
+- Used the existing `symbol-tag-mapper` contract in the route and kept the DB query unfiltered by raw instrument string, because DB rows store raw FTMO tags while the route owns mapped-symbol matching.
+- Queried `at - 5m` through `at + 2h` once for both route evaluators; the subsequent rule-specific filters continue to enforce ±5m and 2h semantics.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with unrelated pre-existing suggestions; focused specs 31 pass / 0 fail / 60 expects; `bun run typecheck` clean; modified-file debug grep clean.
+- Return [ANKA-116](/ANKA/issues/ANKA-116) to CodeReviewer after commit and push.
+
 ## 2026-04-28 18:22 Europe/Amsterdam — v0.4.28 ([ANKA-83](/ANKA/issues/ANKA-83) — `svc:news/server`)
 
 **What was done**

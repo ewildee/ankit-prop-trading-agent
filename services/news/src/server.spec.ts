@@ -37,6 +37,49 @@ describe('news server', () => {
     });
   });
 
+  test('/calendar/restricted maps FTMO tags to tracked symbols', async () => {
+    await withDb([{ ...BASE_ITEM, instrument: 'USD' }], async (db) => {
+      const server = createServer({ db, fetcherHealth: healthy() });
+
+      const res = await server.fetch(
+        req('/calendar/restricted?at=2026-04-28T12:32:00Z&instruments[]=XAUUSD'),
+      );
+
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({
+        restricted: true,
+        reasons: [{ event: 'US Non-Farm Payrolls', eta_seconds: -120, rule: 'blackout_pm5' }],
+      });
+    });
+  });
+
+  test('/calendar/restricted includes previous Prague-day blackout overlap', async () => {
+    await withDb(
+      [
+        {
+          ...BASE_ITEM,
+          date: '2026-07-15T23:59:00+02:00',
+          title: 'Late Prague Restricted Event',
+        },
+      ],
+      async (db) => {
+        const server = createServer({ db, fetcherHealth: healthy() });
+
+        const res = await server.fetch(
+          req('/calendar/restricted?at=2026-07-15T22:02:00Z&instruments[]=XAUUSD'),
+        );
+
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual({
+          restricted: true,
+          reasons: [
+            { event: 'Late Prague Restricted Event', eta_seconds: -180, rule: 'blackout_pm5' },
+          ],
+        });
+      },
+    );
+  });
+
   test('/calendar/restricted returns unrestricted outside any window', async () => {
     await withDb([BASE_ITEM], async (db) => {
       const server = createServer({ db, fetcherHealth: healthy() });
@@ -56,6 +99,22 @@ describe('news server', () => {
 
       const res = await server.fetch(
         req('/calendar/pre-news-2h?at=2026-04-28T11:00:00Z&instruments[]=XAUUSD'),
+      );
+
+      expect(res.status).toBe(200);
+      expect(await res.json()).toEqual({
+        restricted: true,
+        reasons: [{ event: 'US Non-Farm Payrolls', eta_seconds: 5400, rule: 'pre_news_2h' }],
+      });
+    });
+  });
+
+  test('/calendar/pre-news-2h maps FTMO tags to tracked symbols', async () => {
+    await withDb([{ ...BASE_ITEM, instrument: 'USD' }], async (db) => {
+      const server = createServer({ db, fetcherHealth: healthy() });
+
+      const res = await server.fetch(
+        req('/calendar/pre-news-2h?at=2026-04-28T11:00:00Z&instruments[]=NAS100'),
       );
 
       expect(res.status).toBe(200);
@@ -145,6 +204,21 @@ describe('news server', () => {
       const server = createServer({ db, fetcherHealth: healthy() });
 
       const res = await server.fetch(req('/calendar/restricted?instruments[]=XAUUSD'));
+      const body = await res.json();
+
+      expect(res.status).toBe(400);
+      expect(body.error.code).toBe('invalid_query');
+      expect(body.error.issues[0].path).toBe('at');
+    });
+  });
+
+  test('rejects offsetless at with structured 400', async () => {
+    await withDb([], async (db) => {
+      const server = createServer({ db, fetcherHealth: healthy() });
+
+      const res = await server.fetch(
+        req('/calendar/restricted?at=2026-04-28T12:30:00&instruments[]=XAUUSD'),
+      );
       const body = await res.json();
 
       expect(res.status).toBe(400);
