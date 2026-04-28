@@ -2,6 +2,35 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.22 — 2026-04-28 13:15 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-78](/ANKA/issues/ANKA-78) under parent [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** The news service and gateway rail-7 `NewsClient` need one shared contract surface before the `svc:news` runtime lands. BLUEPRINT §11.2 pins the FTMO calendar item shape; [ANKA-78](/ANKA/issues/ANKA-78) extends that package surface with the restricted-window replies consumed by the later endpoint and force-flat work.
+
+**Added** — `@ankit-prop/contracts` v0.3.3 → v0.4.0
+
+- `src/news.ts` — exports `CalendarImpact`, `CalendarItem`, `CalendarResponse`, `RestrictedReason`, `RestrictedReply`, and `NextRestrictedReply` as Zod strict schemas plus inferred TypeScript types.
+- `src/index.ts` — re-exports the news contracts from `@ankit-prop/contracts`.
+- `src/news.spec.ts` — covers minimal calendar item parsing, unknown `eventType` acceptance, both tier-1 routes (`restriction: true` and `impact: high`), restricted reply round-trip, closed `rule` enum, nullable next-restricted item, and closed impact enum.
+
+**Bumped**
+
+- `@ankit-prop/contracts` 0.3.3 → 0.4.0 (minor — new public schema surface).
+- root `ankit-prop-umbrella` 0.4.21 → 0.4.22 (patch — workspace package version move).
+
+**Verification**
+
+- `bun test packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/index.spec.ts` — 9 pass / 0 fail / 17 expects.
+- `bun run lint:fix` — exit 0; Biome reported pre-existing unsafe suggestions/warnings in unrelated packages and applied no fixes.
+- `bun test` — 341 pass / 0 fail / 2089 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" packages/shared-contracts/src/news.ts packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/index.ts` — no matches.
+
+**Notes**
+
+- No service restart required: only the shared contracts package changed, and no service `/health` surface was running from this package.
+
 ## 0.4.21 — 2026-04-28 13:13 Europe/Amsterdam
 
 **Initiated by:** DocumentSpecialist (agent), executing [ANKA-77](/ANKA/issues/ANKA-77) under [ANKA-75](/ANKA/issues/ANKA-75).
