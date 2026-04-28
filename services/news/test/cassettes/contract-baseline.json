@@ -1,0 +1,21 @@
+{
+  "items": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "keys": {
+        "title": "string",
+        "impact": "string",
+        "instrument": "string",
+        "restriction": "boolean",
+        "eventType": "string",
+        "date": "string",
+        "forecast": "string|null",
+        "previous": "string|null",
+        "actual": "string|null",
+        "youtubeLink": "string|null",
+        "articleLink": "string|null"
+      }
+    }
+  }
+}

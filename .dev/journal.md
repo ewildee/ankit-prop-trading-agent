@@ -2,6 +2,28 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 13:13 Europe/Amsterdam — v0.4.21 ([ANKA-77](/ANKA/issues/ANKA-77) — FTMO calendar cassette provenance)
+
+**What was done**
+
+- Read the scoped wake payload and heartbeat context for [ANKA-77](/ANKA/issues/ANKA-77); no prior comments existed.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §11.1-§11.3, §17, §21.3, §22, and §25 before external lookup.
+- Pulled the official unauthenticated FTMO endpoint from BLUEPRINT §11.1 for `2026-03-23T00:00:00+01:00` through `2026-04-06T00:00:00+02:00` with `timezone=Europe/Prague`.
+- Saved the raw JSON byte-for-byte at `services/news/test/cassettes/ftmo-2026-03-23-week.json` and added `services/news/test/cassettes/contract-baseline.json` from the BLUEPRINT §11.2 keys/types.
+- Added a narrow `biome.json` exclusion for raw `services/news/test/cassettes/ftmo-*.json` files so `lint:fix` cannot reformat vendor responses that need byte-preserving provenance.
+- Bumped `@ankit-prop/news` to 0.0.2 and root to 0.4.21, then documented provenance in `CHANGELOG.md`; `.dev/progress.md` was concurrently owned by [ANKA-79](/ANKA/issues/ANKA-79), so heartbeat progress is preserved in the issue comment instead.
+
+**Findings**
+
+- The response returned HTTP 200 `application/json` with `x-backend-revision: 1d0bf5c9aa11944d489591b907e1c2bea1c61945`.
+- The cassette has 193 items and satisfies every requested coverage condition: high-impact USD events, `restriction:true`, the multi-tag `USD + US Indices + XAUUSD + DXY` NFP event, and both Prague `+01:00`/`+02:00` offsets across the 2026-03-29 DST transition.
+- No Bun runtime code or dependency surface changed; the `llms.txt` fetch rule did not apply to this data-only heartbeat.
+
+**Open endings**
+
+- QAEngineer should validate `contract-baseline.json` against the eventual BLUEPRINT §11.2 Zod schema and bless the cassette before merge.
+- `services/news` still has only a placeholder `start`; no service `/health` restart was possible or required for this asset-only change.
+
 ## 2026-04-28 12:25 Europe/Amsterdam — v0.4.20 ([ANKA-72](/ANKA/issues/ANKA-72) — CodeReviewer BLOCK fix-up on `@ankit-prop/market-data-twelvedata` v0.1.0)
 
 **What was done**

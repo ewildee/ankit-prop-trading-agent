@@ -12,7 +12,8 @@
       "!**/data",
       "!**/dist",
       "!**/build",
-      "!**/.dev/journal.md"
+      "!**/.dev/journal.md",
+      "!services/news/test/cassettes/ftmo-*.json"
     ]
   },
   "formatter": {

@@ -2,6 +2,38 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.21 — 2026-04-28 13:13 Europe/Amsterdam
+
+**Initiated by:** DocumentSpecialist (agent), executing [ANKA-77](/ANKA/issues/ANKA-77) under [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** `svc:news` needs a canonical real FTMO economic-calendar cassette for the 14-day replay and contract-change detector work described in BLUEPRINT §11.1-§11.3 and §21.3. The chosen 2026-03-23 → 2026-04-06 Prague window crosses the 2026-03-29 DST boundary and includes the requested high-impact USD, restricted, and multi-tag NFP coverage.
+
+**Added** — `@ankit-prop/news` v0.0.2 cassette assets
+
+- `services/news/test/cassettes/ftmo-2026-03-23-week.json` — raw FTMO JSON response from `GET https://gw2.ftmo.com/public-api/v1/economic-calendar?dateFrom=2026-03-23T00:00:00+01:00&dateTo=2026-04-06T00:00:00+02:00&timezone=Europe/Prague`, fetched 2026-04-28 13:12 CEST; response header `x-backend-revision: 1d0bf5c9aa11944d489591b907e1c2bea1c61945`; 193 items, 52,541 bytes.
+- `services/news/test/cassettes/contract-baseline.json` — keys-and-types baseline for the response/item shape in BLUEPRINT §11.2, intentionally value-free for the later contract-change detector.
+
+**Changed** — `infra:tooling`
+
+- `biome.json` — excludes raw `services/news/test/cassettes/ftmo-*.json` vendor cassettes from formatting so `lint:fix` cannot rewrite bytes that must remain exactly as returned.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.0.1 → 0.0.2 (patch — version-pinned FTMO calendar cassette assets).
+- root `ankit-prop-umbrella` 0.4.20 → 0.4.21 (patch — workspace package version move).
+
+**Verification**
+
+- `jq` contract probe — cassette has 193 items, at least one high-impact USD event, at least one `restriction:true` event, the multi-tag `USD + US Indices + XAUUSD + DXY` NFP event, and both `+01:00` / `+02:00` offsets across Prague DST.
+- `cmp -s /tmp/ftmo-2026-03-23.json services/news/test/cassettes/ftmo-2026-03-23-week.json` — confirms the committed cassette is byte-for-byte the downloaded raw JSON.
+- `bunx biome check services/news/test/cassettes/ftmo-2026-03-23-week.json services/news/test/cassettes/contract-baseline.json package.json services/news/package.json` — intentionally fails before the Biome exclusion because raw JSON would be reformatted.
+- `bunx biome check services/news/test/cassettes/ftmo-2026-03-23-week.json services/news/test/cassettes/contract-baseline.json package.json services/news/package.json biome.json` — passes after the raw-cassette exclusion; Biome checks 4 files because the raw cassette is intentionally ignored.
+
+**Notes**
+
+- No Bun runtime code or dependency surface changed; no new npm packages.
+- No service restart required: `services/news` still has only the placeholder `start` script and no `/health` implementation yet.
+
 ## 0.4.20 — 2026-04-28 12:25 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-72](/ANKA/issues/ANKA-72) (CodeReviewer BLOCK fix-up on the [ANKA-68](/ANKA/issues/ANKA-68) v0.1.0 scaffold).
