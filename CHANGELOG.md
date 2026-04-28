@@ -2,6 +2,40 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.28 — 2026-04-28 18:22 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-82](/ANKA/issues/ANKA-82) under parent [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** `svc:news` needs the FTMO calendar polling primitive before endpoint and boot wiring can expose fail-closed freshness to gateway hard rails.
+
+**Added** — `@ankit-prop/news` v0.2.3 → v0.3.0
+
+- `services/news/src/fetcher.ts` — adds `createFetcher({ db, fetch?, clock?, logger, intervalMs?, baseUrl?, dateRangeDays? })`, immediate `start()` fetch, 30-minute default interval, Prague-offset 14-day FTMO query windows, `CalendarResponse` validation, `upsertItems` persistence, honest `getHealth()`, 5xx/network retry backoff (`1s`, `4s`, `16s`), and one-shot `news_fetch_unhealthy` warning after three consecutive misses.
+- `services/news/src/fetcher.spec.ts` — covers cassette replay against `services/news/test/cassettes/ftmo-2026-03-23-week.json`, retry backoff, schema mismatch fail-closed/no upsert, one-shot unhealthy alerting, and URL query rendering.
+
+**Changed**
+
+- `packages/eval-harness/src/prague-day.ts` — adds `pragueIsoWithOffset(tsMs)` so FTMO calendar query windows share the canonical Prague timezone helper instead of reimplementing offset math in `svc:news`.
+- `packages/shared-contracts/package.json` and `packages/eval-harness/package.json` — expose `@ankit-prop/contracts/news` and `@ankit-prop/eval-harness/prague-day` subpaths for the fetcher imports.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.2.3 → 0.3.0 (minor — new public calendar fetcher module).
+- `@ankit-prop/eval-harness` 0.1.3 → 0.1.4 (patch — Prague ISO-with-offset helper).
+- `@ankit-prop/contracts` 0.4.0 → 0.4.1 (patch — news schema subpath export).
+- root `ankit-prop-umbrella` 0.4.27 → 0.4.28 (patch — workspace package version moves).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; Biome fixed local formatting and still reports pre-existing unrelated unsafe suggestions outside `svc:news/fetcher`.
+- `bun test services/news/src/fetcher.spec.ts packages/eval-harness/src/prague-day.spec.ts` — 12 pass / 0 fail / 39 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/fetcher.ts services/news/src/fetcher.spec.ts packages/eval-harness/src/prague-day.ts packages/eval-harness/src/prague-day.spec.ts packages/shared-contracts/package.json packages/eval-harness/package.json services/news/package.json package.json` — no matches.
+
+**Notes**
+
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
 ## 0.4.27 — 2026-04-28 14:14 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-89](/ANKA/issues/ANKA-89) under parent [ANKA-86](/ANKA/issues/ANKA-86).

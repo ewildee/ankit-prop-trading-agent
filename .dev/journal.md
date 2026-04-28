@@ -2,6 +2,37 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 18:22 Europe/Amsterdam — v0.4.28 ([ANKA-82](/ANKA/issues/ANKA-82) — `svc:news/fetcher`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-82](/ANKA/issues/ANKA-82); blocker [ANKA-78](/ANKA/issues/ANKA-78) was resolved and there were no pending comments.
+- Fetched `https://bun.com/llms.txt` at 18:06 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §11.1-§11.8, §17, §22, and §25 plus heartbeat context.
+- Stacked `anka-82-news-fetcher` on `origin/anka-78-79-81-rebuild` because `main` did not contain the `@ankit-prop/contracts/news` or `calendar-db` files required by the issue.
+- Added `createFetcher` with injected fetch/clock/logger, immediate start fetch, 30-minute default cadence, Prague-offset 14-day window query, Zod validation, `upsertItems` persistence, retry backoff, and fail-closed health reporting.
+- Added cassette, backoff, schema-mismatch, one-shot unhealthy alert, and Prague URL-rendering specs.
+- Added `pragueIsoWithOffset` to `pkg:eval-harness/prague-day` and package subpath exports for the issue-specified imports.
+- Bumped root 0.4.27 → 0.4.28, `@ankit-prop/news` 0.2.3 → 0.3.0, `@ankit-prop/eval-harness` 0.1.3 → 0.1.4, and `@ankit-prop/contracts` 0.4.0 → 0.4.1.
+
+**Findings**
+
+- The issue-mentioned `packages/news-cassettes/ftmo-calendar-2026-04-14_2026-04-28.json` path is not present on the current stack branch; the shipped cassette lives at `services/news/test/cassettes/ftmo-2026-03-23-week.json`.
+
+**Decisions**
+
+- Kept symbol-tag canonicalization out of the fetcher because the accepted `createFetcher` signature does not include a tag map and this issue only requires validated calendar persistence plus honest freshness health.
+
+**Unexpected behaviour**
+
+- After adding the `@ankit-prop/eval-harness` workspace dependency, `bun install` had to refresh workspace resolution before root `bun test` could import the new subpath.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; `bun test services/news/src/fetcher.spec.ts packages/eval-harness/src/prague-day.spec.ts` 12 pass / 0 fail / 39 expects; `bun run typecheck` clean; modified-code debug grep clean.
+- Push is still pending in this heartbeat.
+- No `/health` restart is possible yet because [ANKA-84](/ANKA/issues/ANKA-84) owns news boot wiring and the current service still has only the placeholder `start` script.
+
 ## 2026-04-28 14:14 Europe/Amsterdam — v0.4.27 ([ANKA-89](/ANKA/issues/ANKA-89) — `svc:news/calendar-db`)
 
 **What was done**

@@ -2,14 +2,13 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 14:14 Europe/Amsterdam — [ANKA-89](/ANKA/issues/ANKA-89) `svc:news/calendar-db`
+## 2026-04-28 18:17 Europe/Amsterdam — [ANKA-82](/ANKA/issues/ANKA-82) news fetcher
 
-- Wake payload had no pending comments; harness had already checked out the issue, so no checkout retry.
-- BLUEPRINT §0.2 Bun-runtime proof: fetched `https://bun.com/llms.txt` at 14:10 Europe/Amsterdam before editing Bun-runtime code.
-- Re-read BLUEPRINT §0.2, §5, §11.2-§11.8, §17, §18.1, §22, and §25 plus [ANKA-89](/ANKA/issues/ANKA-89) heartbeat context.
-- Confirmed [ANKA-88](/ANKA/issues/ANKA-88) is committed at `bd2712f`, worktree was clean, root was 0.4.26, and `@ankit-prop/news` was 0.2.2 before this fix.
-- Added a private explicit-offset guard before `Date.parse` in `parseItemInstant` and `parseRangeInstant`.
-- Added regressions for offsetless datetime, date-only item date, offsetless `fromIso`, offsetless `toIso`, and legacy v0 `calendar_items` without `instant_ms`.
-- Bumped `@ankit-prop/news` 0.2.2 → 0.2.3 and root `ankit-prop-umbrella` 0.4.26 → 0.4.27.
-- Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; targeted spec 19 pass / 0 fail / 34 expects; `bun run typecheck` clean; modified-code debug grep clean.
-- Remaining: commit, push, and hand back to FoundingEngineer for review.
+- Wake reason: `issue_blockers_resolved`; blocker [ANKA-78](/ANKA/issues/ANKA-78) is done, so fetcher work resumed.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §11.1-§11.8, §17, §22, §25 before editing.
+- Fetched `https://bun.com/llms.txt` at 18:06 Europe/Amsterdam before Bun runtime work.
+- Current branch: `anka-82-news-fetcher`, stacked on `origin/anka-78-79-81-rebuild` because `main` lacks the contracts/news and calendar-db dependencies.
+- Implemented `services/news/src/fetcher.ts` + spec coverage for cassette validation, retry backoff, schema mismatch, and one-shot unhealthy alerts.
+- Bumped root 0.4.27 → 0.4.28, `@ankit-prop/news` 0.2.3 → 0.3.0, `@ankit-prop/eval-harness` 0.1.3 → 0.1.4, and `@ankit-prop/contracts` 0.4.0 → 0.4.1.
+- Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; targeted specs 12 pass / 0 fail / 39 expects; `bun run typecheck` clean; debug grep clean.
+- Next: commit with Paperclip footer, push `origin/anka-82-news-fetcher`, update [ANKA-82](/ANKA/issues/ANKA-82).
