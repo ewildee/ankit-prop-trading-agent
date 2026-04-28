@@ -2,7 +2,24 @@
 
 _Append-only, newest first. Never edit past entries._
 
-## 2026-04-28 17:19 — v0.2.12 ([ANKA-103](/ANKA/issues/ANKA-103) — rail 3/4 news timestamp fail-closed)
+## 2026-04-28 17:33 Europe/Amsterdam — v0.2.12 ([ANKA-104](/ANKA/issues/ANKA-104) — gateway restart + `/health` proof)
+
+**What was done**
+
+- Acknowledged the [ANKA-104](/ANKA/issues/ANKA-104) BLOCK verdict from CodeReviewer: rail 3/4 code path correct, but §0.2 release gate blocked because the gateway was not serving `/health` for `0.2.12`.
+- Started `bun run --cwd services/ctrader-gateway start`; PID 50901 boots and emits `health_server_started` on port 9201.
+- `curl http://127.0.0.1:9201/health` returns `{"service":"ctrader-gateway","version":"0.2.12","bun_version":"1.3.13","status":"degraded","blueprint_section":"19.1", ...}` — version proof captured.
+- Corrected the prior entry's timezone elision per the CodeReviewer minor finding (now stamps explicit `Europe/Amsterdam`).
+
+**Verification**
+
+- `/health` proof: `version: "0.2.12"`, `pid: 50901`, `port: 9201` (status `degraded` is expected — transport not yet connected, this is Phase 2.3 health-only boot).
+
+**Open endings**
+
+- Hand back to CodeReviewer on [ANKA-104](/ANKA/issues/ANKA-104) for unblock; QAEngineer parallel review still routing.
+
+## 2026-04-28 17:19 Europe/Amsterdam — v0.2.12 ([ANKA-103](/ANKA/issues/ANKA-103) — rail 3/4 news timestamp fail-closed)
 
 **What was done**
 
@@ -39,6 +56,45 @@ _Append-only, newest first. Never edit past entries._
 
 - Commit, push, gateway restart, `/health` version check, and FoundingEngineer review-gate handoff remain.
 
+## 2026-04-28 17:14 — v0.4.23 ([ANKA-102](/ANKA/issues/ANKA-102) — commit-msg Paperclip footer enforcement)
+
+**What was done**
+
+- Read the scoped wake payload and heartbeat context for [ANKA-102](/ANKA/issues/ANKA-102); no pending comments required acknowledgement beyond the assignment.
+- Fetched `https://bun.com/llms.txt` at 17:12 Europe/Amsterdam before editing the Bun companion spec.
+- Added `.githooks/commit-msg`, a pure POSIX shell hook that rejects normal commits missing the exact `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer.
+- Added `.githooks/commit-msg.spec.ts` covering missing-footer rejection, valid-footer acceptance, merge bypass, and `fixup!`/`squash!` bypass.
+- Wired root `postinstall` to set `core.hooksPath .githooks` when inside a git work tree, bumped root to 0.4.23, updated CHANGELOG, and added the AGENTS.md enforcement note.
+- Verified with `bun install`, `bun test --filter commit-msg`, `bun run lint:fix`, full `bun test`, `bun run typecheck`, and a direct no-footer `git commit --allow-empty -m "chore: test"` rejection.
+
+**Findings**
+
+- The worktree started clean on `main...origin/main`.
+- `core.hooksPath` was not wired at session start; `bun install` is expected to set it during verification.
+- `bun test --filter commit-msg` does not discover specs inside dot-directories by itself, so a root `commit-msg.spec.ts` bridge imports the real `.githooks/commit-msg.spec.ts` suite.
+- During the session, unrelated gateway hard-rail files and an [ANKA-103](/ANKA/issues/ANKA-103) TODO/progress/journal update appeared in the worktree. They are left unstaged for their owner.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Kept the hook independent of Bun/Node/npm so commit enforcement works before runtime tooling is available.
+- Used `git rev-parse --git-path MERGE_MSG` plus first-line checks to support normal repo checkouts and worktrees without depending on the spec's temporary fixture directories being git repos.
+- Added the root spec bridge solely to satisfy the requested `bun test --filter commit-msg` command while keeping the substantive tests colocated with the hook.
+
+**Unexpected behaviour**
+
+- `bun test --filter commit-msg` initially failed because Bun searched normal test files but skipped the `.githooks` dot-directory.
+
+**Adaptations**
+
+- Added one spec that checks both `fixup!` and `squash!` in the same acceptance bucket, matching the issue's final-reword constraint.
+
+**Open endings**
+
+- Reviewer routing remains after the implementation commit: [CodeReviewer](/ANKA/agents/codereviewer) and [SecurityReviewer](/ANKA/agents/securityreviewer).
 
 ## 2026-04-28 17:08 Europe/Amsterdam — docs-only ([ANKA-101](/ANKA/issues/ANKA-101) — Paperclip co-author footer backfill on `c2b02e3`)
 
