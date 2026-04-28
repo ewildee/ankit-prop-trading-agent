@@ -2,6 +2,29 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 09:35 Europe/Amsterdam — v0.4.14 ([ANKA-49](/ANKA/issues/ANKA-49) — CodeReviewer backfill bookkeeping repair for [ANKA-41](/ANKA/issues/ANKA-41))
+
+**What was done**
+
+- CodeReviewer woke me on [ANKA-49](/ANKA/issues/ANKA-49) with verdict `BLOCK` — the [ANKA-41](/ANKA/issues/ANKA-41) FTMO rule-semantics fix (commit `68cbdff`, 05:20 Europe/Amsterdam) had bumped `@ankit-prop/eval-harness` 0.1.1 → 0.1.2 and shipped three regression specs but explicitly deferred CHANGELOG and journal bookkeeping. Per BLUEPRINT §0.2 every code-changing commit must carry a top-of-file CHANGELOG entry with HH:MM Europe/Amsterdam and a session-end journal entry.
+- Added the missing 0.4.14 CHANGELOG entry covering the [ANKA-41](/ANKA/issues/ANKA-41) backfill: pre-news Tier-1 filter widening (`(e.restricted || e.impact === 'high')`), Europe/Prague day bucketing via new `prague-day.ts` (built-in `Intl`, no new dep), strategy-close P&L now folded into `finalBalance` via `applyAction` returning the realised delta. Verification result quoted from CodeReviewer's run: `bun test packages/eval-harness/src/` 62 / 0, 896 expects.
+- Added this paired journal entry. Bumped root `ankit-prop-umbrella` 0.4.13 → 0.4.14 (the meta-repo bookkeeping bump for the docs-only diff).
+
+**Findings / surprises**
+
+- This heartbeat ran inside a hostile shared worktree where multiple sibling agents were also writing. During my work I observed: a sibling [ANKA-56](/ANKA/issues/ANKA-56) heartbeat bumped `package.json` to 0.4.14 with their own CHANGELOG entry, then a sibling [ANKA-58](/ANKA/issues/ANKA-58) heartbeat bumped to 0.4.16 and overwrote my CHANGELOG section; finally a sibling cleanup reset the worktree all the way back to 0.4.13. I redrafted my entry three times (0.4.15 → 0.4.16 → 0.4.17 → 0.4.14) before the worktree settled. The mitigation pattern: keep edits tight, take whatever next-patch slot is available, commit and push immediately rather than holding diffs across reads. The journal entry that previously survived a CHANGELOG overwrite confirms it is safe to insert a journal entry at one version while leaving the CHANGELOG to settle separately, but ideally both land in the same commit (as this one does).
+- The original [ANKA-41](/ANKA/issues/ANKA-41) commit message itself flagged the deferral ("CHANGELOG / journal entry deferred to next bookkeeping pass") because [ANKA-40](/ANKA/issues/ANKA-40) was entangled in the worktree at that moment. The right discipline going forward is that any deferral needs an explicit `bookkeeping-debt` child issue in the same heartbeat, not a comment in the commit body — otherwise a CodeReviewer backfill becomes the discovery path, as it did here.
+
+**Verification**
+
+- No code paths changed in this commit, so by §0.2 ("smallest verification that proves the change") I did not re-run `bun test` / `bun run typecheck` for the docs-only diff. CodeReviewer's [ANKA-49](/ANKA/issues/ANKA-49) verdict already reports `bun test packages/eval-harness/src/` green at 62 / 0 / 896 against current `main`.
+- `git diff --stat` confined to `CHANGELOG.md`, `.dev/journal.md`, `package.json` before commit; no leakage into sibling files.
+
+**Open endings**
+
+- Reassigning [ANKA-49](/ANKA/issues/ANKA-49) back to CodeReviewer with `status: in_review` for the gate re-run.
+- Future rule (carry forward): if any commit defers §0.2 bookkeeping, immediately open a child issue tagged `bookkeeping-debt` in the same heartbeat so the gap is tracked rather than discovered later by a reviewer backfill. Worth proposing as a BLUEPRINT §0.2 amendment if the same pattern recurs.
+
 ## 2026-04-28 09:02 Europe/Amsterdam — v0.4.13 ([ANKA-46](/ANKA/issues/ANKA-46) — push-on-commit policy + initial origin push; parent [ANKA-45](/ANKA/issues/ANKA-45))
 
 **What was done**

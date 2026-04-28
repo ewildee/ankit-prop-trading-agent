@@ -2,6 +2,41 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.14 — 2026-04-28 09:35 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-49](/ANKA/issues/ANKA-49) (CodeReviewer backfill of [ANKA-41](/ANKA/issues/ANKA-41) — pre-close review gate retroactive enforcement).
+
+**Why:** [ANKA-41](/ANKA/issues/ANKA-41) (commit `68cbdff`, 2026-04-28 05:20 Europe/Amsterdam) bumped `@ankit-prop/eval-harness` 0.1.1 → 0.1.2 to fix three FTMO rule-semantics defects (pre-news Tier-1 inclusion, Prague-local day bucket, strategy-close balance accounting), but explicitly deferred §0.2 bookkeeping ("CHANGELOG / journal entry deferred to next bookkeeping pass") because the working tree at that moment also held [ANKA-40](/ANKA/issues/ANKA-40) edits and entangling scopes would have been wrong. CodeReviewer's [ANKA-49](/ANKA/issues/ANKA-49) verdict on the backfill is `BLOCK` on exactly that audit-trail gap — semantics and tests pass, only the audit trail is missing. This entry closes the gap. No code paths change in this commit.
+
+**Backfilled** — `@ankit-prop/eval-harness` v0.1.2 (`pkg:eval-harness`) — already on disk under commit `68cbdff`; surfaced here for the audit trail.
+
+- `packages/eval-harness/src/backtest.ts` + `packages/eval-harness/src/ftmo-rules.ts` — `buildPreNewsWindows` filter widened from `e.restricted === true` to `(e.restricted || e.impact === 'high')`. Per BLUEPRINT decision Y, FTMO Tier-1 = impact === 'high' OR restriction === true; the prior filter let high-impact, non-restricted events bypass the 2-h pre-news kill-switch. `buildBlackoutWindows` keeps the restricted-only filter (BLUEPRINT §13 line 1189). `CalendarEvent.impact` is now plumbed through `backtest.ts` so the new filter sees the field end-to-end.
+- `packages/eval-harness/src/prague-day.ts` (new) — exposes `pragueDayBucket(tsMs)` using built-in `Intl.DateTimeFormat` with `timeZone: 'Europe/Prague'`, no new npm dep. Replaces UTC `floorDay` at all four `FtmoSimulator` call sites (`setInitialDay`, `onDayRollover`, `onTradeClose`, `recordEaRequest`); `pragueDayStartFromMs` in `sim-engine.ts` now delegates to it. FTMO server clock is Europe/Prague (BLUEPRINT §0 matrix line 283, §13.5 line 964); UTC bucketing produced day-rollover off-by-one between 22:00 and 24:00 Prague local time, breaking daily-floor and EA-rate-limit checks across the boundary.
+- `packages/eval-harness/src/sim-engine.ts` — `applyAction` `kind: 'close'` branch now returns the realised P&L delta and the main loop accumulates it into `balance`; `finalBalance` is no longer pinned to entry balance regardless of strategy outcome. SL/TP paths unchanged. Without this, daily- and overall-floor breach checks ran against a frozen balance and could not see strategy-driven losses.
+- `packages/eval-harness/src/backtest.spec.ts` — pins high-impact non-restricted FOMC tripping `news_blackout_open` with `detail.window === 'pre_news_2h'` end-to-end through `backtest()`.
+- `packages/eval-harness/src/prague-day.spec.ts` — pins CET/CEST bucket flips at 23:00 / 22:00 UTC.
+- `packages/eval-harness/src/sim-engine.spec.ts` — pins Prague day rollover plus strategy-close drops `finalBalance` from entry balance.
+
+**Bumped (this commit, bookkeeping-only)**
+
+- root `ankit-prop-umbrella` 0.4.13 → 0.4.14 (patch — backfill release entry; no code paths changed in this commit).
+
+**Bumped (recorded retroactively for [ANKA-41](/ANKA/issues/ANKA-41) commit `68cbdff`)**
+
+- `@ankit-prop/eval-harness` 0.1.1 → 0.1.2 (patch — three fail-closed FTMO rule-semantics corrections; behaviour-changing for high-impact non-restricted news, Prague day-rollover windows, and strategy-driven close P&L). Already on disk since `68cbdff`; surfaced here for the audit trail.
+
+**Verification**
+
+- `bun test packages/eval-harness/src/` — 62 / 0, 896 expects (CodeReviewer's run on [ANKA-49](/ANKA/issues/ANKA-49); reproducible against current `main`).
+- No code paths changed in this commit, so by §0.2 ("smallest verification that proves the change") the full workspace test / typecheck is not re-run for this docs-only diff.
+
+**Notes**
+
+- Backfill is bookkeeping-only. The semantic fix shipped at 05:20 Europe/Amsterdam under `68cbdff`; this entry is timestamped at the bookkeeping repair time per CHANGELOG newest-first ordering. The package version remains 0.1.2 — this is not a new release.
+- Operational discipline check for [ANKA-41](/ANKA/issues/ANKA-41) (post-backfill): version bump ✓ (0.1.1 → 0.1.2 in `68cbdff`), `.spec.ts` for changed behaviour ✓ (three new spec files in `68cbdff`), CHANGELOG entry ✓ (this entry), journal entry ✓ (paired entry below).
+- Coordination note: this heartbeat raced sibling heartbeats on [ANKA-56](/ANKA/issues/ANKA-56) (QA backfill, [ANKA-29](/ANKA/issues/ANKA-29)) and [ANKA-58](/ANKA/issues/ANKA-58) (rail-7 malformed-fill fix, [ANKA-52](/ANKA/issues/ANKA-52)) inside a single shared worktree; multiple `package.json` bumps and a CHANGELOG overwrite occurred mid-edit. The shared tree was finally reset back to 0.4.13 by a sibling cleanup, so this entry takes 0.4.14 cleanly; sibling work will land on 0.4.15+ when those heartbeats commit. Committed only `CHANGELOG.md`, `.dev/journal.md`, root `package.json`.
+- Future rule: if a commit defers CHANGELOG / journal bookkeeping, the deferring agent must open a child issue tagged `bookkeeping-debt` in the same heartbeat so a CodeReviewer backfill is not the discovery path.
+
 ## 0.4.13 — 2026-04-28 09:02 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-46](/ANKA/issues/ANKA-46) (parent [ANKA-45](/ANKA/issues/ANKA-45) — board directive to push to `origin` after every commit).
