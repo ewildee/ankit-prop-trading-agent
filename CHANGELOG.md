@@ -2,6 +2,41 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.27 — 2026-04-28 23:32 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-124](/ANKA/issues/ANKA-124) — T009.c `SymbolTagMap` contracts lift.
+
+**Why:** `svc:news/symbol-tag-mapper` had the operator-canonical `SymbolTagMap` Zod schema inline. BLUEPRINT §25 lists `SymbolTagMap` under `pkg:contracts/config`, and future trader/dashboard consumers should not import a news service module for shared config shape.
+
+**Added** — `@ankit-prop/contracts` v0.4.0 → v0.5.0 (`pkg:contracts/config`)
+
+- `packages/shared-contracts/src/config/symbol-tag-map.ts` — exports `SymbolTagMapSchema` and `SymbolTagMap` for `{ mappings: Record<string, { affects: string[] }> }`.
+- `packages/shared-contracts/src/config/index.ts` and package exports — expose `@ankit-prop/contracts/config`; existing contract submodules also have explicit subpath exports.
+- `packages/shared-contracts/src/config/symbol-tag-map.spec.ts` — covers parse round-trip plus rejection of empty mapping keys / affected symbols.
+
+**Changed** — `@ankit-prop/news` v0.2.0 → v0.2.1
+
+- `services/news/src/symbol-tag-mapper.ts` — imports the schema/type from `@ankit-prop/contracts/config` and re-exports them locally so ANKA-79-era consumers keep working. `loadSymbolTagMap` still uses `@triplon/config`; symbol resolution behavior is unchanged.
+- `services/news/src/symbol-tag-mapper.spec.ts` — adds a re-export parse guard.
+- `services/news/package.json` — adds the workspace dependency on `@ankit-prop/contracts` and removes the now-unused direct `zod` dependency.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.26 → 0.4.27.
+
+**Verification**
+
+- `bun test packages/shared-contracts/src/config/symbol-tag-map.spec.ts services/news/src/symbol-tag-mapper.spec.ts` — 12 pass / 0 fail / 18 expects.
+- `bun run lint:fix` — exit 0; Biome fixed formatting in touched files and still reports pre-existing unsafe suggestions/warnings in unrelated packages.
+- `bun test packages/shared-contracts services/news` — 55 pass / 0 fail / 106 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `bun run --cwd services/news start` — exits 0 with the existing placeholder message `news: not yet implemented (Phase 5)`.
+- `curl http://localhost:9203/health` — connection refused because the news service still has no HTTP runtime yet.
+
+**Notes**
+
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no live service version endpoint to restart and verify in this phase.
+
 ## 0.4.26 — 2026-04-28 18:20 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-113](/ANKA/issues/ANKA-113) — `infra:tooling` PR #1 merge-conflict resolution on the Wave-1 news branch `anka-77-ftmo-calendar-cassette`.

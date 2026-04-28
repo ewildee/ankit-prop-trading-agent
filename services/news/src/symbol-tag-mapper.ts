@@ -1,16 +1,11 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { defineAppConfig, z } from '@triplon/config';
+import { type SymbolTagMap, SymbolTagMapSchema } from '@ankit-prop/contracts/config';
+import { defineAppConfig } from '@triplon/config';
 
-const SymbolTagMapEntry = z.strictObject({
-  affects: z.array(z.string().min(1)),
-});
-
-export const SymbolTagMapSchema = z.strictObject({
-  mappings: z.record(z.string().min(1), SymbolTagMapEntry),
-});
-export type SymbolTagMap = z.infer<typeof SymbolTagMapSchema>;
+export type { SymbolTagMap };
+export { SymbolTagMapSchema };
 
 export interface SymbolTagMapLogger {
   warn(message: string, context?: Record<string, unknown>): void;

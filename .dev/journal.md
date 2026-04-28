@@ -2,6 +2,36 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 23:32 Europe/Amsterdam — v0.4.27 ([ANKA-124](/ANKA/issues/ANKA-124) — T009.c `SymbolTagMap` contracts lift)
+
+**What was done**
+
+- Followed the scoped Paperclip wake for [ANKA-124](/ANKA/issues/ANKA-124). No pending comments; the harness had already checked out the issue.
+- Fetched `https://bun.com/llms.txt` at 23:30 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §17, §22, and §25 plus the issue heartbeat context.
+- Added `packages/shared-contracts/src/config/symbol-tag-map.ts` and `src/config/index.ts`, exporting `SymbolTagMapSchema` / `SymbolTagMap` through `@ankit-prop/contracts/config` and the root contracts barrel.
+- Updated `services/news/src/symbol-tag-mapper.ts` to consume the shared schema/type while re-exporting them locally for ANKA-79-era consumers. The `@triplon/config` loader and `resolveAffectedSymbols` behavior stayed unchanged.
+- Added `packages/shared-contracts/src/config/symbol-tag-map.spec.ts` for parse round-trip and invalid-shape coverage, plus a news mapper re-export parse guard.
+- Bumped `@ankit-prop/contracts` 0.4.0 → 0.5.0, `@ankit-prop/news` 0.2.0 → 0.2.1, and root `ankit-prop-umbrella` 0.4.26 → 0.4.27; updated `TODOS.md`, `CHANGELOG.md`, and `bun.lock`.
+
+**Findings**
+
+- `services/news` no longer needs a direct `zod` dependency after the schema lift; the service depends on `@ankit-prop/contracts` instead.
+- `services/news` still has a placeholder `start` script and no `/health`, so post-change service restart/version verification is not available yet.
+- A concurrent dashboard change appeared in the worktree during verification (`services/dashboard/package.json`, `services/dashboard/src/`, `.dev/specs/trader-skeleton.md`). It was left unstaged and out of this commit.
+
+**Verification**
+
+- `bun test packages/shared-contracts/src/config/symbol-tag-map.spec.ts services/news/src/symbol-tag-mapper.spec.ts` — 12 pass / 0 fail / 18 expects.
+- `bun run lint:fix` — exit 0; pre-existing unsafe suggestions/warnings remain in unrelated packages.
+- `bun test packages/shared-contracts services/news` — 55 pass / 0 fail / 106 expects.
+- `bun run typecheck` — clean.
+- `bun run --cwd services/news start` — placeholder exits 0; `curl http://localhost:9203/health` cannot connect because no news HTTP server exists yet.
+
+**Open endings**
+
+- No implementation blocker remains. [ANKA-124](/ANKA/issues/ANKA-124) can move to done after commit, push, and issue update.
+
 ## 2026-04-28 18:20 Europe/Amsterdam — v0.4.26 ([ANKA-113](/ANKA/issues/ANKA-113) — PR #1 `anka-77-ftmo-calendar-cassette` merge-conflict resolution)
 
 **What was done**
