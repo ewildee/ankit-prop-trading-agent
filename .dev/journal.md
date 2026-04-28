@@ -2,6 +2,28 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 09:30 Europe/Amsterdam — comment-only ([ANKA-62](/ANKA/issues/ANKA-62) — shrink evaluator.ts header to §9 cross-reference; Audit-2 LOW-B)
+
+**What was done**
+
+- Re-read BLUEPRINT.md §9 (line 1083) and confirmed the binding "Two-phase gateway evaluation" sub-bullet landed via [ANKA-60](/ANKA/issues/ANKA-60) MED-A. BLUEPRINT.md §9 is now the single source of truth for the dispatcher contract.
+- `services/ctrader-gateway/src/hard-rails/evaluator.ts` — replaced the 28-line header comment paraphrasing the ANKA-29 / ANKA-19 H-2 dispatcher contract (pre-submit / post-fill phase split, idempotency record-on-allow, post-fill invariant) with the one-liner cross-reference: `// Two-phase rail dispatch — see BLUEPRINT.md §9 "Two-phase gateway evaluation".`. No symbol change, no behaviour change, no test-surface change.
+- Pure code-comment-only change. No version bump. CHANGELOG carries an `Unreleased` ANKA-62 entry plus this journal cross-reference per the §0.2 narrowed chore-skip rule landed in [ANKA-60](/ANKA/issues/ANKA-60) MED-3.
+
+**Findings / surprises**
+
+- Prior heartbeat for this issue (run `e1b29d3b`) had already authored the CHANGELOG `Unreleased` entry and committed the v0.4.16 ANKA-61 work upstream (`746950b`); only the evaluator.ts header edit and the CHANGELOG entry survived into this resume — the journal slot had been overwritten by the ANKA-61 entry. This continuation just re-adds the journal entry on top of the existing CHANGELOG/code work and stages the ANKA-62-scoped paths for commit.
+- Repo also carries unrelated sibling-agent uncommitted edits to `packages/eval-harness/src/ftmo-rules.spec.ts` and `packages/eval-harness/src/prague-day.spec.ts`. Staged only the ANKA-62 paths (`evaluator.ts`, `CHANGELOG.md`, `.dev/journal.md`) at commit time; sibling work is left for its owner per the umbrella "no leakage" discipline reinforced after the ANKA-58 race.
+
+**Verification**
+
+- `bun run typecheck` — clean against root tsconfig.
+- `bun run lint:fix` — clean (Biome 2.4.13).
+
+**Open endings**
+
+- Audit-2 LOW-B for [ANKA-48](/ANKA/issues/ANKA-48) is now fully discharged in evaluator.ts. Comment-only docs change so no reviewer routing required per the AGENTS.md matrix; FoundingEngineer self-closes.
+
 ## 2026-04-28 09:25 Europe/Amsterdam — v0.4.16 ([ANKA-61](/ANKA/issues/ANKA-61) — install pinned `pino` + `pino-pretty`; HIGH-3 [ANKA-18](/ANKA/issues/ANKA-18) Audit-1 + HIGH-C [ANKA-48](/ANKA/issues/ANKA-48) Audit-2 carry-over)
 
 **What was done**
