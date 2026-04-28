@@ -1,3 +1,4 @@
+import { Database } from 'bun:sqlite';
 import { describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -187,6 +188,38 @@ describe('calendar-db', () => {
     });
   });
 
+  test('upsertItems fails closed on offsetless datetime', async () => {
+    await withTempDb((db) => {
+      const value = '2026-04-28T14:30:00';
+
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(CalendarDbWriteError);
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbWriteError',
+          code: 'invalid_instant',
+          path: 'date',
+          value,
+        }),
+      );
+    });
+  });
+
+  test('upsertItems fails closed on date-only strings', async () => {
+    await withTempDb((db) => {
+      const value = '2026-04-28';
+
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(CalendarDbWriteError);
+      expect(() => upsertItems(db, [item({ date: value })])).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbWriteError',
+          code: 'invalid_instant',
+          path: 'date',
+          value,
+        }),
+      );
+    });
+  });
+
   test('queryRange fails closed on invalid range bounds', async () => {
     await withTempDb((db) => {
       expect(() => queryRange(db, 'garbage', '2026-04-28T00:00:00Z')).toThrow(CalendarDbQueryError);
@@ -208,6 +241,73 @@ describe('calendar-db', () => {
         }),
       );
     });
+  });
+
+  test('queryRange fails closed on offsetless fromIso', async () => {
+    await withTempDb((db) => {
+      const value = '2026-04-28T14:30:00';
+
+      expect(() => queryRange(db, value, '2026-04-29T00:00:00Z')).toThrow(CalendarDbQueryError);
+      expect(() => queryRange(db, value, '2026-04-29T00:00:00Z')).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbQueryError',
+          code: 'invalid_range',
+          path: 'fromIso',
+          value,
+        }),
+      );
+    });
+  });
+
+  test('queryRange fails closed on offsetless toIso', async () => {
+    await withTempDb((db) => {
+      const value = '2026-04-28T14:30:00';
+
+      expect(() => queryRange(db, '2026-04-28T00:00:00Z', value)).toThrow(CalendarDbQueryError);
+      expect(() => queryRange(db, '2026-04-28T00:00:00Z', value)).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbQueryError',
+          code: 'invalid_range',
+          path: 'toIso',
+          value,
+        }),
+      );
+    });
+  });
+
+  test('openCalendarDb fails closed on legacy v0 calendar_items without instant_ms', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'calendar-db-'));
+    const dbPath = join(tmp, 'calendar.db');
+    try {
+      const db = new Database(dbPath, { create: true });
+      db.exec(`
+        PRAGMA user_version = 0;
+        CREATE TABLE calendar_items (
+          id TEXT PRIMARY KEY,
+          title TEXT NOT NULL,
+          country TEXT NOT NULL,
+          currency TEXT NOT NULL,
+          instrument TEXT NOT NULL,
+          impact TEXT NOT NULL,
+          date TEXT NOT NULL,
+          tags TEXT NOT NULL,
+          raw TEXT NOT NULL,
+          fetched_at TEXT NOT NULL
+        )
+      `);
+      db.close();
+
+      expect(() => openCalendarDb(dbPath)).toThrow(CalendarDbOpenError);
+      expect(() => openCalendarDb(dbPath)).toThrow(
+        expect.objectContaining({
+          name: 'CalendarDbOpenError',
+          code: 'schema_outdated',
+          path: dbPath,
+        }),
+      );
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
   });
 
   test('openCalendarDb fails closed on stale calendar_items schemas', async () => {

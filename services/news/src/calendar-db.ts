@@ -72,6 +72,7 @@ export interface UpsertResult {
 
 const INIT_SQL_PATH = join(import.meta.dir, '..', 'sql', 'init.sql');
 const CLOSED_DATABASES = new WeakSet<Database>();
+const EXPLICIT_TIMEZONE_OFFSET_RE = /(?:Z|[+-]\d{2}:?\d{2}(?::\d{2})?)$/;
 
 export function openCalendarDb(path: string): Database {
   try {
@@ -252,6 +253,15 @@ function assertSchemaCanInitialize(db: Database, path: string): void {
 }
 
 function parseItemInstant(value: string): number {
+  if (!hasExplicitTimezoneOffset(value)) {
+    throw new CalendarDbWriteError({
+      code: 'invalid_instant',
+      path: 'date',
+      value,
+      message: `calendar-db: invalid calendar item date: ${value}`,
+    });
+  }
+
   const instantMs = Date.parse(value);
   if (Number.isNaN(instantMs)) {
     throw new CalendarDbWriteError({
@@ -265,6 +275,15 @@ function parseItemInstant(value: string): number {
 }
 
 function parseRangeInstant(path: 'fromIso' | 'toIso', value: string): number {
+  if (!hasExplicitTimezoneOffset(value)) {
+    throw new CalendarDbQueryError({
+      code: 'invalid_range',
+      path,
+      value,
+      message: `calendar-db: invalid range bound ${path}: ${value}`,
+    });
+  }
+
   const instantMs = Date.parse(value);
   if (Number.isNaN(instantMs)) {
     throw new CalendarDbQueryError({
@@ -275,6 +294,10 @@ function parseRangeInstant(path: 'fromIso' | 'toIso', value: string): number {
     });
   }
   return instantMs;
+}
+
+function hasExplicitTimezoneOffset(value: string): boolean {
+  return EXPLICIT_TIMEZONE_OFFSET_RE.test(value.trim());
 }
 
 export function closeCalendarDb(db: Database): void {

@@ -2,6 +2,33 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.27 — 2026-04-28 14:14 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-89](/ANKA/issues/ANKA-89) under parent [ANKA-86](/ANKA/issues/ANKA-86).
+
+**Why:** CodeReviewer blocked [ANKA-86](/ANKA/issues/ANKA-86) because `Date.parse` accepts offsetless calendar instants in the process local timezone. `svc:news/calendar-db` feeds hard rails #3 and #4, so calendar writes and range queries must fail closed unless every instant carries an explicit `Z` or numeric timezone offset.
+
+**Changed** — `@ankit-prop/news` v0.2.2 → v0.2.3
+
+- `services/news/src/calendar-db.ts` — rejects calendar item dates and query range bounds unless the trimmed string ends in `Z` or a numeric timezone offset before calling `Date.parse`, preserving existing `CalendarDbWriteError` / `CalendarDbQueryError` shapes.
+- `services/news/src/calendar-db.spec.ts` — adds regressions for offsetless datetimes, date-only strings, offsetless `fromIso` / `toIso`, and the real legacy v0 `calendar_items` schema without `instant_ms`.
+
+**Bumped**
+
+- `@ankit-prop/news` 0.2.2 → 0.2.3 (patch — fail-closed timezone-offset validation for hard-rail calendar instants).
+- root `ankit-prop-umbrella` 0.4.26 → 0.4.27 (patch — workspace package version move).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; Biome fixed import ordering in scope and still reports pre-existing unrelated unsafe suggestions outside `svc:news/calendar-db`.
+- `bun test services/news/src/calendar-db.spec.ts` — 19 pass / 0 fail / 34 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/calendar-db.ts services/news/src/calendar-db.spec.ts` — no matches.
+
+**Notes**
+
+- `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
+
 ## 0.4.26 — 2026-04-28 14:06 Europe/Amsterdam
 
 **Initiated by:** QAEngineer (agent), executing [ANKA-88](/ANKA/issues/ANKA-88) under parent [ANKA-86](/ANKA/issues/ANKA-86).
