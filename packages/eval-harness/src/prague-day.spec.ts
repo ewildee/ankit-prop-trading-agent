@@ -27,6 +27,20 @@ describe('prague-day', () => {
     expect(pragueDayBucket(Date.UTC(2026, 6, 15, 22, 0, 0))).toBe(Date.UTC(2026, 6, 16));
   });
 
+  test('spring DST transition: March 29, 2026 remains one Prague day until 22:00 UTC', () => {
+    expect(pragueDayBucket(Date.UTC(2026, 2, 28, 22, 59, 0))).toBe(Date.UTC(2026, 2, 28));
+    expect(pragueDayBucket(Date.UTC(2026, 2, 28, 23, 0, 0))).toBe(Date.UTC(2026, 2, 29));
+    expect(pragueDayBucket(Date.UTC(2026, 2, 29, 21, 59, 0))).toBe(Date.UTC(2026, 2, 29));
+    expect(pragueDayBucket(Date.UTC(2026, 2, 29, 22, 0, 0))).toBe(Date.UTC(2026, 2, 30));
+  });
+
+  test('fall DST transition: October 25, 2026 keeps the 25-hour Prague day together', () => {
+    expect(pragueDayBucket(Date.UTC(2026, 9, 24, 21, 59, 0))).toBe(Date.UTC(2026, 9, 24));
+    expect(pragueDayBucket(Date.UTC(2026, 9, 24, 22, 0, 0))).toBe(Date.UTC(2026, 9, 25));
+    expect(pragueDayBucket(Date.UTC(2026, 9, 25, 22, 59, 0))).toBe(Date.UTC(2026, 9, 25));
+    expect(pragueDayBucket(Date.UTC(2026, 9, 25, 23, 0, 0))).toBe(Date.UTC(2026, 9, 26));
+  });
+
   test('pragueParts returns local Prague calendar fields', () => {
     const p = pragueParts(Date.UTC(2026, 0, 5, 23, 30, 0));
     expect(p.year).toBe(2026);
