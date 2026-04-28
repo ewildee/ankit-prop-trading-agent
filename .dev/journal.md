@@ -2,6 +2,30 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 17:37 Europe/Amsterdam — infra:ci ([ANKA-107](/ANKA/issues/ANKA-107) — disable GitHub CI workflows)
+
+**What was done**
+
+- Renamed `.github/workflows/ci.yml` → `.github/workflows/ci.yml.disabled` to disable the only GitHub Actions workflow. GitHub only honours `*.yml`/`*.yaml` under `.github/workflows/`, so the `.disabled` suffix prevents it from being scheduled on push/PR/cron without losing the file.
+- Rationale (from board): the workflow doesn't reliably complete, agents already run `lint:fix` / `typecheck` / `test` locally per BLUEPRINT §0.2, and we are pre-production. Re-enable later by simple rename.
+
+**Re-enable recipe**
+
+- `git mv .github/workflows/ci.yml.disabled .github/workflows/ci.yml` and commit. No content change required; the workflow YAML is intact.
+
+**Out of scope**
+
+- `.githooks/` (local pre-commit) untouched per the issue. No alternate runner introduced.
+
+**Verification**
+
+- `git status` shows the rename only (no other workflow files exist).
+- No package code touched → no version bump or `CHANGELOG.md` entry per BLUEPRINT §0.2 (changelog is for package releases, not infra config).
+
+**Open endings**
+
+- Comment back on [ANKA-107](/ANKA/issues/ANKA-107) with the diff summary and re-enable recipe, then close.
+
 ## 2026-04-28 17:33 Europe/Amsterdam — v0.2.12 ([ANKA-104](/ANKA/issues/ANKA-104) — gateway restart + `/health` proof)
 
 **What was done**
