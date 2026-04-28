@@ -2,6 +2,32 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 09:21 Europe/Amsterdam — v0.4.15 ([ANKA-58](/ANKA/issues/ANKA-58) — rail 7 malformed-fill fail-closed; REQUEST CHANGES from [ANKA-52](/ANKA/issues/ANKA-52))
+
+**What was done**
+
+- Read BLUEPRINT §3.5 (fail-closed default), §9 (rail 7), and §0.2 (commit / version) plus the ANKA-52 review snapshot in `.dev/progress.md` before touching the rail.
+- `services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.ts` — added a third fail-closed branch after the non-NEW and missing-fill guards. Both `broker.fill.filledPrice` and `broker.fill.intendedPrice` validated with `Number.isFinite(...)` before the slippage subtraction; on failure rail 7 rejects with reason `'rail 7 malformed fill report (non-finite price) — fail closed'` and structured detail. Happy path unchanged.
+- `services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.spec.ts` — added the malformed-fill regression test (`{ intendedPrice: 2400 } as unknown as FillReport` → reject).
+- `BLUEPRINT.md` §9 rail 7 row updated to enumerate the three fail-closed branches; §3.5 fail-closed table cross-references ANKA-32. Two-phase gateway evaluation note added under §9.
+- Bumped `@ankit-prop/ctrader-gateway` 0.2.8 → 0.2.9 and root `ankit-prop-umbrella` 0.4.14 → 0.4.15. Production fix landed under commit `c6c2247` at 09:21 Europe/Amsterdam and pushed to origin/main.
+
+**Findings / surprises**
+
+- This heartbeat raced multiple sibling agents inside a shared worktree. ANKA-49 bookkeeping landed independently as commit `2d07b97` (root 0.4.13 → 0.4.14) mid-heartbeat. The ANKA-58 production fix had to be redrafted three times after sibling agents reverted the working tree between my Edit calls. Mitigation: prepend CHANGELOG / journal entries via bash heredoc once Edit kept failing on "modified since read"; stage only ANKA-58-scoped files at commit time so unrelated sibling work (`shared-contracts/obs/`, `bun.lock`, `pino-rail-logger.spec.ts`) does not leak in.
+- CHANGELOG.md and `.dev/journal.md` were reverted out of my staging set between `git add` and `git commit`, so the bookkeeping entries did not land in `c6c2247` — they land in the bookkeeping follow-up commit that carries this journal entry. Repo discipline reminder: the same audit-trail gap that triggered [ANKA-49](/ANKA/issues/ANKA-49) on [ANKA-41](/ANKA/issues/ANKA-41) almost recurred here. Concurrent worktree races require staging-immediately-before-commit and verifying the staged set with `git diff --cached --stat` before invoking `git commit`.
+- Per the AGENTS.md matrix, hard-rail logic changes require both CodeReviewer and QAEngineer pre-close sign-off. This commit lands the production fix; ANKA-58 stays open for reviewer routing. The original ANKA-52 backfill QA gate can re-run against this fix and approve.
+
+**Verification**
+
+- `bun test services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.spec.ts` — 10 pass / 0 fail / 30 expects (was 7 pass / 1 fail before).
+- `bun test services/ctrader-gateway/src/hard-rails/` — 87 pass / 0 fail / 536 expects.
+
+**Open endings**
+
+- Hand ANKA-58 to CodeReviewer and QAEngineer for the matrix-required pre-close review.
+- Hand ANKA-52 back to QAEngineer with a comment that the production fix landed at v0.2.9 / commit `c6c2247`; QA can now approve their backfill review.
+
 ## 2026-04-28 09:35 Europe/Amsterdam — v0.4.14 ([ANKA-49](/ANKA/issues/ANKA-49) — CodeReviewer backfill bookkeeping repair for [ANKA-41](/ANKA/issues/ANKA-41))
 
 **What was done**

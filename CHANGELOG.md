@@ -2,6 +2,36 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.15 — 2026-04-28 09:21 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-58](/ANKA/issues/ANKA-58) (REQUEST CHANGES from QAEngineer's [ANKA-52](/ANKA/issues/ANKA-52) backfill review of [ANKA-40](/ANKA/issues/ANKA-40) commit `cec4a6a`).
+
+**Why:** [ANKA-40](/ANKA/issues/ANKA-40) closed the missing-fill / non-NEW fail-open paths in rail 7 but left a residual fail-open path: any defined `broker.fill` was treated as structurally valid, so a malformed broker fill report with a missing or non-finite `filledPrice` / `intendedPrice` produced `Math.abs(NaN) > cap === false`, and rail 7 returned `allow` on the just-opened position without ever evaluating the slippage cap. QA's [ANKA-52](/ANKA/issues/ANKA-52) regression coverage exposed this directly: focused `bun test rail-7-slippage-guard.spec.ts` failed `7 pass / 1 fail` with the malformed-fill case landing on `allow`. BLUEPRINT §3.5 ("default for any uncertainty: fail closed. No trades > wrong trades.") and §9 rail 7's fail-closed default require `reject` here.
+
+**Fixed (already on disk under commit `c6c2247`)** — `@ankit-prop/ctrader-gateway` v0.2.9 (`svc:gateway/hard-rails`)
+
+- `services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.ts` — third fail-closed branch added after the existing non-NEW and missing-fill guards. Both `broker.fill.filledPrice` and `broker.fill.intendedPrice` are validated with `Number.isFinite(...)` before the slippage subtraction; on failure rail 7 returns `outcome: 'reject'` with `reason: 'rail 7 malformed fill report (non-finite price) — fail closed'` and structured `detail: { intentKind, hasFill: true, filledPrice, intendedPrice }`. Slippage / cap computation is unchanged on the happy path.
+- `services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.spec.ts` — pinned the malformed-fill regression: `evaluateSlippageGuard(NEW, ctx({ fill: { intendedPrice: 2400 } as unknown as FillReport }))` must `reject` with reason containing `malformed fill report` and `fail closed`.
+- `BLUEPRINT.md` §9 rail 7 row updated to enumerate the three fail-closed branches; §3.5 fail-closed defaults table cross-references ANKA-32's empty-decision-list reject synthesis as defence-in-depth alongside this rail-7 fix; new "Two-phase gateway evaluation" note documents the dispatcher contract.
+
+**Bumped (already on disk under commit `c6c2247`)**
+
+- `@ankit-prop/ctrader-gateway` 0.2.8 → 0.2.9 (patch — fail-closed malformed-fill guard for rail 7).
+- root `ankit-prop-umbrella` 0.4.14 → 0.4.15 (patch — gateway hard-rail fix).
+
+**Bookkeeping note**
+
+- The fix shipped at 09:21 Europe/Amsterdam under `c6c2247`; this CHANGELOG entry and the paired `.dev/journal.md` entry were reverted out of the working tree by a concurrent agent between staging and commit, so they did not land in the same commit. This entry is the bookkeeping follow-up. Repo discipline reminder: per [ANKA-49](/ANKA/issues/ANKA-49) review, deferring CHANGELOG / journal bookkeeping past the same-commit boundary creates an audit-trail gap that surfaces in CodeReviewer backfills.
+
+**Verification (re-run on this docs-only diff)**
+
+- `bun test services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.spec.ts` — 10 pass / 0 fail / 30 expects.
+- `bun test services/ctrader-gateway/src/hard-rails/` — 87 pass / 0 fail / 536 expects (workspace-scoped sanity check).
+
+**Out of scope**
+
+- Closing [ANKA-58](/ANKA/issues/ANKA-58) and [ANKA-52](/ANKA/issues/ANKA-52). Per the AGENTS.md matrix, hard-rail logic changes require CodeReviewer **and** QAEngineer sign-off before close; this commit only lands the production fix and bookkeeping. Reviewer routing follows in the issue threads.
+
 ## 0.4.14 — 2026-04-28 09:35 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-49](/ANKA/issues/ANKA-49) (CodeReviewer backfill of [ANKA-41](/ANKA/issues/ANKA-41) — pre-close review gate retroactive enforcement).
@@ -196,6 +226,50 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bun test services/ctrader-gateway/src/hard-rails/` — 69 / 0, 475 expects across 9 spec files. Includes the four new pre-post-fill-split cases and the four migrated rail-9 record-on-allow cases.
 - `bunx --bun biome check` clean on the four touched files (`evaluator.ts`, `index.ts`, `idempotency-record-on-allow.spec.ts`, `pre-post-fill-split.spec.ts`). Workspace lint surfaces only pre-existing in-flight infos (`smoke-runner.ts` unused-import warning) unrelated to ANKA-29.
 - Workspace `bun run typecheck` shows only the pre-existing `rail-10-phase-profit-target.spec.ts` `internalDailyFloorPct` error from ANKA-30 in-flight work; no new typecheck errors introduced by this change.
+
+## 0.4.7 — 2026-04-28 00:10 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-30](/ANKA/issues/ANKA-30) (REVIEW-FINDINGS H-3 + H-4 from [ANKA-19](/ANKA/issues/ANKA-19) — HIGH).
+
+**Why:** The FTMO loss-line surface carried two unit drifts: `svc:gateway/hard-rails` and `pkg:eval-harness` disagreed on whether floor inputs were percent or fraction (rail 11 had a stray `/100` divide; eval-harness `INTERNAL_DEFAULT_MARGINS` shipped as `4` / `8` percent), and the gateway field names ended in `…FloorPct` even though the runtime value was a *loss* fraction the rail subtracted to compute the floor. Operators pre-computing "the floor as `0.92`" from the field name silently breached. Synchronized rename + math correction across `pkg:contracts`, `svc:gateway/hard-rails`, and `pkg:eval-harness`, plus a `LossFraction` zod refinement (≤ 0.5) that catches percent-as-fraction wiring at the contract boundary. Patch- / minor-level bumps per BLUEPRINT §0.2.
+
+**Note on commit topology** — the production-line edits actually landed in commit `464b3dd` (titled `fix(svc:gateway/hard-rails): ANKA-28 rail 9 record-on-non-reject (code + spec)`) due to a concurrent staging race in the parallel-heartbeat workspace; the ANKA-28 heartbeat ran `git add` over my then-staged ANKA-30 work. The diff inside `464b3dd` is unambiguously identifiable as ANKA-30 work (`LossFraction`, `EnvelopeFloors`, the `internal{Daily,Overall}LossFraction` and `defensiveSlMaxLossFraction` renames, eval-harness rename + math). The bookkeeping commit `0593eb9 docs(infra:bookkeeping): ANKA-30 attribution + version bumps` carried this CHANGELOG row plus the journal entry plus the four package-manifest bumps. [ANKA-42](/ANKA/issues/ANKA-42)'s newest-first reorder (commit `6870f18`) accidentally dropped the `0.4.7` row from the file; [ANKA-59](/ANKA/issues/ANKA-59) (this commit) reconstructs it from the v0.4.7 journal body and the `0593eb9` commit message and re-anchors it numerically between `0.4.8` and `0.4.6`.
+
+**Added** — `@ankit-prop/contracts` v0.3.1 (`pkg:contracts/hard-rails`)
+
+- `packages/shared-contracts/src/hard-rails.ts` — exports `LossFraction = z.number().nonnegative().max(0.5)`. The `0.5` ceiling is the smoking-gun catch — anything above is almost certainly a percent slipped in (`4` instead of `0.04`).
+- `packages/shared-contracts/src/hard-rails.ts` — exports `EnvelopeFloors = z.strictObject({ internalDailyLossFraction, internalOverallLossFraction })`, the canonical FTMO loss-line shape across packages.
+- `packages/shared-contracts/src/hard-rails.spec.ts` — 7 new cases / 14 expects: `LossFraction` accepts `0`, `0.04`, `0.08`, `0.5`; rejects `0.51`, `4`, `8`, `100`; rejects negatives. `EnvelopeFloors` accepts BLUEPRINT defaults, rejects percent-shaped values, rejects extra keys.
+
+**Renamed** — `@ankit-prop/ctrader-gateway` v0.2.5 (`svc:gateway/hard-rails`)
+
+- `services/ctrader-gateway/src/hard-rails/types.ts` — `EnvelopeFloors.internal{Daily,Overall}FloorPct` → `internal{Daily,Overall}LossFraction`. `BrokerSnapshot.defensiveSlMaxLossPct` → `defensiveSlMaxLossFraction`. Header comments cite `LossFraction` (≤ 0.5) and §8.3 / §8.5. Naming rationale: rail 2 computes `floor = (1 − X) × initialBalance`, so `…FloorPct` invited operators to pre-compute the floor and breach.
+- `services/ctrader-gateway/src/hard-rails/rail-1-daily-breaker.ts`, `rail-2-overall-breaker.ts` — read renamed fields; math unchanged.
+- `services/ctrader-gateway/src/hard-rails/rail-11-defensive-sl.ts` — renamed field AND dropped the `/100` divide. Formula now `perTradeCapDollars = initialBalance × defensiveSlMaxLossFraction`. Matrix fixture's `0.5` (interpreted as percent) becomes `0.005` (fraction); dollar outcome on a $100k account is the same `$500` per-trade cap.
+- Spec fixtures updated to the current schema across `matrix.spec.ts`, `rail-11-defensive-sl.spec.ts`, `idempotency-record-on-allow.spec.ts`, `rail-news-staleness.spec.ts`, `rail-13-force-flat-schedule.spec.ts`, `rail-10-phase-profit-target.spec.ts` (carry `defensiveSlMaxLossFraction: 0.005` and the renamed envelope fields).
+
+**Renamed** — `@ankit-prop/eval-harness` v0.1.1 (`pkg:eval-harness`)
+
+- `packages/eval-harness/src/ftmo-rules.ts` — `FtmoLineMargins` and `InternalMargins`: `{daily,overall}LossPct` → `{daily,overall}LossFraction`. `FTMO_DEFAULT_LINE`: `5 → 0.05`, `10 → 0.1`. `INTERNAL_DEFAULT_MARGINS`: `4 → 0.04`, `8 → 0.08`. `checkDailyLoss` / `checkOverallLoss` math drops `× 0.01` and multiplies the fraction directly. Cross-package check now passes: harness and gateway carry identical FTMO numbers in identical units.
+- `packages/eval-harness/src/ftmo-rules.props.spec.ts` lines 142 / 170 — `closeReason: 'manual'` (an [ANKA-20](/ANKA/issues/ANKA-20) leftover, not in the `ClosedTrade.closeReason` union) corrected to `'strategy'` so the workspace typecheck passes. Property tests are about min-hold semantics, not close reason.
+
+**Bumped**
+
+- `@ankit-prop/contracts` 0.3.0 → 0.3.1 (minor — additive zod surface, no consumer broken).
+- `@ankit-prop/ctrader-gateway` 0.2.4 → 0.2.5 (patch — type-level field renames + rail 11 math correction; semantically equivalent at canonical fixture values).
+- `@ankit-prop/eval-harness` 0.1.0 → 0.1.1 (patch — type rename + math refactor; identical numerical results at canonical fixture values).
+- root `ankit-prop-umbrella` 0.4.6 → 0.4.7 (patch — synchronized FTMO loss-line unit unification across three packages).
+
+**Verification**
+
+- `bun test packages/shared-contracts packages/eval-harness` — 85 / 85 green at HEAD; the 7 new `LossFraction` / `EnvelopeFloors` cases pass.
+- Rail 11 dollar outcome at canonical $100k fixture unchanged ($500 per-trade cap before and after the `/100` drop, given the fixture flipped from `0.5` percent to `0.005` fraction).
+
+**Notes**
+
+- The `LossFraction` zod schema is correct-but-unused at this commit — it is not yet wired to a config-loader boundary parse. The `accounts.yaml` ingestion that will call `EnvelopeFloors.parse(...)` lands in [ANKA-15](/ANKA/issues/ANKA-15). Once wired, a typo of `4` instead of `0.04` will fail at boundary parse rather than silently shifting the floor by 100×.
+- BLUEPRINT was internally consistent on units throughout (§8.3 / §8.5 / §17 all use fractions). No BlueprintAuditor escalation needed — the spec was right; the code drifted.
+- [ANKA-59](/ANKA/issues/ANKA-59) bookkeeping repair (this entry's restoration anchor): the entry was once committed (commit `0593eb9`) and visible in `git log --all -p CHANGELOG.md`, then dropped during the ANKA-42 newest-first reorder (`6870f18`). Reconstructed from the v0.4.7 journal body and the `0593eb9` commit message, anchored numerically between `0.4.8` and `0.4.6`. No version bump for the reconstruction itself — `@ankit-prop/contracts 0.3.1`, `@ankit-prop/eval-harness 0.1.1`, `@ankit-prop/ctrader-gateway 0.2.5`, and root `0.4.7` were already shipped by `0593eb9`.
 
 ## 0.4.6 — 2026-04-27 23:55 Europe/Amsterdam
 
