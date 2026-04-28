@@ -1,9 +1,13 @@
 // Rail 7 — post-fill slippage guard regression coverage.
 // [ANKA-40](/ANKA/issues/ANKA-40) fixes the previous fail-open behaviour
 // when rail 7 was reached without a fill report or with a non-NEW intent.
-// Per BLUEPRINT §3.5 ("default for any uncertainty: fail closed") both
-// branches must reject so a dispatcher bug cannot leave a just-opened
-// position on the books without ever evaluating the slippage cap.
+// [ANKA-58](/ANKA/issues/ANKA-58) closes the residual malformed-fill
+// fail-open: a fill whose `filledPrice` / `intendedPrice` is missing or
+// non-finite must reject (otherwise `Math.abs(NaN) > cap` is `false` and
+// the rail allows a just-opened position without ever evaluating the cap).
+// Per BLUEPRINT §3.5 ("default for any uncertainty: fail closed") every
+// branch must reject so a dispatcher / broker bug cannot leave a
+// just-opened position on the books without ever evaluating the slippage cap.
 
 import { describe, expect, test } from 'bun:test';
 import { InMemoryIdempotencyStore } from './idempotency-store.ts';
@@ -176,5 +180,59 @@ describe('rail 7 — slippage guard fail-closed defaults (ANKA-40)', () => {
     expect(decision.outcome).toBe('reject');
     expect(decision.reason).toContain('close immediately');
     expect(decision.detail).toMatchObject({ slippage: 5, cap: 3 });
+  });
+});
+
+describe('rail 7 — slippage guard malformed-fill fail-closed (ANKA-58)', () => {
+  // ANKA-58 regression: any defined `broker.fill` was treated as structurally
+  // valid, so a missing or non-finite `filledPrice` / `intendedPrice` produced
+  // `Math.abs(NaN) > cap === false` and rail 7 returned `allow` on the
+  // just-opened position without ever evaluating the cap. BLUEPRINT §3.5
+  // requires fail-closed `reject` with an attributable reason here.
+
+  test('NEW intent with fill missing filledPrice rejects with malformed-fill reason', () => {
+    const malformedFill = { intendedPrice: 2400 } as unknown as FillReport;
+    const decision = evaluateSlippageGuard(newOrderIntent(), ctx({ fill: malformedFill }));
+
+    expect(decision.outcome).toBe('reject');
+    expect(decision.rail).toBe('slippage_guard');
+    expect(decision.reason).toBe('rail 7 malformed fill report — fail closed');
+    expect(decision.detail).toMatchObject({
+      intentKind: 'NEW',
+      hasFill: true,
+      intendedPrice: 2400,
+    });
+  });
+
+  test('NEW intent with fill missing intendedPrice rejects with malformed-fill reason', () => {
+    const malformedFill = { filledPrice: 2400.5 } as unknown as FillReport;
+    const decision = evaluateSlippageGuard(newOrderIntent(), ctx({ fill: malformedFill }));
+
+    expect(decision.outcome).toBe('reject');
+    expect(decision.reason).toBe('rail 7 malformed fill report — fail closed');
+    expect(decision.detail).toMatchObject({
+      intentKind: 'NEW',
+      hasFill: true,
+      filledPrice: 2400.5,
+    });
+  });
+
+  test('NEW intent with NaN filledPrice rejects with malformed-fill reason', () => {
+    const malformedFill: FillReport = { intendedPrice: 2400, filledPrice: Number.NaN };
+    const decision = evaluateSlippageGuard(newOrderIntent(), ctx({ fill: malformedFill }));
+
+    expect(decision.outcome).toBe('reject');
+    expect(decision.reason).toBe('rail 7 malformed fill report — fail closed');
+  });
+
+  test('NEW intent with Infinity intendedPrice rejects with malformed-fill reason', () => {
+    const malformedFill: FillReport = {
+      intendedPrice: Number.POSITIVE_INFINITY,
+      filledPrice: 2400.5,
+    };
+    const decision = evaluateSlippageGuard(newOrderIntent(), ctx({ fill: malformedFill }));
+
+    expect(decision.outcome).toBe('reject');
+    expect(decision.reason).toBe('rail 7 malformed fill report — fail closed');
   });
 });

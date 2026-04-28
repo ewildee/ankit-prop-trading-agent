@@ -4,14 +4,15 @@
 // the gateway then queues a ProtoOAClosePositionReq for the just-filled position.
 //
 // Rail 7 is post-fill-only (see evaluator.ts POST_FILL_RAIL_KEYS). Reaching
-// the rail with `intent.kind !== 'NEW'` or `broker.fill === undefined` is a
-// dispatcher invariant violation. Per BLUEPRINT §3.5 fail-closed defaults
-// ("default for any uncertainty: fail closed. No trades > wrong trades."),
-// both branches return `reject` rather than masking the upstream defect by
-// allowing the just-opened position to remain open without a slippage check.
-// ANKA-40 regression: previously these branches returned `allow`, meaning a
-// missing fill report on the post-fill path would silently let the position
-// through without ever evaluating the cap.
+// the rail with `intent.kind !== 'NEW'`, `broker.fill === undefined`, or a
+// fill whose `filledPrice` / `intendedPrice` is missing or non-finite is a
+// dispatcher / broker invariant violation. Per BLUEPRINT §3.5 fail-closed
+// defaults ("default for any uncertainty: fail closed. No trades > wrong
+// trades."), every branch returns `reject` rather than masking the upstream
+// defect by allowing the just-opened position to remain open without a
+// slippage check. ANKA-40 closed the missing-fill / non-NEW gaps; ANKA-58
+// closes the residual malformed-fill gap where `Math.abs(NaN) > cap` would
+// otherwise have evaluated to `false` and silently returned `allow`.
 
 import type { RailDecision } from '@ankit-prop/contracts';
 import { logDecision } from './log-decision.ts';
@@ -41,7 +42,23 @@ export function evaluateSlippageGuard(intent: RailIntent, ctx: RailContext): Rai
     });
   }
 
-  const slippage = Math.abs(broker.fill.filledPrice - broker.fill.intendedPrice);
+  const { filledPrice, intendedPrice } = broker.fill;
+  if (!Number.isFinite(filledPrice) || !Number.isFinite(intendedPrice)) {
+    return logDecision(intent, ctx, {
+      rail: 'slippage_guard',
+      outcome: 'reject',
+      reason: 'rail 7 malformed fill report — fail closed',
+      detail: {
+        intentKind: intent.kind,
+        hasFill: true,
+        filledPrice,
+        intendedPrice,
+      },
+      decidedAt,
+    });
+  }
+
+  const slippage = Math.abs(filledPrice - intendedPrice);
   const cap = Math.max(
     config.slippageSpreadMultiplier * broker.symbol.typicalSpread,
     config.slippageMinAtrFraction * broker.symbol.atr14,

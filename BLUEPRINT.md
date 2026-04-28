@@ -217,6 +217,24 @@ incidents that this discipline solves: stale process running pre-fix
 code, unclear "is this the new build?" question, no audit trail of
 what changed when.
 
+### CHANGELOG skip-class (narrow)
+
+The CHANGELOG entry is **mandatory for every behaviour-affecting
+commit**. The only commits that may skip the CHANGELOG entry are
+**pure lint chores that mutate no behaviour** — e.g. a `bun run
+lint:fix` reformat, whitespace-only diff, comment-only edit, or an
+import-order shuffle. Even in that case the commit must carry a
+`.dev/journal.md` cross-reference (one-line entry naming the chore
+and the lint rule applied) so the audit trail stays unbroken.
+
+If the commit changes any code path, public surface, schema,
+contract, doc semantic, test assertion, configuration default, or
+build/CI behaviour, the CHANGELOG entry is **non-optional** — see
+step 5 above. "Docs-only" diffs to `BLUEPRINT.md` / `AGENTS.md` /
+`TODOS.md` count as behaviour-affecting because they shift the
+canonical contract; they take a CHANGELOG entry like any other
+change. When in doubt, write the entry.
+
 ### Session journal (mandatory at session end)
 
 Append to `.dev/journal.md`, newest first. Each entry must include:
@@ -480,6 +498,7 @@ library, not a process.
 | Dashboard | Trading continues; observability degraded |
 | Autoresearch | Trading unaffected; retries next scheduled run |
 | Supervisor | Services keep running; no auto-restart until supervisor up |
+| Rail dispatcher returns empty decision list | **Reject** synthesised at the contract surface (`composeRailVerdict([], decidedAt)`); reason `'no rails evaluated — fail-closed'` (`NO_RAILS_EVALUATED_REASON`). Defence in depth against dispatcher rewrites or feature-flag short-circuits ([ANKA-32](/ANKA/issues/ANKA-32); CHANGELOG 0.4.10). |
 
 **Default for any uncertainty: fail closed. No trades > wrong trades.**
 
@@ -1052,7 +1071,7 @@ Checked **twice** — once by Judge (advisory), once by Gateway
 | 4 | **2-h pre-news kill-switch** | no new entries within 2 h of tier-1 event on instrument |
 | 5 | **60-s min hold** | vs previous trade on same symbol |
 | 6 | **Spread guard** | per-symbol multiplier vs typical |
-| 7 | **Slippage guard** | post-fill: close immediately if filled beyond `max(2 × typical_spread, 0.5 × ATR(14))` (decision X) |
+| 7 | **Slippage guard** | post-fill: close immediately if filled beyond `max(2 × typical_spread, 0.5 × ATR(14))` (decision X). **Fail-closed defence in depth**: rejects if invoked on the post-fill path with no fill report (`broker.fill === undefined`) or with a non-NEW intent kind. Both surface in the structured verdict log as `slippage_guard / reject` ([ANKA-40](/ANKA/issues/ANKA-40)) |
 | 8 | **Symbol whitelist** | only enabled instruments per `accounts.yaml` |
 | 9 | **Idempotency** | `clientOrderId` (ULID) not previously seen |
 | 10 | **Phase-aware profit target** | auto-flatten at `closed_balance ≥ target+buffer` AND min-days complete (decision N + U) |
@@ -1060,6 +1079,16 @@ Checked **twice** — once by Judge (advisory), once by Gateway
 | 12 | **EA throttle** | 1,800/day per **account** token-bucket (decision O) |
 | 13 | **Force-flat schedule** | per-instrument: market-close - 5 min, Friday close - 5 min, restricted-event - 6 min (decision L.1 + M.2) |
 | 14 | **AMEND monotone-SL invariant** | reject any AMEND that loosens SL (decision E + BB) |
+
+**Two-phase gateway evaluation (binding axis).** Gateway dispatches
+rails in two phase-scoped passes: `evaluatePreSubmitRails` runs rails
+1–6 and 8–14 before any `ProtoOANewOrderReq`; `evaluatePostFillRails`
+runs **rail 7 only** after the broker reports a fill on the same
+`clientOrderId`. Rail 9 records its ULID slot only on a non-`reject`
+composite verdict from the pre-submit pass; the post-fill pass does
+not consume idempotency or throttle tokens. See
+`services/ctrader-gateway/src/hard-rails/evaluator.ts` header for the
+dispatcher contract.
 
 Force-flat schedule (rail 13) operates as:
 
@@ -1119,6 +1148,34 @@ Every order carries:
   `ProtoOAAmendPositionSLTPReq` to set the trailing distance.
   Subsequent amendments are **monotone** — never widen.
 - `clientOrderId = ULID`.
+
+### 10.4a Post-fill remediation flow
+
+When the post-fill rail pass (§9 two-phase evaluation) returns a
+`slippage_guard / reject` verdict, the gateway must translate that
+verdict into a `ProtoOAClosePositionReq` for the just-filled position
+on the same `clientOrderId`. The translation contract:
+
+- The `reject` verdict is the trigger; no operator action is
+  required. A post-fill `allow` verdict is a no-op.
+- Rail 7
+  (`services/ctrader-gateway/src/hard-rails/rail-7-slippage-guard.ts`)
+  produces the verdict; the close-emitter path consumes it. Rail 7
+  itself never emits a broker request — it only computes the
+  outcome.
+- All rail-7 reject branches map to the same close request: cap
+  exceeded (decision X), missing fill report (`broker.fill ===
+  undefined`), and non-NEW intent kind. The close-emitter does not
+  branch on the rail-7 reason; the structured verdict log preserves
+  the reason for audit.
+- The close request reuses the same close-emitter pipeline used by
+  rail 13 force-flat (§9 + `services/ctrader-gateway/src/hard-rails/force-flat-scheduler.ts`),
+  so a position cannot be enqueued for close twice and an in-flight
+  close de-dupes naturally.
+- Rail 7 does **not** consume rail-9 idempotency or rail-12 throttle
+  tokens — the post-fill pass is dispatcher-isolated from the
+  pre-submit pass (see §9 two-phase evaluation note). The
+  remediation close therefore cannot be blocked by the daily EA cap.
 
 ### 10.5 Reconciliation
 
@@ -2560,7 +2617,7 @@ Before promoting to FTMO Free Trial, exercise:
 |-------|-------------|-----------|-----------|
 | **0** | Scaffold, specs, ADRs (DONE) | n/a | Foundation commit |
 | **1** | `@triplon/proc-supervisor` | Unit + 7 integration cases | `bun run start` brings up fake services with all transitions verified |
-| **2** | `ctrader-gateway` (FTMO Free Trial) | `ctrader-ts` smoke-test 7 steps; rails matrix | Place + close + reconcile against the trial demo, all 14 hard rails enforced |
+| **2** | `ctrader-gateway` (FTMO Free Trial) | `ctrader-ts` smoke-test 7 steps; rails matrix | **Offline-runnable deliverables** (no live broker): 14 rails matrix, `ctrader-vendor` scaffold, `/health` endpoint, `pkg:contracts` surface, two-phase pre-submit / post-fill evaluator, fail-closed contract surface (`composeRailVerdict([], …)`), rail-7 fail-closed branches (missing fill / non-NEW intent), FTMO simulator semantics (Tier-1 pre-news, Europe/Prague day bucket, strategy-close balance accumulation). **Live-broker-gated trio** ([ANKA-16](/ANKA/issues/ANKA-16)): place + close + reconcile against the FTMO trial demo with all 14 hard rails enforced. |
 | **3** | `eval-harness` + FTMO simulator | Golden fixture suite trips simulator on bad strategies; 12-fold walk-forward harness functional | Library published, regression CI green |
 | **4** | `trader` (modular monolith) | Behavioural anchors §13.5; cassette-replay LLM tests; multi-instance loader test (1 enabled + 3 disabled) | End-to-end through gateway against FTMO Free Trial for 1 hour |
 | **5** | `news` (FTMO calendar JSON) | Cassette replay + contract-change detector | Endpoints green; 2-h staleness blackout fires |
@@ -2867,7 +2924,7 @@ appears.
 | `control` | `ControlState`, `OperatorAction`, `AuditEntry` |
 | `config` | `AccountConfig`, `EnvelopeConfig`, `InstanceConfig`, `SupervisorConfig`, `RecoveryCfg`, `SymbolTagMap` |
 | `health` | `HealthSnapshot` shared schema + `loadVersionFromPkgJson()` helper (§19.0) |
-| `obs/otel-bootstrap` | `start(serviceName, serviceVersion)` programmatic OTel init (§20.3) |
+| `obs/otel-bootstrap` | `start(serviceName, serviceVersion)` programmatic OTel init (§20.3). Bootstrap *file* lives under `pkg:contracts`; `infra:obs` (§25.1) remains the cross-cutting issue tag for the OTel SDK init concept. |
 
 #### `pkg:ctrader-vendor/...`
 
