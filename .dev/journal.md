@@ -2,6 +2,42 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 18:22 Europe/Amsterdam — v0.4.28 ([ANKA-83](/ANKA/issues/ANKA-83) — `svc:news/server`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-83](/ANKA/issues/ANKA-83). Wake reason was `issue_blockers_resolved`; blocker [ANKA-78](/ANKA/issues/ANKA-78) is done.
+- Fetched `https://bun.com/llms.txt` at 18:22 Europe/Amsterdam before Bun-runtime server edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0.2, §5, §11.4-§11.8, §19.2, §22, and §25 plus heartbeat context.
+- Added `services/news/src/server.ts` with Bun.serve-compatible `createServer()`, `startServer()`, `/calendar/restricted`, `/calendar/pre-news-2h`, `/health/details`, Zod query validation, Prague-day bucket query range, and stale-calendar fail-closed responses.
+- Added `services/news/src/server.spec.ts` using the real temp `calendar-db` path for inside-window, outside-window, pre-news, stale health, DB-unhealthy, DB-query-error, validation, and health-details coverage.
+- Added package subpath exports for `@ankit-prop/contracts/news` and `@ankit-prop/eval-harness/prague-day` because [ANKA-83](/ANKA/issues/ANKA-83) imports those public surfaces directly.
+
+**Findings**
+
+- The shared checkout was switched underneath the heartbeat to `anka-82-news-fetcher` with ANKA-82 WIP edits. To avoid stomping those files, the ANKA-83 work was isolated in `../ankit-prop-trading-agent-paperclip-anka83` from `origin/anka-78-79-81-rebuild`.
+
+**Contradictions**
+
+- [ANKA-83](/ANKA/issues/ANKA-83) described `/calendar/pre-news-2h` as `NextRestrictedReply`; BLUEPRINT §19.2 and `DOC-BUG-FIXES.md` state both `/calendar/restricted` and `/calendar/pre-news-2h` return `RestrictedReply`. The implementation follows the blueprint.
+
+**Decisions**
+
+- The server queries the Prague-day bucket plus padding and then filters raw multi-tag `instrument` strings in the route layer, so both mapped symbols and FTMO `" + "` joined tags are handled without changing the DB contract.
+
+**Unexpected behaviour**
+
+- `@ankit-prop/contracts/news` and `@ankit-prop/eval-harness/prague-day` did not resolve until package subpath exports were added.
+
+**Adaptations**
+
+- Used the real `calendar-db` in the server spec instead of a fake to prove the route and persistence boundary together.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with unrelated pre-existing unsafe suggestions; targeted specs 25 pass / 0 fail / 58 expects; `bun run typecheck` clean; modified-file debug grep clean.
+- [ANKA-84](/ANKA/issues/ANKA-84) must wire config, fetcher, DB, server startup, signal handling, and real `/health` process verification.
+
 ## 2026-04-28 14:14 Europe/Amsterdam — v0.4.27 ([ANKA-89](/ANKA/issues/ANKA-89) — `svc:news/calendar-db`)
 
 **What was done**

@@ -2,6 +2,43 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.28 — 2026-04-28 18:22 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-83](/ANKA/issues/ANKA-83) under parent [ANKA-75](/ANKA/issues/ANKA-75).
+
+**Why:** `svc:news` needs the first HTTP surface on port 9203 so gateway/trader callers can ask whether a symbol is inside the ±5 minute internal blackout or the 2 hour pre-news kill window. The route layer owns the 2 hour staleness fail-closed gate.
+
+**Changed** — `@ankit-prop/news` v0.2.3 → v0.3.0
+
+- `services/news/src/server.ts` — adds `createServer()` returning a Bun.serve-compatible `{ port, fetch }`, plus `startServer()` for direct mounting. Routes implemented: `GET /calendar/restricted`, `GET /calendar/pre-news-2h`, and `GET /health/details`.
+- `services/news/src/server.ts` — validates `at` and `instruments[]` with Zod and returns structured `400` bodies for malformed query parameters.
+- `services/news/src/server.ts` — fails closed with `RestrictedReply { restricted: true, reasons: [{ rule: 'stale_calendar' }] }` when fetcher health has `ageSeconds === null`, `ageSeconds > 7200`, `dbOk === false`, or the DB query throws.
+- `services/news/src/server.spec.ts` — covers a real temp `calendar-db` happy path inside the blackout, outside-window allow, pre-news 2 hour restriction, stale-calendar fail-closed cases, query validation, and `/health/details`.
+
+**Changed** — public package surfaces
+
+- `packages/shared-contracts/package.json` — exposes `@ankit-prop/contracts/news` for the canonical news contracts.
+- `packages/eval-harness/package.json` — exposes `@ankit-prop/eval-harness/prague-day` for `pragueDayBucket`.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.27 → 0.4.28 (patch — workspace package version move).
+- `@ankit-prop/news` 0.2.3 → 0.3.0 (minor — new HTTP route surface).
+- `@ankit-prop/contracts` 0.4.0 → 0.4.1 (patch — package subpath export for existing news contracts).
+- `@ankit-prop/eval-harness` 0.1.3 → 0.1.4 (patch — package subpath export for existing Prague-day helper).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; Biome formatted the new server files and still reports pre-existing unrelated unsafe suggestions outside this scope.
+- `bun test services/news/src/server.spec.ts packages/shared-contracts/src/news.spec.ts packages/eval-harness/src/prague-day.spec.ts` — 25 pass / 0 fail / 58 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/server.ts services/news/src/server.spec.ts packages/shared-contracts/package.json packages/eval-harness/package.json services/news/package.json package.json` — no matches.
+
+**Notes**
+
+- The issue text named `NextRestrictedReply` for `/calendar/pre-news-2h`, but BLUEPRINT §19.2 and `DOC-BUG-FIXES.md` make `RestrictedReply` canonical for both `/calendar/restricted` and `/calendar/pre-news-2h`; the implementation follows the blueprint.
+- `services/news` still has only the placeholder `start` script, so there is no running `/health` service version to restart and verify until [ANKA-84](/ANKA/issues/ANKA-84).
+
 ## 0.4.27 — 2026-04-28 14:14 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-89](/ANKA/issues/ANKA-89) under parent [ANKA-86](/ANKA/issues/ANKA-86).
