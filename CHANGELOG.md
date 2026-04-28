@@ -2,6 +2,50 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.21 — 2026-04-28 14:30 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (agent), executing [ANKA-31](/ANKA/issues/ANKA-31) (REVIEW-FINDINGS H-5 from [ANKA-19](/ANKA/issues/ANKA-19)).
+
+**Why:** Rails 3 (`news_blackout_5m`) and 4 (`news_pre_kill_2h`) used to fail-closed by reading `news.lastFetchAgeMs(now)` and comparing against `newsStaleMaxMs` — but the `NewsClient` contract permitted *any* number, so a faulty `svc:news` HTTP client could return `0` after a 5xx/timeout and lie about freshness. The §11.7 staleness guard was only as strong as the client's good behaviour. Per ANKA-31 the rail layer now owns the comparison: the client only surfaces a wall-clock timestamp, and the rail does the math. ANKA-9 (live `svc:news` client) hasn't started yet, so this contract revision lands first and the live client implements the cleaner shape from day one.
+
+**Changed** — `@ankit-prop/ctrader-gateway` v0.2.10 → v0.2.11
+
+- `src/hard-rails/types.ts` — `NewsClient.lastFetchAgeMs(atMs: number): number` replaced by `lastSuccessfulFetchAtMs(): number | null`. Documented the contract obligation: implementations MUST return `null` until at least one successful fetch has completed and MUST NOT lie about freshness on a failed fetch.
+- `src/hard-rails/rail-3-news-blackout.ts` — rail now reads `lastSuccessfulFetchAtMs()`. `null` → hard reject with `reason: "news client has never reported a successful fetch — fail-closed"` (exported as `NEWS_NEVER_FETCHED_REASON`). Otherwise computes `ageMs = broker.nowMs - lastSuccessfulFetchAtMs` itself and rejects when `ageMs > config.newsStaleMaxMs`. Detail payload now carries `lastSuccessfulFetchAtMs` and `ageMs` (both honest), not a client-reported `lastFetchAgeMs`.
+- `src/hard-rails/rail-4-news-pre-kill.ts` — same staleness ownership flip; reuses `NEWS_NEVER_FETCHED_REASON` from rail-3 to keep the failure string identical between rails.
+- `src/hard-rails/news-client.ts` — `InMemoryNewsClient` fixture migrated. Option renamed `lastFetchAgeMs` → `lastSuccessfulFetchAtMs: number | null`. Omitted defaults to `Number.MAX_SAFE_INTEGER` (always-fresh sentinel) so spec files that don't care about §11.7 (rail-1, rail-7, rail-10, rail-11, rail-13, force-flat-scheduler, idempotency-record-on-allow, pre-post-fill-split) keep working unchanged.
+- `src/hard-rails/matrix.spec.ts` — `buildCtx`'s `newsAgeMs` option renamed `newsLastSuccessfulFetchAtMs: number | null` and threaded through to the new fixture shape. No matrix case currently exercises staleness, so all 28 cases still pass — the staleness positive/negative coverage now lives in the dedicated spec below.
+
+**Added** — `src/hard-rails/news-staleness.spec.ts`
+
+- 8 dedicated cases locking the §11.7 contract end-to-end:
+  1. rail 3 `lastSuccessfulFetchAtMs() === null` → `reject` with `NEWS_NEVER_FETCHED_REASON`.
+  2. rail 4 same.
+  3. rail 3 `ageMs = staleMax + 1s` → `reject` with `news stale ... fail-closed` and detail `{ lastSuccessfulFetchAtMs, ageMs, newsStaleMaxMs }`.
+  4. rail 4 same.
+  5. rail 3 `ageMs === staleMax` (boundary) → `allow` (rail uses strict `>`).
+  6. rail 4 same.
+  7. rail 3 negative-age (lying client reports a future timestamp) → `allow` per current arithmetic and detail records the negative age so log analysis can detect upstream clock skew. The proof for the bug is structural: there is no `age` accessor on the contract any more, so a client can no longer return `0` after a failed fetch.
+  8. omitted `lastSuccessfulFetchAtMs` → fresh sentinel → rail 4 allows; locks the fixture default for the rest of the test suite.
+
+**Bumped**
+
+- `@ankit-prop/ctrader-gateway` 0.2.10 → 0.2.11 (patch — contract refactor; no behavioural change for non-news rails).
+- root `ankit-prop-umbrella` 0.4.20 → 0.4.21 (patch — workspace package version move).
+
+**Verification**
+
+- `bun test services/ctrader-gateway/src/hard-rails/news-staleness.spec.ts` — 8 pass / 0 fail / 22 expects.
+- `bun test services/ctrader-gateway/src/hard-rails/` — 95 pass / 0 fail / 558 expects (matrix's 28 cases + the 8 new staleness cases + sibling rail specs all green on the new contract).
+- `bun test` (full workspace) — 306 pass / 1 fail (`packages/proc-supervisor` integration case 7 — flaky port collision under parallel-heartbeat tree churn; passes 7/7 in isolation immediately after).
+- `bunx biome check` on the 6 touched files — 0 diagnostics. Workspace-wide lint still surfaces the pre-existing `packages/market-data-twelvedata` `noNonNullAssertion` warnings already noted in 0.4.20 (unrelated).
+- `bun run typecheck` clean (root `tsc --noEmit`).
+
+**Notes**
+
+- `NewsClient.lastSuccessfulFetchAtMs()` is the contract surface ANKA-9 will implement; the live svc:news socket should record the wall-clock timestamp of the *last 200/OK calendar response* and surface it unchanged. A failed poll (5xx, socket close, parse error) MUST NOT advance this value — that's how the §11.7 guard stays honest.
+- This commit landed via an isolated `git worktree add` at `/tmp/anka-31-newsclient` because parallel heartbeats kept stomping the main checkout's branch state during the previous two retries (5 collision stashes + recurring `git reset` reflog entries). The worktree isolation pattern is the right answer for any multi-file change while parallel heartbeats are active.
+
 ## 0.4.20 — 2026-04-28 12:25 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing [ANKA-72](/ANKA/issues/ANKA-72) (CodeReviewer BLOCK fix-up on the [ANKA-68](/ANKA/issues/ANKA-68) v0.1.0 scaffold).

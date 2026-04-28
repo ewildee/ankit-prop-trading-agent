@@ -148,8 +148,15 @@ export interface NewsClient {
   isInPreNewsKill(symbol: string, atMs: number): { blocked: boolean; reason?: string };
   // Rail 13: pre-flatten scheduler peeks the next restricted event.
   nextRestrictedEvent(symbol: string, atMs: number): { eventAtMs: number } | null;
-  // BLUEPRINT §11.7 — staleness fail-closed.
-  lastFetchAgeMs(atMs: number): number;
+  // BLUEPRINT §11.7 — staleness fail-closed. The rail layer (rails 3 and 4)
+  // owns the staleness comparison; the client only reports the wall-clock
+  // timestamp of its last *successful* calendar fetch. Implementations MUST
+  // return `null` until at least one successful fetch has completed (e.g.
+  // process just started, every poll has failed, the live svc:news socket
+  // never connected). Implementations MUST NOT lie about freshness on a
+  // failed fetch — returning a fresh-looking timestamp after a 5xx/timeout
+  // would defeat the §11.7 guard. ANKA-31 (REVIEW-FINDINGS H-5).
+  lastSuccessfulFetchAtMs(): number | null;
 }
 
 export interface IdempotencyStore {
