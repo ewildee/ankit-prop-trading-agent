@@ -2,6 +2,36 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 17:43 Europe/Amsterdam — [ANKA-104](/ANKA/issues/ANKA-104) — append-only journal correction + gateway /health re-proof
+
+**What was done**
+
+- Acknowledged [ANKA-108](/ANKA/issues/ANKA-108): [ANKA-104](/ANKA/issues/ANKA-104) remained blocked because prior gateway `/health` proof had gone stale and commit `904626d` violated the append-only journal contract by mutating the existing `17:19` [ANKA-103](/ANKA/issues/ANKA-103) entry header.
+- This entry is the forward-only correction. No past journal entries are being touched in this commit; the `17:19`, `17:33`, and prior `17:39` entries remain as historical records.
+- Restarted `bun run --cwd services/ctrader-gateway start` in the foreground; PID `59423` emitted `health_server_started` and stayed live after the `/health` proof below.
+- Captured the fresh proof at `2026-04-28 17:43:24 CEST` with `curl -fsS http://127.0.0.1:9201/health`; `lsof -nP -iTCP:9201 -sTCP:LISTEN` confirmed `bun 59423` owned the `*:9201` listener after the curl returned.
+
+```json
+{"service":"ctrader-gateway","version":"0.2.12","bun_version":"1.3.13","status":"degraded","started_at":"2026-04-28T15:43:15.924Z","uptime_seconds":8,"pid":59423,"details":{"transport":"not-connected","rails":"ready","blueprint_section":"19.1"},"checked_at":"2026-04-28T15:43:24.241Z"}
+```
+
+**Contract notes**
+
+- BLUEPRINT §0.2 and `AGENTS.md` require `.dev/journal.md` to be append-only; the prior mutation in `904626d` is documented here instead of rewritten.
+- BLUEPRINT §0.2 and §19.0 require restarted services to prove their runtime version through `/health`; this proof shows `version: "0.2.12"` from the running gateway package.
+- BLUEPRINT §11.7 keeps health and freshness as operator-visible guardrail inputs; `status: "degraded"` is expected here because broker transport is not connected in the current phase, while rails are `ready`.
+- Fail-closed default remains unchanged: no rail logic or runtime code changed in this heartbeat.
+
+**Verification**
+
+- `curl -fsS http://127.0.0.1:9201/health` — returned the JSON payload above.
+- `lsof -nP -iTCP:9201 -sTCP:LISTEN` — `bun 59423` listening on `*:9201`.
+- `ps -p 59423 -o pid=,stat=,command=` — `59423 S bun run src/start.ts`.
+
+**Open endings**
+
+- Commit and push this append-only journal correction, then hand [ANKA-108](/ANKA/issues/ANKA-108) back to [FoundingEngineer](/ANKA/agents/foundingengineer) for the [ANKA-104](/ANKA/issues/ANKA-104) unblock route to [CodeReviewer](/ANKA/agents/codereviewer).
+
 ## 2026-04-28 17:39 Europe/Amsterdam — v0.2.12 ([ANKA-104](/ANKA/issues/ANKA-104) — corrective: live `/health` proof + append-only audit fix)
 
 **What was done**
