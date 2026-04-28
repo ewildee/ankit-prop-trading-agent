@@ -2,6 +2,33 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.24 — 2026-04-28 17:59 Europe/Amsterdam
+
+**Initiated by:** SecurityReviewer (agent), executing [ANKA-111](/ANKA/issues/ANKA-111) as security review remediation for [ANKA-102](/ANKA/issues/ANKA-102).
+
+**Why:** The ANKA-102 hook/postinstall surface had two local tooling bypasses: ordinary commits could spoof `Merge`, `fixup!`, or `squash!` subjects to avoid the Paperclip co-author footer, and the inline root `postinstall` would set `core.hooksPath` on any parent git work tree if this package script ran from a nested package path.
+
+**Changed**
+
+- `.githooks/commit-msg` now bypasses the footer only when Git passes the actual `MERGE_MSG` file, not merely when the commit subject looks like a merge, fixup, or squash commit.
+- Root `postinstall` now delegates to `.githooks/install.sh`, which sets `core.hooksPath` only when the script's package root is the current git top-level. Nested package executions leave the parent repository untouched.
+
+**Added**
+
+- Regression coverage for spoofed merge/fixup/squash subjects, actual merge message allowance, own-repo hook installation, and nested consumer-repo non-mutation.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.23 → 0.4.24 (patch — security hardening of tooling enforcement).
+
+**Verification**
+
+- `bun install` — exit 0; `.githooks/install.sh` ran and kept `core.hooksPath=.githooks` for this repo.
+- `bun test --filter commit-msg` — 7 pass / 0 fail / 17 expects.
+- `bun run lint:fix` — exit 0; pre-existing workspace warnings remain in unrelated packages/files.
+- `bun test` — 325 pass / 0 fail / 2062 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+
 ## 0.2.12 — 2026-04-28 17:19 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-103](/ANKA/issues/ANKA-103) as child fix for [ANKA-100](/ANKA/issues/ANKA-100).

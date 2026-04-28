@@ -2,10 +2,13 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 17:50 Europe/Amsterdam — [ANKA-102](/ANKA/issues/ANKA-102) commit-msg Paperclip footer enforcement
+## 2026-04-28 18:00 Europe/Amsterdam — [ANKA-111](/ANKA/issues/ANKA-111) security review of [ANKA-102](/ANKA/issues/ANKA-102)
 
-- Wake reason: `issue_blockers_resolved`; [ANKA-103](/ANKA/issues/ANKA-103) has landed and the index is clean, so ANKA-102 is no longer blocked.
-- ANKA-102 diff remains scoped to `.githooks/commit-msg`, `.githooks/commit-msg.spec.ts`, root `commit-msg.spec.ts` bridge, root `package.json` postinstall/version, AGENTS note, CHANGELOG, TODOS, and this audit trail.
-- Fresh verification on current `main`: `bun install`, `bun test --filter commit-msg` (4 pass), `bun run lint:fix` (exit 0; existing warnings only), `bun test` (322 pass), `bun run typecheck` (clean), and no-footer `git commit --allow-empty -m "chore: test"` rejection.
-- No service package changed for [ANKA-102](/ANKA/issues/ANKA-102); no `/health` restart required.
-- Next: commit `feat(infra:tooling): enforce Paperclip co-author footer via commit-msg hook`, push, then route to CodeReviewer + SecurityReviewer.
+- Wake reason: `issue_assigned`; security review target is commit `f1f2c05` for `.githooks/commit-msg` and guarded root `postinstall`.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §17, §22, §25 before edits.
+- Fetched `https://bun.com/llms.txt` at 17:57 Europe/Amsterdam before touching Bun test coverage.
+- Findings under remediation: subject-line bypass for `Merge`/`fixup!`/`squash!`, and `postinstall` mutating a parent consumer repo from nested package paths.
+- Remediation tightens merge bypass to the actual Git `MERGE_MSG` file, moves install wiring to `.githooks/install.sh`, and adds regression coverage.
+- Verification: `bun install`, `bun test --filter commit-msg` (7 pass), `bun run lint:fix` (exit 0; existing unrelated warnings), `bun test` (325 pass), `bun run typecheck` (clean).
+- No service package changed; no `/health` restart required.
+- Next: commit the v0.4.24 remediation and close [ANKA-111](/ANKA/issues/ANKA-111) with residual risk.

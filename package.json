@@ -1,6 +1,6 @@
 {
   "name": "ankit-prop-umbrella",
-  "version": "0.4.23",
+  "version": "0.4.24",
   "private": true,
   "type": "module",
   "description": "Autonomous LLM-driven FTMO prop-trading agent — umbrella monorepo (BLUEPRINT.md is the source of truth).",
@@ -19,7 +19,7 @@
     "lint:fix": "biome check --write .",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "postinstall": "git rev-parse --is-inside-work-tree >/dev/null 2>&1 && git config core.hooksPath .githooks || true",
+    "postinstall": "sh .githooks/install.sh",
     "db:migrate": "bun run scripts/db-migrate.ts",
     "backup": "bun run scripts/backup.ts",
     "restore": "bun run scripts/restore.ts",

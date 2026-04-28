@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'bun:test';
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -17,10 +17,23 @@ describe('commit-msg hook', () => {
     await rm(tmpRoot, { force: true, recursive: true });
   });
 
-  async function runHook(name: string, contents: string) {
+  async function runHook(
+    name: string,
+    contents: string,
+    options: { gitRepo?: boolean; messageName?: string } = {},
+  ) {
     const fixtureDir = join(tmpRoot, name);
     await mkdir(fixtureDir, { recursive: true });
-    const messagePath = join(fixtureDir, 'COMMIT_EDITMSG');
+    if (options.gitRepo) {
+      const init = Bun.spawn(['git', 'init', '-q'], {
+        cwd: fixtureDir,
+        stderr: 'pipe',
+        stdout: 'pipe',
+      });
+      expect(await init.exited).toBe(0);
+    }
+
+    const messagePath = join(fixtureDir, options.messageName ?? 'COMMIT_EDITMSG');
     await writeFile(messagePath, contents);
 
     const proc = Bun.spawn([hookPath, messagePath], {
@@ -47,17 +60,99 @@ describe('commit-msg hook', () => {
     expect(result.exitCode).toBe(0);
   });
 
-  test('allows merge commit messages', async () => {
-    const result = await runHook('merge-commit', "Merge branch 'main' into feature\n");
+  test('rejects a spoofed merge subject without the Paperclip footer', async () => {
+    const result = await runHook('spoofed-merge-subject', "Merge branch 'main' into feature\n");
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain(requiredFooter);
+  });
+
+  test('allows the actual git merge message file', async () => {
+    const result = await runHook('merge-commit', "Merge branch 'main' into feature\n", {
+      gitRepo: true,
+      messageName: '.git/MERGE_MSG',
+    });
 
     expect(result.exitCode).toBe(0);
   });
 
-  test('allows fixup and squash commit messages', async () => {
+  test('rejects fixup and squash subjects without the Paperclip footer', async () => {
     const fixupResult = await runHook('fixup-commit', 'fixup! chore: test\n');
     const squashResult = await runHook('squash-commit', 'squash! chore: test\n');
 
-    expect(fixupResult.exitCode).toBe(0);
-    expect(squashResult.exitCode).toBe(0);
+    expect(fixupResult.exitCode).not.toBe(0);
+    expect(squashResult.exitCode).not.toBe(0);
+  });
+
+  async function copyInstaller(root: string) {
+    const hookRoot = join(root, '.githooks');
+    await mkdir(hookRoot, { recursive: true });
+    const installerPath = join(hookRoot, 'install.sh');
+    await copyFile(join(import.meta.dir, 'install.sh'), installerPath);
+    await chmod(installerPath, 0o755);
+    return installerPath;
+  }
+
+  test('postinstall hook installer sets hooksPath only for its own repository root', async () => {
+    const fixtureDir = join(tmpRoot, 'installer-own-repo');
+    await mkdir(fixtureDir, { recursive: true });
+    const init = Bun.spawn(['git', 'init', '-q'], {
+      cwd: fixtureDir,
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+    expect(await init.exited).toBe(0);
+    await copyInstaller(fixtureDir);
+
+    const install = Bun.spawn(['sh', '.githooks/install.sh'], {
+      cwd: fixtureDir,
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+
+    expect(await install.exited).toBe(0);
+    const config = Bun.spawn(['git', 'config', '--get', 'core.hooksPath'], {
+      cwd: fixtureDir,
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+    const [configExit, stdout] = await Promise.all([
+      config.exited,
+      new Response(config.stdout).text(),
+    ]);
+    expect(configExit).toBe(0);
+    expect(stdout.trim()).toBe('.githooks');
+  });
+
+  test('postinstall hook installer does not mutate a parent consumer repository', async () => {
+    const consumerDir = join(tmpRoot, 'installer-consumer-repo');
+    const packageDir = join(consumerDir, 'node_modules', 'ankit-prop-umbrella');
+    await mkdir(packageDir, { recursive: true });
+    const init = Bun.spawn(['git', 'init', '-q'], {
+      cwd: consumerDir,
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+    expect(await init.exited).toBe(0);
+    await copyInstaller(packageDir);
+
+    const install = Bun.spawn(['sh', '.githooks/install.sh'], {
+      cwd: packageDir,
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+
+    expect(await install.exited).toBe(0);
+    const config = Bun.spawn(['git', 'config', '--get', 'core.hooksPath'], {
+      cwd: consumerDir,
+      stderr: 'pipe',
+      stdout: 'pipe',
+    });
+    const [configExit, stdout] = await Promise.all([
+      config.exited,
+      new Response(config.stdout).text(),
+    ]);
+    expect(configExit).not.toBe(0);
+    expect(stdout.trim()).toBe('');
   });
 });

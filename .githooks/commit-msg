@@ -10,17 +10,31 @@ if [ -z "$message_file" ] || [ ! -f "$message_file" ]; then
   exit 1
 fi
 
-first_line=$(sed -n '1p' "$message_file")
+message_dir=${message_file%/*}
+message_base=${message_file##*/}
+if [ "$message_dir" = "$message_file" ]; then
+  message_dir=.
+fi
 
-case "$first_line" in
-  Merge\ * | fixup\!* | squash\!*)
-    exit 0
-    ;;
-esac
+message_abs_dir=$(cd "$message_dir" 2>/dev/null && pwd -P)
+if [ -z "$message_abs_dir" ]; then
+  echo 'commit-msg hook: could not resolve commit message path.' >&2
+  exit 1
+fi
+message_abs=$message_abs_dir/$message_base
 
 merge_msg_path=$(git rev-parse --git-path MERGE_MSG 2>/dev/null || true)
 if [ -n "$merge_msg_path" ] && [ -f "$merge_msg_path" ]; then
-  exit 0
+  merge_msg_dir=${merge_msg_path%/*}
+  merge_msg_base=${merge_msg_path##*/}
+  if [ "$merge_msg_dir" = "$merge_msg_path" ]; then
+    merge_msg_dir=.
+  fi
+
+  merge_msg_abs_dir=$(cd "$merge_msg_dir" 2>/dev/null && pwd -P)
+  if [ -n "$merge_msg_abs_dir" ] && [ "$message_abs" = "$merge_msg_abs_dir/$merge_msg_base" ]; then
+    exit 0
+  fi
 fi
 
 if grep -Fxq "$required_footer" "$message_file"; then

@@ -2,6 +2,42 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 17:59 Europe/Amsterdam — v0.4.24 ([ANKA-111](/ANKA/issues/ANKA-111) — security review remediation for [ANKA-102](/ANKA/issues/ANKA-102))
+
+**What was done**
+
+- Followed the scoped Paperclip wake for [ANKA-111](/ANKA/issues/ANKA-111) and reviewed the ANKA-102 `.githooks/commit-msg` plus root `postinstall` surface.
+- Fetched `https://bun.com/llms.txt` at 17:57 Europe/Amsterdam before editing Bun test coverage.
+- Removed subject-line footer bypasses for spoofed `Merge`, `fixup!`, and `squash!` commit messages. The hook now bypasses only when Git passes the actual `MERGE_MSG` file.
+- Replaced the inline `postinstall` with `.githooks/install.sh`, which refuses to mutate a parent consumer repository and sets `core.hooksPath` only for this package's own git top-level.
+- Added regression coverage for both security findings and bumped the root package to v0.4.24.
+
+**Findings**
+
+- Local probe: a normal commit message beginning `Merge branch 'main' into feature` exited 0 without the footer before the patch.
+- Local probe: the old inline `postinstall` set `core.hooksPath=.githooks` on a parent temp repository when run from `node_modules/pkg`.
+- No secrets, broker credentials, AES-GCM, order-flow runtime, or new dependency surface changed.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Treat the hook as a governance/provenance control, not a strong security boundary: users with repo write access can still use `--no-verify` or local git config changes, so residual risk is documented in [ANKA-111](/ANKA/issues/ANKA-111).
+
+**Unexpected behaviour**
+
+- None.
+
+**Adaptations**
+
+- Kept remediation scoped to shell hook/install behavior and tests; no long-running service restart is required for root tooling.
+
+**Open endings**
+
+- Commit the remediation with the Paperclip co-author footer and close [ANKA-111](/ANKA/issues/ANKA-111) with severity, exploitability, residual risk, and follow-up status.
+
 ## 2026-04-28 17:50 Europe/Amsterdam — v0.4.23 ([ANKA-102](/ANKA/issues/ANKA-102) — blocker resolved, commit-msg hook re-verified)
 
 **What was done**
