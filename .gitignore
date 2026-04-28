@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+.envrc
 ~/.config/ankit-prop/*.config.yaml
 config/*.config.yaml
 !config/*.example.yaml
