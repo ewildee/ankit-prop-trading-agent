@@ -43,6 +43,7 @@ export function backtest(input: BacktestInput): EvalResult {
     tsMs: e.timestamp,
     symbols: e.symbols,
     restricted: e.restricted,
+    impact: e.impact,
   }));
 
   const newsWindows = buildBlackoutWindows(events, internalMargins.newsBlackoutHalfWidthMs);

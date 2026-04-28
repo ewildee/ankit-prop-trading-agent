@@ -1,3 +1,4 @@
+import { pragueDayBucket } from './prague-day.ts';
 import type { ClosedTrade, FtmoBreach, SimPosition } from './types.ts';
 
 export type FtmoSimulatorCfg = {
@@ -86,12 +87,12 @@ export class FtmoSimulator {
   }
 
   setInitialDay(tsMs: number, dayStartBalance: number): void {
-    this.dayStartTs = floorDay(tsMs);
+    this.dayStartTs = pragueDayBucket(tsMs);
     this.dayStartBalance = dayStartBalance;
   }
 
   onDayRollover(newDayTsMs: number, newDayStartBalance: number): void {
-    this.dayStartTs = floorDay(newDayTsMs);
+    this.dayStartTs = pragueDayBucket(newDayTsMs);
     this.dayStartBalance = newDayStartBalance;
     this.eaRequestsToday = 0;
   }
@@ -139,7 +140,7 @@ export class FtmoSimulator {
 
   onTradeClose(tsMs: number, trade: ClosedTrade): void {
     this.recordEaRequest(tsMs);
-    const day = floorDay(trade.closedAt);
+    const day = pragueDayBucket(trade.closedAt);
     this.dailyPnl.set(day, (this.dailyPnl.get(day) ?? 0) + trade.realizedPnl);
 
     const heldMs = trade.closedAt - trade.openedAt;
@@ -223,8 +224,9 @@ export class FtmoSimulator {
   }
 
   recordEaRequest(tsMs: number): void {
-    if (floorDay(tsMs) !== this.dayStartTs) {
-      this.dayStartTs = floorDay(tsMs);
+    const bucket = pragueDayBucket(tsMs);
+    if (bucket !== this.dayStartTs) {
+      this.dayStartTs = bucket;
       this.eaRequestsToday = 0;
     }
     this.eaRequestsToday += 1;
@@ -384,8 +386,20 @@ export class FtmoSimulator {
   }
 }
 
+export type CalendarWindowInput = {
+  tsMs: number;
+  symbols: ReadonlyArray<string>;
+  restricted: boolean;
+  // Optional. Required for correct pre-news Tier-1 detection (BLUEPRINT
+  // decision Y); when omitted the event is only treated as Tier-1 if
+  // `restricted === true`.
+  impact?: 'low' | 'medium' | 'high';
+};
+
+// FTMO ±N-min news blackout. BLUEPRINT line 1189: restricted events only
+// (calendar's `restriction === true` flag).
 export function buildBlackoutWindows(
-  events: ReadonlyArray<{ tsMs: number; symbols: ReadonlyArray<string>; restricted: boolean }>,
+  events: ReadonlyArray<CalendarWindowInput>,
   halfWidthMs: number,
 ): { symbols: Set<string>; startMs: number; endMs: number }[] {
   return events
@@ -397,21 +411,21 @@ export function buildBlackoutWindows(
     }));
 }
 
+// 2-h pre-news kill-switch. BLUEPRINT decision Y: Tier-1 = `impact === 'high'
+// OR restriction === true`. The previous restricted-only filter let
+// high-impact non-restricted events bypass the gate, masking pre-news
+// kill-switch breaches at eval time.
 export function buildPreNewsWindows(
-  events: ReadonlyArray<{ tsMs: number; symbols: ReadonlyArray<string>; restricted: boolean }>,
+  events: ReadonlyArray<CalendarWindowInput>,
   preWidthMs: number,
 ): { symbols: Set<string>; startMs: number; endMs: number }[] {
   return events
-    .filter((e) => e.restricted)
+    .filter((e) => e.restricted || e.impact === 'high')
     .map((e) => ({
       symbols: new Set(e.symbols),
       startMs: e.tsMs - preWidthMs,
       endMs: e.tsMs,
     }));
-}
-
-function floorDay(tsMs: number): number {
-  return Math.floor(tsMs / ONE_DAY_MS) * ONE_DAY_MS;
 }
 
 function isoFromMs(tsMs: number): string {

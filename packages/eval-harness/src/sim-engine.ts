@@ -1,4 +1,5 @@
 import type { FtmoSimulator } from './ftmo-rules.ts';
+import { pragueDayBucket } from './prague-day.ts';
 import type {
   Bar,
   BarStrategy,
@@ -97,7 +98,7 @@ export function runBarSimulation(cfg: SimEngineCfg): SimEngineRun {
     };
     const actions = cfg.strategy.onBar(bar, ctx);
     for (const a of actions) {
-      applyAction(a, bar, meta, open, trades, cfg.ftmoSimulator, () => nextPositionId++);
+      balance += applyAction(a, bar, meta, open, trades, cfg.ftmoSimulator, () => nextPositionId++);
     }
     void dayStartBalance;
   }
@@ -118,6 +119,10 @@ export function runBarSimulation(cfg: SimEngineCfg): SimEngineRun {
   return { trades, finalEquity: balance, finalBalance: balance };
 }
 
+// Returns the balance delta from this action. Only `close` realises P&L; open
+// and amend produce no realised cash. The previous version dropped the
+// strategy-close P&L on the floor, which let losing closes pass through eval
+// gates without ever moving balance — masking daily/overall-loss breaches.
 function applyAction(
   a: StrategyAction,
   bar: Bar,
@@ -126,32 +131,34 @@ function applyAction(
   trades: ClosedTrade[],
   ftmo: FtmoSimulator,
   nextId: () => number,
-): void {
+): number {
   if (a.kind === 'open') {
     const pos = openPosition(a, bar, nextId());
     open.push(pos);
     ftmo.onTradeOpen(bar.tsEnd, pos);
-    return;
+    return 0;
   }
   if (a.kind === 'amend') {
     const idx = open.findIndex((p) => p.id === a.positionId);
-    if (idx === -1) return;
+    if (idx === -1) return 0;
     const cur = open[idx];
-    if (!cur) return;
+    if (!cur) return 0;
     open[idx] = { ...cur, stopLoss: a.stopLoss };
     ftmo.onTradeAmend(bar.tsEnd, a.positionId);
-    return;
+    return 0;
   }
   if (a.kind === 'close') {
     const idx = open.findIndex((p) => p.id === a.positionId);
-    if (idx === -1) return;
+    if (idx === -1) return 0;
     const pos = open[idx];
-    if (!pos) return;
+    if (!pos) return 0;
     const closed = closeAt(pos, bar.close, bar.tsEnd, meta, 'strategy');
     trades.push(closed);
     ftmo.onTradeClose(bar.tsEnd, closed);
     open.splice(idx, 1);
+    return closed.realizedPnl;
   }
+  return 0;
 }
 
 function openPosition(a: OpenAction, bar: Bar, id: number): SimPosition {
@@ -219,6 +226,7 @@ function lastForSymbol(bars: ReadonlyArray<Bar>, symbol: string): Bar | undefine
   return undefined;
 }
 
-export function pragueDayStartFromMs(tsMs: number): number {
-  return Math.floor(tsMs / (24 * 60 * 60 * 1000));
-}
+// FTMO uses Europe/Prague for daily-floor reset. UTC bucketing drifted by
+// 1–2 hours and could mask a same-day breach into the next bucket. See
+// `prague-day.ts`.
+export const pragueDayStartFromMs = pragueDayBucket;
