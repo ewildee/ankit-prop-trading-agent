@@ -2,6 +2,44 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-28 13:40 Europe/Amsterdam — v0.4.24 ([ANKA-81](/ANKA/issues/ANKA-81) — `svc:news/calendar-db`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-81](/ANKA/issues/ANKA-81). No pending comments; harness had already checked out the issue.
+- Fetched `https://bun.com/llms.txt` at 13:35 Europe/Amsterdam (33,157 bytes) before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0.2, §5, §11.2-§11.3, §18.1, §21, §22, §25 plus heartbeat context.
+- Added `services/news/sql/init.sql` with `calendar_items` plus date and `(instrument, date)` indices.
+- Added `services/news/src/calendar-db.ts` with WAL open/init, structured `CalendarDbOpenError`, sha256 id generation, idempotent upsert, inclusive/exclusive range queries, verbatim instrument filtering, and idempotent close.
+- Added `services/news/src/calendar-db.spec.ts` covering the ANKA-81 acceptance cases.
+- Bumped `@ankit-prop/news` 0.1.0 → 0.2.0 and root `ankit-prop-umbrella` 0.4.23 → 0.4.24; updated `CHANGELOG.md` and `TODOS.md`.
+
+**Findings**
+
+- `services/news` had no existing DB module; `packages/eval-harness/src/bar-data-cache.ts` is the closest local `bun:sqlite` pattern.
+- `services/news` needed an explicit `@ankit-prop/contracts` workspace dependency before Bun could resolve the canonical `CalendarItem` import in tests.
+
+**Contradictions**
+
+- BLUEPRINT §18.1's older SQL sketch names table `calendar` and columns `calendar_id` / `instrument_raw`, while ANKA-81 acceptance names `calendar_items`, `id`, and canonical `instrument`. The issue is the scoped implementation contract for this subtask, so `calendar_items` was used.
+
+**Decisions**
+
+- `upsertItems` counts any existing primary key as `updated`, even if the payload is byte-equivalent, so re-fetch accounting stays simple and deterministic.
+- `queryRange` treats an omitted or empty `instruments` filter as unfiltered; non-empty filters match the stored `instrument` string verbatim because symbol-tag mapping belongs to the caller.
+
+**Unexpected behaviour**
+
+- A plain `bun install` did not create the new service-level workspace symlink until `services/news/package.json` had the contracts dependency; after that, the targeted spec resolved `@ankit-prop/contracts`.
+
+**Adaptations**
+
+- Kept the lockfile change scoped to the `services/news` dependency/version movement and left unrelated pre-existing workspace lock drift out of the patch.
+
+**Open endings**
+
+- [ANKA-81](/ANKA/issues/ANKA-81) should move to CodeReviewer after commit/push. No `/health` restart was possible because `services/news` still has only the placeholder `start` script.
+
 ## 2026-04-28 13:19 Europe/Amsterdam — v0.4.23 ([ANKA-79](/ANKA/issues/ANKA-79) — `svc:news/symbol-tag-mapper`)
 
 **What was done**
