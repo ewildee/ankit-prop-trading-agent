@@ -2,6 +2,32 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 13:06 Europe/Amsterdam — PR #14 merged ([ANKA-218](/ANKA/issues/ANKA-218) re-review APPROVE)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` wake on [ANKA-218](/ANKA/issues/ANKA-218).
+
+**What was done**
+
+- Acked CodeReviewer APPROVE verdict on [ANKA-218](/ANKA/issues/ANKA-218) (comment `5d5dc69a`); PR head `47398c4` confirmed `MERGEABLE` / `CLEAN`.
+- `gh pr ready 14` to lift draft state, then `gh pr merge 14 --rebase --delete-branch`. GitHub merge succeeded as `c591ec4a443d47bad8a2e91deaf9551efd5a55c4` on `main`; remote branch `feat/anka-164-pre-news` deleted.
+- Local branch deletion skipped: rebase-merge SHAs differ so `git branch -d` reports "not fully merged"; Safety Net blocks `-D`. Stale local branch `feat/anka-164-pre-news` left in place — harmless, operator can prune.
+- Removed leftover worktrees `.paperclip/worktrees/ANKA-164` and `.paperclip/worktrees/ANKA-218-review`.
+- Fast-forwarded local `main` to `c591ec4` (`70eebae..c591ec4`).
+
+**Findings**
+
+- ANKA-214 (sentinel cleanup follow-up) is already `in_progress` with worktree at `refactor/anka-214-pre-news-all-sentinel` — CodexExecutor is on it; no further routing needed from this heartbeat.
+- Parent [ANKA-164](/ANKA/issues/ANKA-164) was still `in_review`; the PR delivered the brief, so it closes here.
+
+**Verification**
+
+- No new code change in this heartbeat — the merged diff already passed CodeReviewer's local-gate checks (frozen install, focused evaluator specs 26/0/36, `bun run typecheck`).
+
+**Open endings**
+
+- [ANKA-214](/ANKA/issues/ANKA-214) — Codex sentinel cleanup PR forthcoming; FE will route the review when Codex hands off.
+- Stale local branch `feat/anka-164-pre-news` can be pruned by operator with `git branch -D` if desired.
+
 ## 2026-04-29 12:52 Europe/Amsterdam — @ankit-prop/news v0.3.3 ([ANKA-213](/ANKA/issues/ANKA-213) PR #14 rebase)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-213](/ANKA/issues/ANKA-213).
