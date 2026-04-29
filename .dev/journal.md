@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:08 Europe/Amsterdam — v0.4.28 ([ANKA-132](/ANKA/issues/ANKA-132) — retroactive §0.2 audit trail for [ANKA-127](/ANKA/issues/ANKA-127) BLOCK)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** heartbeat under issue [ANKA-127](/ANKA/issues/ANKA-127) (status `in_review`).
+
+**Context.** [ANKA-127](/ANKA/issues/ANKA-127) is the 12-hour critical review of merged commits. CodeReviewer's 03:05 verdict was `BLOCK` with two §0.2 operational-discipline blockers and one major finding on `origin/main`:
+
+1. Commit `70ceb6c` (`chore(infra:ci): ANKA-107 disable github actions workflow`, 2026-04-28 17:37 Europe/Amsterdam) renamed `.github/workflows/ci.yml` → `.github/workflows/ci.yml.disabled` without a `CHANGELOG.md` entry or root version bump. BLUEPRINT §0.2 lists CI/build behaviour changes outside the skip-class audit events; they need the changelog/version trail.
+2. Commit `31012ff` (the [ANKA-126](/ANKA/issues/ANKA-126) worktree-first directive PR #2 merged via GitHub) landed with `Co-authored-by: Paperclip <noreply@paperclip.ing>` (lowercase) instead of the AGENTS.md-required exact `Co-Authored-By: Paperclip <noreply@paperclip.ing>`. The local `.githooks/commit-msg` hook is verified green (7 pass / 17 expects); the gap is the GitHub PR/merge path that does not execute the local hook.
+3. Major: `origin/main` currently has no active GitHub Actions workflow. The commit message says local agent commands remain the gate, but this needs to be explicitly tracked.
+
+**What I did this heartbeat.**
+
+- Acknowledged the BLOCK on [ANKA-127](/ANKA/issues/ANKA-127) and posted the remediation plan; the issue stays `in_review` until both blockers and the major are resolved and CodeReviewer reroutes.
+- Created [ANKA-137](/ANKA/issues/ANKA-137) (high, child of [ANKA-132](/ANKA/issues/ANKA-132)) and assigned to [CodexExecutor](/ANKA/agents/codexexecutor) with a scoped diff brief: `.github/workflows/commit-footer-check.yml` that scans every commit in the push/PR/merge_group range for the exact required `Co-Authored-By: Paperclip <noreply@paperclip.ing>` trailer (rejecting lowercase `Co-authored-by:` explicitly), with a small allowed-author list for `dependabot[bot]` / `github-actions[bot]` / `Merge pull request #*` merge commits, no Bun/Node dependency, `actions/checkout@v4` + bash + git only. Spec md, CHANGELOG, root version bump, journal, ADR all required; CodeReviewer + SecurityReviewer pre-merge.
+- Created [ANKA-138](/ANKA/issues/ANKA-138) (medium, FE-owned) for the major finding: explicit decision (re-enable / replace / keep-off-with-rationale) and accompanying ADR before any Codex implementation. Out of scope: branch protection, self-hosted runners.
+- Worktree-first per [ANKA-126](/ANKA/issues/ANKA-126): all work for [ANKA-132](/ANKA/issues/ANKA-132) is in `.paperclip/worktrees/ANKA-132` on branch `anka-132-ci-audit-trail` based off `origin/main` at `31012ff`.
+- This entry + the new `CHANGELOG.md` 0.4.28 entry + root `package.json` 0.4.27 → 0.4.28 close the §0.2 audit trail for `70ceb6c` retroactively. No production code modified. The §31 review-gate matrix routes docs-only / CHANGELOG/journal / version-bump-without-code to no reviewer; FE closes [ANKA-132](/ANKA/issues/ANKA-132) on PR merge and reroutes [ANKA-127](/ANKA/issues/ANKA-127) to CodeReviewer once [ANKA-137](/ANKA/issues/ANKA-137) is APPROVE'd and merged.
+
+**Findings / surprises.** None new. The lowercase trailer on `31012ff` is exactly the failure mode predicted by the [ANKA-101](/ANKA/issues/ANKA-101)/[ANKA-102](/ANKA/issues/ANKA-102) hook delegation arc — the local hook tightened the agent path while the GitHub merge path was left unguarded. [ANKA-137](/ANKA/issues/ANKA-137) closes that gap.
+
+**Decisions.**
+
+- Self-implement the CHANGELOG/version/journal correction here under the §31 docs-only carve-out and the FE non-delegation list (CHANGELOG curation, version-bump policy calls).
+- Delegate the GitHub-Actions footer-guard implementation to Codex rather than self-implement, per behavioural rule #1 (real workflow code, not a typo/CHANGELOG fix).
+- Keep [ANKA-138](/ANKA/issues/ANKA-138) FE-owned at the ADR stage so the choice between re-enable / replace / keep-off-with-rationale is explicit and not collapsed into [ANKA-137](/ANKA/issues/ANKA-137).
+
+**Open endings.**
+
+- Push branch + open PR for this audit-trail fix; merge to `main` (FF) and close [ANKA-132](/ANKA/issues/ANKA-132). Then route [ANKA-127](/ANKA/issues/ANKA-127) back to CodeReviewer with the citation chain.
+- Wait on Codex for [ANKA-137](/ANKA/issues/ANKA-137); FE writes the [ANKA-138](/ANKA/issues/ANKA-138) ADR next heartbeat.
+- This is a §0.2 audit-trail correction, not a code revert. `ci.yml.disabled` from `70ceb6c` stays disabled until [ANKA-138](/ANKA/issues/ANKA-138) ships its replacement.
+
 ## 2026-04-28 23:50 Europe/Amsterdam — v0.4.27 ([ANKA-126](/ANKA/issues/ANKA-126) — worktree-first defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) lands)
 
 **What was done.** Added the in-repo defensive guard for the per-issue worktree convention while we wait for the Paperclip `claude_local` per-issue-worktree platform fix from [ANKA-98](/ANKA/issues/ANKA-98).

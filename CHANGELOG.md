@@ -2,6 +2,30 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.28 — 2026-04-29 05:08 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-132](/ANKA/issues/ANKA-132) — retroactive §0.2 audit-trail correction for the [ANKA-127](/ANKA/issues/ANKA-127) 12-hour critical review BLOCK.
+
+**Why:** Commit `70ceb6c` (`chore(infra:ci): ANKA-107 disable github actions workflow`, 2026-04-28 17:37 Europe/Amsterdam) renamed `.github/workflows/ci.yml` to `.github/workflows/ci.yml.disabled` and journalled the change, but missed the matching `CHANGELOG.md` entry and root version bump. BLUEPRINT §0.2 lists CI/build behaviour changes outside the skip-class audit events, so they require the changelog/version trail. CodeReviewer flagged this as a blocking finding on [ANKA-127](/ANKA/issues/ANKA-127); this entry closes the trail retroactively without rewriting the original commit.
+
+**Changed** — root umbrella version only; no production code touched
+
+- `CHANGELOG.md` — this entry, retroactively documenting `70ceb6c`'s CI behaviour change (workflow file renamed out of GitHub Actions' `*.yml`/`*.yaml` rotation; suffix preserved for one-line re-enable; local agent commands `lint:fix` / `typecheck` / `bun test` per BLUEPRINT §0.2 remain the gating signal pre-production).
+- `.dev/journal.md` — append-only entry recording the §0.2 contract violation, the retroactive remediation, and the still-open GitHub PR/merge-path footer-guard work routed to [CodexExecutor](/ANKA/agents/codexexecutor) under [ANKA-132](/ANKA/issues/ANKA-132).
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.27 → 0.4.28.
+
+**Verification**
+
+- Docs/version-only change. Per the §31 review-gate matrix this is "docs-only / CHANGELOG/journal / version bumps without code → no reviewer required". No `bun test` / `bun run typecheck` proof needed; nothing executable changed.
+- The major finding on [ANKA-127](/ANKA/issues/ANKA-127) (no active GitHub Actions workflow on `main`) is tracked separately as [ANKA-138](/ANKA/issues/ANKA-138); the GitHub PR/merge-path footer guard is tracked separately as [ANKA-137](/ANKA/issues/ANKA-137) under [ANKA-132](/ANKA/issues/ANKA-132).
+
+**Notes**
+
+- This is a §0.2 audit-trail correction, not a code revert. The `ci.yml.disabled` rename from `70ceb6c` stays as-is on `main`. Until [ANKA-138](/ANKA/issues/ANKA-138) lands the replacement gating workflow, BLUEPRINT §0.2 local agent commands remain the only gate.
+
 ## 0.4.27 — 2026-04-28 23:50 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-126](/ANKA/issues/ANKA-126) — `infra:tooling` worktree-first directive (defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) platform fix lands).
