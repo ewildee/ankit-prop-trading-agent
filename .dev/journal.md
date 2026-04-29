@@ -2,6 +2,49 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 20:00 Europe/Amsterdam — v0.4.43 ([ANKA-269](/ANKA/issues/ANKA-269) — worktree-first guard hook + helper)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `141acfd9-be8c-4067-a8cd-b2d1864124f7`.
+
+**What was done**
+
+- Implemented `scripts/paperclip-worktree.sh` with executable `start`, `finish`, and `cleanup` subcommands for the documented worktree-first flow.
+- Added executable `scripts/hooks/block-root-multifile.sh` and project `.claude/settings.json` so Claude Code `PreToolUse` blocks the second `Edit|Write|MultiEdit` call in the shared root during a Paperclip heartbeat.
+- Added `.paperclip/.hook-state/` to `.gitignore`, bumped root `ankit-prop-umbrella` `0.4.42` → `0.4.43`, and appended the [ANKA-241](/ANKA/issues/ANKA-241) / [ANKA-98](/ANKA/issues/ANKA-98) guard entry to `CHANGELOG.md`.
+
+**Findings**
+
+- Claude Code's current hook schema uses a project `.claude/settings.json` `hooks.PreToolUse[]` matcher group with a single string matcher such as `Edit|Write|MultiEdit`; the hook command receives JSON on stdin.
+- This macOS host does not provide `flock`, so the hook's mkdir-lock fallback is the exercised path.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Kept Bash tool mutation detection out of this iteration; the project hook covers the requested high-risk multi-edit tools without adding brittle command parsing.
+- The hook fails open on internal errors and logs to stderr, matching the issue's defensive constraint.
+
+**Unexpected behaviour**
+
+- The first shared-root smoke uncovered a fallback-lock cleanup bug when `flock` was unavailable. Fixed the mkdir-lock path and reran the smoke successfully.
+
+**Adaptations**
+
+- Ran the shared-root smoke from the actual shared checkout cwd while invoking the new hook by absolute path from the ANKA-241 worktree, so the guard's shared-root branch was exercised without copying uncommitted files into the shared checkout.
+
+**Verification**
+
+- `bash -n scripts/paperclip-worktree.sh scripts/hooks/block-root-multifile.sh` — clean.
+- `python3 -m json.tool .claude/settings.json >/dev/null && echo settings-json-ok` — `settings-json-ok`.
+- Shared-root smoke — first simulated modifying call `exit=0`; second printed deny JSON and `exit=2`; `ANKA_ALLOW_ROOT_MULTIFILE=1` path `exit=0`.
+- No Bun runtime code changed; per [ANKA-269](/ANKA/issues/ANKA-269), no project `bun test` / `bun run typecheck` impact is expected for this shell-only guard.
+
+**Open endings**
+
+- Route [ANKA-269](/ANKA/issues/ANKA-269) to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80) for review routing after commit/push.
+
 ## 2026-04-29 18:41 Europe/Amsterdam — [ANKA-121](/ANKA/issues/ANKA-121) dashboard port-contract fix (CodeReviewer round-3 CHANGES_REQUESTED)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `0f7a2a9f-4be1-4ed2-9434-ae21d6112fe9`.

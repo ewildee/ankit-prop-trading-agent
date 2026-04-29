@@ -40,6 +40,7 @@ coverage/
 
 # Per-issue worktrees (defensive guard until ANKA-98 platform fix lands)
 .paperclip/worktrees/
+.paperclip/.hook-state/
 
 # Transient vendor probes / scratch directories
 .tmp-*/

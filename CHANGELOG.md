@@ -2,6 +2,23 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.43 — 2026-04-29 19:57 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, delegated to CodexExecutor for [ANKA-269](/ANKA/issues/ANKA-269), child of [ANKA-241](/ANKA/issues/ANKA-241) / Track B of [ANKA-98](/ANKA/issues/ANKA-98).
+
+**Why:** The worktree-first policy was already documented, but the repository still lacked the helper and project-scoped guard that make shared-root multi-step edits fail closed during Paperclip heartbeats.
+
+**Changed** — `infra:tooling`
+
+- Tightened the worktree-first guard ([ANKA-241](/ANKA/issues/ANKA-241)): promoted to MUST in `AGENTS.md`, added `scripts/paperclip-worktree.sh` (`start`/`finish`/`cleanup`), and added a `PreToolUse` hook in `.claude/settings.json` that blocks the second modifying tool call in the shared root during a Paperclip heartbeat. Stays in place until the upstream Paperclip platform per-issue-worktree fix from [ANKA-98](/ANKA/issues/ANKA-98) lands. Board-user opt-out: `ANKA_ALLOW_ROOT_MULTIFILE=1`.
+- `.gitignore` now keeps `.paperclip/.hook-state/` local-only, alongside `.paperclip/worktrees/`.
+- Root `ankit-prop-umbrella` `0.4.42` → `0.4.43`.
+
+**Verification**
+
+- `bash -n scripts/paperclip-worktree.sh scripts/hooks/block-root-multifile.sh` — clean.
+- Shared-root hook smoke test — first simulated modifying call allowed, second denied with JSON and exit 2, `ANKA_ALLOW_ROOT_MULTIFILE=1` allowed.
+
 ## 0.4.42 / @ankit-prop/dashboard@0.1.2 — 2026-04-29 18:41 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, addressing CodeReviewer CHANGES_REQUESTED on [ANKA-121](/ANKA/issues/ANKA-121) ([review comment](/ANKA/issues/ANKA-121#comment-04f4f8de-fed6-4f0e-b8f0-7be8fe33b8b1)).
