@@ -2,6 +2,29 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/contracts@0.7.1 / @ankit-prop/news@0.4.3 — 2026-04-29 20:30 Europe/Amsterdam
+
+**Initiated by:** CEO mention unblocking [ANKA-168](/ANKA/issues/ANKA-168) after [ANKA-253](/ANKA/issues/ANKA-253) recovery.
+
+**Why:** Wave-2 N9 needs a typed Elysia `/health/details` route for `services/news` so downstream Elysia/Eden consumers can inspect freshness state directly and treat stale/failed calendar fetches as HTTP 503.
+
+**Changed** — `svc:news/health`, `pkg:contracts`
+
+- `packages/shared-contracts/src/news.ts` — adds `NewsFreshnessReason` and `NewsHealthSnapshot` for the `/health/details` body `{ ok, version, fetchAgeSeconds, freshReason, lastFetchAtUtc }`.
+- `services/news/src/freshness/freshness-monitor.ts` — extends `FreshnessSnapshot` with `lastFetchAtUtc` so the health route can report the stored fetch timestamp without re-querying package or DB state.
+- `services/news/src/health/health-route.ts` — adds the Elysia `healthRoute({ freshness, clock, version })` plugin. Fresh snapshots return `200`; `never_fetched`, `fetch_unhealthy`, and `stale_calendar` return `503`.
+- `services/news/src/index.ts` / `services/news/src/health/index.ts` — export the health surface plus type-only Treaty `App`; `NEWS_SERVICE_VERSION` is cached from `services/news/package.json` via `loadVersionFromPkgJson`.
+- `services/news/package.json` / `packages/shared-contracts/package.json` / `bun.lock` — bump `@ankit-prop/news` to `0.4.3`, `@ankit-prop/contracts` to `0.7.1`, and add the service-local `elysia` dependency.
+- `TODOS.md` — marks Phase 5 T009.i done for [ANKA-168](/ANKA/issues/ANKA-168).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; only pre-existing unrelated workspace warnings/infos remain.
+- `bun test packages/shared-contracts/src/news.spec.ts services/news/src/freshness/freshness-monitor.spec.ts services/news/src/health/health-route.spec.ts` — 26 pass / 0 fail / 49 expects.
+- `bun run typecheck` — clean.
+- `bun test` — 473 pass / 0 fail / 2403 expects.
+- Temporary route smoke: imported `healthRoute` + `NEWS_SERVICE_VERSION`, listened on an ephemeral port, and `GET /health/details` returned `200` with `"version":"0.4.3"`.
+
 ## 0.4.43 — 2026-04-29 20:08 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-268](/ANKA/issues/ANKA-268) — remediation of the PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13) squash-merge protocol violation under CEO-approved Option 1 (logged exception, no `main` rewrite).

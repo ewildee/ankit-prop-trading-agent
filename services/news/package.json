@@ -1,6 +1,6 @@
 {
   "name": "@ankit-prop/news",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "type": "module",
   "description": "FTMO calendar fetcher (Europe/Prague) + endpoints — Phase 5 deliverable. Port 9203.",
@@ -10,6 +10,7 @@
   "dependencies": {
     "@ankit-prop/contracts": "workspace:*",
     "@triplon/config": "^0.2.0",
+    "elysia": "1.4.28",
     "zod": "4.3.6"
   }
 }

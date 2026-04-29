@@ -5,6 +5,7 @@ export type FreshnessReason = 'fresh' | 'stale_calendar' | 'never_fetched' | 'fe
 export interface FreshnessSnapshot {
   readonly ageSeconds: number;
   readonly fresh: boolean;
+  readonly lastFetchAtUtc: string | null;
   readonly reason: FreshnessReason;
 }
 
@@ -48,6 +49,7 @@ export function createFreshnessMonitor(opts: CreateFreshnessMonitorOptions): Fre
         return {
           ageSeconds: Number.POSITIVE_INFINITY,
           fresh: false,
+          lastFetchAtUtc: null,
           reason: 'never_fetched',
         };
       }
@@ -58,6 +60,7 @@ export function createFreshnessMonitor(opts: CreateFreshnessMonitorOptions): Fre
         return {
           ageSeconds: computeAgeSeconds(nowUtc, lastFetchAt),
           fresh: false,
+          lastFetchAtUtc: lastFetchAt,
           reason: 'fetch_unhealthy',
         };
       }
@@ -69,6 +72,7 @@ export function createFreshnessMonitor(opts: CreateFreshnessMonitorOptions): Fre
         return {
           ageSeconds,
           fresh: false,
+          lastFetchAtUtc: lastFetchAt,
           reason: 'fetch_unhealthy',
         };
       }
@@ -77,6 +81,7 @@ export function createFreshnessMonitor(opts: CreateFreshnessMonitorOptions): Fre
         return {
           ageSeconds,
           fresh: false,
+          lastFetchAtUtc: lastFetchAt,
           reason: 'stale_calendar',
         };
       }
@@ -84,6 +89,7 @@ export function createFreshnessMonitor(opts: CreateFreshnessMonitorOptions): Fre
       return {
         ageSeconds,
         fresh: true,
+        lastFetchAtUtc: lastFetchAt,
         reason: 'fresh',
       };
     },

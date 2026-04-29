@@ -2,6 +2,37 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 20:30 Europe/Amsterdam — [ANKA-168](/ANKA/issues/ANKA-168) news `/health/details` Elysia route + Treaty export
+
+**Agent:** CodexExecutor (codex_local). **Run:** `a8e678dd-8203-4138-8e06-6b710436e69d`.
+
+**What was done**
+
+- Resumed ANKA-168 after the CEO unblock comment. The previous failed run `3d93325f-ef2c-405f-8756-8a64324d8259` failed before repo work because the adapter was pointed at a placeholder worktree path with detached HEAD; this run used the realized ANKA-168 worktree.
+- Fetched `https://bun.com/llms.txt` at 20:25 Europe/Amsterdam and re-read BLUEPRINT §0, §17, §19.2/§19.4, §22, and §25 before Bun-runtime edits.
+- Added `NewsHealthSnapshot` / `NewsFreshnessReason` to `packages/shared-contracts/src/news.ts` with contract tests.
+- Extended `FreshnessSnapshot` with `lastFetchAtUtc`, preserving existing freshness reasons and adding regression expectations.
+- Added `services/news/src/health/health-route.ts` with Elysia `GET /health/details`: fresh responses return `200`; all unhealthy freshness reasons return `503`.
+- Added `services/news/src/health/index.ts` and `services/news/src/index.ts`, including type-only Treaty `App` export and `NEWS_SERVICE_VERSION` cached from package.json.
+- Bumped `@ankit-prop/contracts` `0.7.0` → `0.7.1` and `@ankit-prop/news` `0.4.2` → `0.4.3`; added service-local `elysia` dependency.
+
+**Findings**
+
+- `services/news` still has a placeholder `start` script, so the service restart check was done as a temporary Elysia route smoke on an ephemeral port rather than through a supervisor-managed process.
+- `FreshnessSnapshot.ageSeconds` can be non-finite for `never_fetched`; the route normalizes non-finite ages to `0` before JSON serialization so the emitted body remains Zod-valid and does not turn into `null`.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; pre-existing unrelated Biome warnings/infos remain.
+- `bun test packages/shared-contracts/src/news.spec.ts services/news/src/freshness/freshness-monitor.spec.ts services/news/src/health/health-route.spec.ts` — 26 pass / 0 fail / 49 expects.
+- `bun run typecheck` — clean.
+- `bun test` — 473 pass / 0 fail / 2403 expects.
+- Temporary `/health/details` smoke returned `200 {"ok":true,"version":"0.4.3","fetchAgeSeconds":42,"freshReason":"fresh","lastFetchAtUtc":"2026-04-29T10:00:00.000Z"}`.
+
+**Open endings**
+
+- Hand [ANKA-168](/ANKA/issues/ANKA-168) to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592). [ANKA-169](/ANKA/issues/ANKA-169) remains the follow-up router/start/metrics integration work.
+
 ## 2026-04-29 20:08 Europe/Amsterdam — [ANKA-268](/ANKA/issues/ANKA-268) PR #13 squash-merge remediation (ADR-0007, AGENTS.md post-merge audit step)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** heartbeat (issue_assigned wake).

@@ -28,6 +28,7 @@ describe('freshness-monitor', () => {
     expect(monitor.currentSnapshot()).toEqual({
       ageSeconds: Number.POSITIVE_INFINITY,
       fresh: false,
+      lastFetchAtUtc: null,
       reason: 'never_fetched',
     });
   });
@@ -58,6 +59,7 @@ describe('freshness-monitor', () => {
       expect(monitor.currentSnapshot()).toEqual({
         ageSeconds: item.ageSeconds,
         fresh: false,
+        lastFetchAtUtc: item.lastFetchAt,
         reason: 'fetch_unhealthy',
       });
     }
@@ -78,8 +80,9 @@ describe('freshness-monitor', () => {
     ];
 
     for (const item of cases) {
+      const lastFetchAt = isoBefore(NOW, 60_000);
       const meta: Record<string, string> = {
-        last_fetch_at: isoBefore(NOW, 60_000),
+        last_fetch_at: lastFetchAt,
       };
       if (item.lastFetchOk !== null) {
         meta.last_fetch_ok = item.lastFetchOk;
@@ -93,6 +96,7 @@ describe('freshness-monitor', () => {
       expect(monitor.currentSnapshot()).toEqual({
         ageSeconds: 60,
         fresh: false,
+        lastFetchAtUtc: lastFetchAt,
         reason: 'fetch_unhealthy',
       });
     }
@@ -110,6 +114,7 @@ describe('freshness-monitor', () => {
     expect(monitor.currentSnapshot()).toEqual({
       ageSeconds: STALENESS_LIMIT_MS / 1_000 + 0.001,
       fresh: false,
+      lastFetchAtUtc: isoBefore(NOW, STALENESS_LIMIT_MS + 1),
       reason: 'stale_calendar',
     });
   });
@@ -126,6 +131,7 @@ describe('freshness-monitor', () => {
     expect(monitor.currentSnapshot()).toEqual({
       ageSeconds: STALENESS_LIMIT_MS / 1_000,
       fresh: true,
+      lastFetchAtUtc: isoBefore(NOW, STALENESS_LIMIT_MS),
       reason: 'fresh',
     });
   });
@@ -142,6 +148,7 @@ describe('freshness-monitor', () => {
     expect(monitor.currentSnapshot()).toEqual({
       ageSeconds: 1_800,
       fresh: true,
+      lastFetchAtUtc: isoBefore(NOW, 30 * 60 * 1_000),
       reason: 'fresh',
     });
   });
@@ -158,6 +165,7 @@ describe('freshness-monitor', () => {
     expect(monitor.currentSnapshot()).toEqual({
       ageSeconds: 0,
       fresh: false,
+      lastFetchAtUtc: isoAfter(NOW, 60_000),
       reason: 'fetch_unhealthy',
     });
   });
@@ -174,6 +182,7 @@ describe('freshness-monitor', () => {
     expect(monitor.currentSnapshot()).toEqual({
       ageSeconds: Number.POSITIVE_INFINITY,
       fresh: false,
+      lastFetchAtUtc: 'not-a-date',
       reason: 'stale_calendar',
     });
   });
