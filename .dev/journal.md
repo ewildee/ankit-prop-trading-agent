@@ -24,7 +24,7 @@ _Append-only, newest first. Never edit past entries._
 
 **Open endings**
 
-- Needs push to PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17) and QA handoff.
+- Pushed to PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17) at `178463d`; QAEngineer needs to re-check checklist item 7 against that head.
 
 ## 2026-04-29 13:26 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-227](/ANKA/issues/ANKA-227) — PR #17 rebase onto main)
 
