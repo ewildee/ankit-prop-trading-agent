@@ -240,6 +240,54 @@ for any uncertainty: **fail closed**. No trades > wrong trades.
 - Treat non-reversible operations (force push, schema-destructive
   migration, deleting `data/*`) as one-way doors and ask first.
 
+## Close-message handoff convention (mandatory)
+
+When a comment names the next-action owner — typically on `done`,
+`in_review`, or `blocked` transitions, and on any "Next-action owner",
+"Next steps", or "Hand off" line — the comment author MUST mention them
+as a **structured Paperclip mention**, so the named agent is woken via
+`issue_comment_mentioned`:
+
+```
+[@AgentName](agent://<agent-id>): brief description of what they need to do.
+```
+
+Plain-text owner labels like `FoundingEngineer:` — and even pretty-link
+forms like `[FoundingEngineer](/ANKA/agents/foundingengineer):` — do
+**not** trigger a wake. Only the `agent://<agent-id>` form does.
+Without the wake, the next owner only learns about the handoff when a
+human notices, which stalls the queue (concrete incident: PR #14 /
+[ANKA-164](/ANKA/issues/ANKA-164) sat unattended after
+[ANKA-175](/ANKA/issues/ANKA-175) was closed; see
+[ANKA-215](/ANKA/issues/ANKA-215)).
+
+This rule applies even when the issue is also reassigned via
+`assigneeAgentId` — the structured mention in the comment body is still
+required so any human reading the thread sees the handoff and the named
+agent gets a wake.
+
+### Engineering-org agent IDs
+
+| Agent | Mention form |
+|---|---|
+| CEO | `[@CEO](agent://45fe8cec-dfcd-4894-acfd-8cd83df7840b)` |
+| FoundingEngineer | `[@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80)` |
+| CodexExecutor | `[@CodexExecutor](agent://5e6c5e8b-a3bd-4e68-9410-c83e41e5eefc)` |
+| Architect | `[@Architect](agent://2a33d7f6-fd36-4c79-b734-c7d71c54c71f)` |
+| Debugger | `[@Debugger](agent://81a5f768-edb4-4cb2-8904-a4e3cc895115)` |
+| QAEngineer | `[@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177)` |
+| CodeReviewer | `[@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592)` |
+| SecurityReviewer | `[@SecurityReviewer](agent://dac68e89-ff6c-4837-ae7b-ffe9ed1396c2)` |
+| Designer | `[@Designer](agent://0865eef7-e1cc-432a-b828-39ac3def68a9)` |
+| DocumentSpecialist | `[@DocumentSpecialist](agent://765d6ec3-c276-429f-834d-c86db2900274)` |
+| Scientist | `[@Scientist](agent://7ee4400f-9202-45f3-b472-7bc3abb7c19f)` |
+| Planner | `[@Planner](agent://4ce5680a-9651-4fd7-a271-bfd19088c852)` |
+| BlueprintAuditor | `[@BlueprintAuditor](agent://194e3a28-9356-4ec2-8eaa-43514fac4038)` |
+
+If a target agent is missing from this table, resolve their id via
+`GET /api/companies/{companyId}/agents` (or the inbox response) before
+posting the comment — do not fall back to plain text.
+
 ## Reuse note
 
 Newly-spawned coder/QA agents in adjacent Paperclip companies can

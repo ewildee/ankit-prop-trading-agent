@@ -2,6 +2,22 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.38 — 2026-04-29 13:04 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-219](/ANKA/issues/ANKA-219) — companion to [ANKA-215](/ANKA/issues/ANKA-215).
+
+**Why:** The `## Close-message handoff convention (mandatory)` section now lives in every per-agent `AGENTS.md` after [ANKA-215](/ANKA/issues/ANKA-215), but the project-root `AGENTS.md` did not yet carry it, so anyone reading the working agreement (or onboarding a new agent in this repo) could not see the structured-mention requirement that prevents handoff stalls like PR #14 / [ANKA-164](/ANKA/issues/ANKA-164).
+
+**Changed** — `docs`
+
+- `AGENTS.md` — adds `## Close-message handoff convention (mandatory)` between `## Bounds` and `## Reuse note`. Mirrors the per-agent text verbatim and includes the engineering-org agent ID table for all 13 agents (CEO, FoundingEngineer, CodexExecutor, Architect, Debugger, QAEngineer, CodeReviewer, SecurityReviewer, Designer, DocumentSpecialist, Scientist, Planner, BlueprintAuditor). Documents that `assigneeAgentId` reassignment alone does not wake the next owner; the structured `agent://<agent-id>` mention in the comment body is still required.
+- `package.json` — root umbrella `0.4.37` → `0.4.38` (docs-only patch).
+
+**Verification**
+
+- Docs-only change; no code paths touched. Per the §31 review-gate matrix, trivial docs-only changes need no reviewer.
+- `git diff` confirms the new section sits between `## Bounds` and `## Reuse note` and the agent ID table contains all 13 expected rows.
+
 ## @ankit-prop/news@0.3.3 — 2026-04-29 12:52 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-213](/ANKA/issues/ANKA-213) — rebase PR [#14](https://github.com/ewildee/ankit-prop-trading-agent/pull/14) / `feat/anka-164-pre-news` onto current `origin/main`.
