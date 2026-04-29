@@ -2,6 +2,34 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.32 — 2026-04-29 05:38 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-146](/ANKA/issues/ANKA-146) security respin for [ANKA-137](/ANKA/issues/ANKA-137) — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
+
+**Why:** SecurityReviewer found that bot-looking commit author metadata was forgeable and that the workflow checkout left credentials persisted while running PR-controlled repository scripts.
+
+**Changed** — `infra:ci/commit-footer-check`
+
+- `.github/workflows/scripts/commit-footer-check.sh` — removes the bot-author exemption entirely; bot-looking commits now require the canonical Paperclip trailer unless a future non-forgeable actor policy is added.
+- `.github/workflows/commit-footer-check.yml` — sets `actions/checkout` `persist-credentials: false` because the job does not need credentials after checkout.
+- `.github/workflows/commit-footer-check.spec.md` — documents the narrowed exception policy and checkout hardening.
+- `TODOS.md` — keeps `T015` in progress through the security respin and GitHub red/green smoke.
+
+**Added**
+
+- `.github/workflows/__tests__/commit-footer-check.sh` — adds forged bot-author rejection coverage and a static assertion that checkout credentials are not persisted.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.31 → 0.4.32.
+
+**Verification**
+
+- `bash .github/workflows/__tests__/commit-footer-check.sh` — 9 pass.
+- `bun run lint:fix` — exit 0 with existing warnings/no fixes.
+- `bun test` — 342 pass / 0 fail / 2092 expects.
+- `bun run typecheck` — clean.
+
 ## 0.4.31 — 2026-04-29 05:34 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-144](/ANKA/issues/ANKA-144) review respin for [ANKA-137](/ANKA/issues/ANKA-137) — `infra:ci` GitHub PR/merge-path Paperclip footer guard.

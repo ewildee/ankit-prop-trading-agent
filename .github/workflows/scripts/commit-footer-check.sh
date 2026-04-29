@@ -6,25 +6,6 @@ readonly REQUIRED_PAPERCLIP_TRAILER='Co-Authored-By: Paperclip <noreply@papercli
 readonly PAPERCLIP_TRAILER_PATTERN='^co-authored-by: paperclip <noreply@paperclip[.]ing>$'
 readonly RULE_LINK='AGENTS.md commit footer rule and ANKA-137'
 
-is_allowed_bot_author() {
-  local author_name=$1
-  local author_email=$2
-
-  case "$author_name" in
-    'dependabot[bot]' | 'github-actions[bot]')
-      return 0
-      ;;
-  esac
-
-  case "$author_email" in
-    'dependabot[bot]' | 'github-actions[bot]' | *'+dependabot[bot]@users.noreply.github.com' | *'+github-actions[bot]@users.noreply.github.com')
-      return 0
-      ;;
-  esac
-
-  return 1
-}
-
 is_github_merge_commit() {
   local sha=$1
   local subject=$2
@@ -68,18 +49,9 @@ check_commit_footer_range() {
   while IFS= read -r sha; do
     [ -n "$sha" ] || continue
 
-    local author_name
-    local author_email
     local subject
 
-    author_name=$(git log -1 --format=%an "$sha")
-    author_email=$(git log -1 --format=%ae "$sha")
     subject=$(git log -1 --format=%s "$sha")
-
-    if is_allowed_bot_author "$author_name" "$author_email"; then
-      printf 'Skipping allowed bot-authored commit %s (%s <%s>).\n' "$sha" "$author_name" "$author_email"
-      continue
-    fi
 
     if [ "$commit_count" = "1" ] && is_github_merge_commit "$sha" "$subject"; then
       printf 'Skipping single GitHub merge commit %s (%s).\n' "$sha" "$subject"

@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:38 Europe/Amsterdam — v0.4.32 ([ANKA-146](/ANKA/issues/ANKA-146) — [ANKA-137](/ANKA/issues/ANKA-137) security hardening)
+
+**What was done**
+
+- Followed the scoped Paperclip wake on [ANKA-137](/ANKA/issues/ANKA-137) and acknowledged SecurityReviewer's requested changes before editing.
+- Kept work in `.paperclip/worktrees/ANKA-137` on branch `anka-137-commit-footer-check`; the direct [ANKA-146](/ANKA/issues/ANKA-146) checkout returned 409, so this respin updates the existing parent PR branch.
+- Removed the bot-author exemption from `.github/workflows/scripts/commit-footer-check.sh`; bot-looking commits now require the exact Paperclip trailer.
+- Kept the GitHub merge exception constrained to single-commit ranges with `Merge pull request #...` subject and real merge topology.
+- Set `actions/checkout` `persist-credentials: false` and updated the workflow spec.
+- Added shell regression coverage for forged bot-author rejection and a static checkout credential-hardening assertion.
+- Updated `T015`, bumped root `ankit-prop-umbrella` to 0.4.32, and added this CHANGELOG/journal audit trail.
+
+**Findings**
+
+- The security finding was valid: commit author name/email are not a trustworthy signal because a normal commit can forge them.
+- Removing bot exemptions is smaller and safer than trying to infer GitHub actor provenance inside a per-commit range checker.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Fail closed for automation commits: require the canonical trailer unless the project later defines a non-forgeable actor-based exception outside commit metadata.
+
+**Unexpected behaviour**
+
+- The child-issue checkout endpoint returned 409 even though the issue was assigned to CodexExecutor. I did not retry it and used the already-open parent feature branch for the concrete remediation.
+
+**Open endings**
+
+- [ANKA-145](/ANKA/issues/ANKA-145) needs SecurityReviewer re-review after this commit lands on PR #7. GitHub red/green smoke is still pending before [ANKA-137](/ANKA/issues/ANKA-137) can close.
+
 ## 2026-04-29 05:34 Europe/Amsterdam — v0.4.31 ([ANKA-144](/ANKA/issues/ANKA-144) — [ANKA-137](/ANKA/issues/ANKA-137) merge-exemption spoof fix)
 
 **What was done**

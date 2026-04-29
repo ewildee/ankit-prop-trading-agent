@@ -4,6 +4,7 @@ set -euo pipefail
 
 readonly SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 readonly CHECK_SCRIPT="$SCRIPT_DIR/../scripts/commit-footer-check.sh"
+readonly WORKFLOW_FILE="$SCRIPT_DIR/../commit-footer-check.yml"
 readonly REQUIRED_TRAILER='Co-Authored-By: Paperclip <noreply@paperclip.ing>'
 
 test_count=0
@@ -151,16 +152,19 @@ passes_clean_multi_commit_range() {
   [ "$status" = "0" ]
 }
 
-skips_allowed_bot_commit() {
-  local repo base head result status
+fails_forged_bot_author_without_trailer() {
+  local repo base head result status output
 
   repo=$(new_repo)
   base=$(commit_message "$repo" 'chore: base' "$REQUIRED_TRAILER")
   head=$(commit_message "$repo" 'chore: automated bump' '' 'dependabot[bot]' '49699333+dependabot[bot]@users.noreply.github.com')
   result=$(run_check "$repo" "$base..$head")
   status=$(printf '%s\n' "$result" | sed -n '1p')
+  output=$(printf '%s\n' "$result" | sed '1d')
 
-  [ "$status" = "0" ]
+  [ "$status" != "0" ] || return 1
+  assert_contains "$output" "$head"
+  assert_contains "$output" '<missing>'
 }
 
 merge_commit_message() {
@@ -206,11 +210,16 @@ fails_spoofed_github_merge_subject_without_merge_topology() {
   assert_contains "$output" '<missing>'
 }
 
+checkout_does_not_persist_credentials() {
+  grep -Eq '^[[:space:]]+persist-credentials:[[:space:]]+false[[:space:]]*$' "$WORKFLOW_FILE"
+}
+
 run_test 'passes with exact Paperclip trailer' passes_with_exact_trailer
 run_test 'fails with lowercase Paperclip trailer and reports observed line' fails_with_lowercase_trailer
 run_test 'fails with missing Paperclip trailer and reports <missing>' fails_with_missing_trailer
 run_test 'fails first offending commit in multi-commit range' fails_first_offending_commit_in_multi_commit_range
 run_test 'passes a clean multi-commit range' passes_clean_multi_commit_range
-run_test 'skips allowed bot-authored commits' skips_allowed_bot_commit
+run_test 'fails forged bot-authored commits without Paperclip trailer' fails_forged_bot_author_without_trailer
 run_test 'skips a single real GitHub merge commit' skips_single_github_merge_commit
 run_test 'fails spoofed GitHub merge subject without merge topology' fails_spoofed_github_merge_subject_without_merge_topology
+run_test 'checkout does not persist credentials' checkout_does_not_persist_credentials
