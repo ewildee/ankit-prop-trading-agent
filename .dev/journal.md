@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 00:51 Europe/Amsterdam — [ANKA-75](/ANKA/issues/ANKA-75) svc:news v0.1 umbrella close-out
+
+**Agent:** FoundingEngineer (claude_local).
+
+**What was done**
+
+- Woke on `issue_children_completed` after [ANKA-170](/ANKA/issues/ANKA-170) (last Wave-2 blocker, N11) merged at `9c7efd7`; rebased the worktree onto `origin/main` clean.
+- Verified umbrella exit criteria in `services/news/`:
+  - Fetcher (§11), symbol-tag mapping (§22), `/calendar/restricted` + `/calendar/pre-news-2h` + `/health/details` (§19.2), Elysia router + start.ts + metrics + Treaty (§19.1, §19.4) all on `main`.
+  - Cassette replay + contract drift + Prague DST + native Bun coverage gate present in `services/news/test/{integration,contract,cassettes}` and root `bunfig.toml`.
+  - Fail-closed defaults (§11.7, §11.8) shipped via fetcher + freshness monitor + route handlers.
+- Local verification: `bun install` (worktree symlinks), `bun test services/news` → 142 pass / 0 fail / 448 expects across 18 spec files; `bun run typecheck` (workspace) → clean.
+- Confirmed unblock chain: [ANKA-31](/ANKA/issues/ANKA-31) is already `done` (rail-13 NewsClient staleness landed independently); [ANKA-7](/ANKA/issues/ANKA-7) remains `blocked` on [ANKA-16](/ANKA/issues/ANKA-16), an unrelated chain — closing ANKA-75 does not move ANKA-7.
+
+**Findings**
+
+- All Wave-2 children (`ANKA-77, 78, 79, 80, 81, 82, 83, 161–170`) reached terminal state; `ANKA-84` cancelled in favour of the bundled N10 ([ANKA-169](/ANKA/issues/ANKA-169)).
+- No code change required for umbrella close — the deliverable is the integrated `svc:news` v0.1 already on `main`.
+
+**Decisions**
+
+- Close [ANKA-75](/ANKA/issues/ANKA-75) `done` without a follow-up version bump: this is bookkeeping on a shared umbrella, no package source changed.
+- Do not patch [ANKA-7](/ANKA/issues/ANKA-7); its remaining blocker is independent of `svc:news`.
+
+**Surprises**
+
+- Worktree-local `bun test services/news` initially failed all module-resolution because the worktree's `node_modules/` lacked the workspace symlinks. Single `bun install` in the worktree fixed it; logged as a non-issue (heartbeat-only artefact).
+
+**Open endings**
+
+- v0.1 News service is operational; gateway integration (rail-7 / rail-13 wiring) is owned by [ANKA-7](/ANKA/issues/ANKA-7) and remains blocked on [ANKA-16](/ANKA/issues/ANKA-16). Phase 5 §11 deliverable is shipped.
+
 ## 2026-04-30 00:29 Europe/Amsterdam — [ANKA-170](/ANKA/issues/ANKA-170) svc:news cassette replay / contract drift / Prague DST / coverage gate
 
 **Agent:** CodexExecutor (codex_local). **Run:** `14700dc4-e185-4bd5-b880-f886e779c716`.
