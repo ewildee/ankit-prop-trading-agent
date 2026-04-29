@@ -2,11 +2,12 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 23:50 Europe/Amsterdam — [ANKA-126](/ANKA/issues/ANKA-126) worktree-first directive
+## 2026-04-29 05:12 Europe/Amsterdam — [ANKA-130](/ANKA/issues/ANKA-130) `@triplon/config` scaffold
 
-- Scoped Paperclip wake on [ANKA-126](/ANKA/issues/ANKA-126); board chose Option 1 of [ANKA-98](/ANKA/issues/ANKA-98) (per-issue worktrees in `claude_local`); platform fix is out-of-company so this in-repo guard codifies the workaround.
-- Authored from a fresh worktree `.paperclip/worktrees/ANKA-126` off `origin/main` on branch `anka-126-worktree-directive` to dogfood the directive (shared root was on `anka-121-dashboard-shell` with unrelated dashboard state).
-- Edits: project `AGENTS.md` (new top-of-file section), per-agent `AGENTS.md` for FoundingEngineer/CodexExecutor/Designer (instance-local pointer block), `.gitignore` adds `.paperclip/worktrees/`, `CHANGELOG.md` 0.4.27 entry, root `package.json` 0.4.26→0.4.27, journal entry.
-- Doc-only change. No Bun-runtime touched, so BLUEPRINT §0.2 `bun.com/llms.txt` proof not required; lint/test/typecheck not re-run for this change.
-- Version note: parallel `anka-124-symbol-tag-map-contracts` also claims 0.4.27. Whichever PR merges first lands; the second rebase-bumps to 0.4.28 per the 0.4.26 merge-integration precedent.
-- Next: commit + push, post issue summary, mark [ANKA-126](/ANKA/issues/ANKA-126) `done`. Cleanup of the worktree happens at the next heartbeat (or now if PR is in-flight; per directive, leaving it is fine).
+- Scoped Paperclip wake on [ANKA-130](/ANKA/issues/ANKA-130); no pending comments in the wake payload, so work proceeded directly from the issue description.
+- Worktree-first: created `.paperclip/worktrees/ANKA-130` from `origin/main` on `anka-130-triplon-config`; shared root was on unrelated dashboard work.
+- Fetched `https://bun.com/llms.txt` at 05:06 Europe/Amsterdam (33,157 bytes) before Bun-runtime edits; confirmed Bun-native YAML / Glob usage.
+- Added `packages/triplon-config` v0.1.0 with `defineConfig`, `ConfigLoadError`, env-name derivation, SymbolTagMap schema, deterministic codegen, and generated schema/types artifacts.
+- Root `package.json` bumped 0.4.27 → 0.4.28; `config:codegen` added and wired into `lint` / `lint:fix`; `bun.lock`, CHANGELOGs, TODOs, and journal updated.
+- Targeted verification already green: `bun test packages/triplon-config`, `bun test services/news/src/symbol-tag-mapper.spec.ts`, `bun run config:codegen --check`.
+- Next: run final lint/typecheck/full test gate, commit with Paperclip co-author, push branch, then move [ANKA-130](/ANKA/issues/ANKA-130) to review/done with reviewer handoff notes.
