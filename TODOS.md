@@ -22,6 +22,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
   - [ ] **T003.c** Order-manager + execution-stream + persistence; place + close + reconcile against FTMO Free Trial — _ANKA-15_; blocked by ANKA-12, ANKA-13, ANKA-14.
   - [x] **T003.d** §19.1 `/health` endpoint on `:9201` (`HealthSnapshot` JSON, 200/503 by status, SIGTERM-safe) — _ANKA-7_. Shipped in v0.4.2; supervisor health-polls now hit a real responder instead of timing out.
 - [x] **T004** Implement the 14 hard rails (BLUEPRINT §9), each with a `.spec.ts` regression — _ANKA-14_, shipped in `2218862` v0.4.0. Pure decision functions in `services/ctrader-gateway/src/hard-rails/rail-1..14`, mock-driven against a stable broker contract; bun:sqlite-backed idempotency + throttle stores; force-flat scheduler with `NewsClient` seam. 28-case matrix.spec.ts green; live transport wiring deferred to ANKA-13/15.
+- [x] **T017** Migrate `svc:gateway/health` from `Bun.serve` to Elysia with a type-only Treaty `App` export — _[ANKA-133](/ANKA/issues/ANKA-133)_.
 
 ## Phase 3 — `eval-harness`
 
@@ -37,6 +38,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 - [x] **T009.a** Shared news calendar contracts (`packages/shared-contracts/src/news.ts`) for [ANKA-78](/ANKA/issues/ANKA-78): port BLUEPRINT §11.2 schemas plus `RestrictedReply` / `NextRestrictedReply`.
 - [ ] **T009** FTMO calendar fetcher with `timezone=Europe%2FPrague`; 2-h staleness blackout.
   - [x] **T009.b** `svc:news/symbol-tag-mapper` YAML loader + `instrument` multi-tag split for tracked symbols — _ANKA-79_.
+  - [x] **T009.d** `svc:news/restricted-window-evaluator` pure ±5 min tier-1 evaluator — _[ANKA-163](/ANKA/issues/ANKA-163)_; QA gap coverage _[ANKA-207](/ANKA/issues/ANKA-207)_.
   - [ ] **T009.c** Lift `SymbolTagMap` schema into `@ankit-prop/contracts/config` once the config package surface exists.
 
 ## Phase 6 — `dashboard`
@@ -54,5 +56,9 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 ## Cross-cutting
 
 - [x] **T014** Enforce Paperclip co-author footer with repo-local `commit-msg` hook — _ANKA-102_.
+- [x] **T015** Scaffold `@triplon/config` with Bun-native YAML loading, env-name derivation, SymbolTagMap schema/codegen artifacts, and freshness checks — _Closes [ANKA-130](/ANKA/issues/ANKA-130)_.
+- [x] **T016** Adopt Elysia + Eden/Treaty as the workspace HTTP foundation — _Closes [ANKA-131](/ANKA/issues/ANKA-131)_.
+- [x] **I003** Reverse `defineAppConfig` user/project precedence and add regression coverage — _[ANKA-149](/ANKA/issues/ANKA-149)_.
+- [x] **T018** Extract Prague day-bucket helpers into `@ankit-prop/contracts/time` — _Closes [ANKA-129](/ANKA/issues/ANKA-129)_.
 - [~] **Q001** Choose cTrader Open API app credentials path (operator action — folded into ANKA-5 onboarding interaction).
 - [ ] **IDEA-001** Backlog of trading-lab ideas tracked in BLUEPRINT §13.7 (decision CC).

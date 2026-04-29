@@ -1,5 +1,5 @@
+import { pragueDayBucket } from '@ankit-prop/contracts';
 import type { FtmoSimulator } from './ftmo-rules.ts';
-import { pragueDayBucket } from './prague-day.ts';
 import type {
   Bar,
   BarStrategy,
@@ -228,5 +228,5 @@ function lastForSymbol(bars: ReadonlyArray<Bar>, symbol: string): Bar | undefine
 
 // FTMO uses Europe/Prague for daily-floor reset. UTC bucketing drifted by
 // 1–2 hours and could mask a same-day breach into the next bucket. See
-// `prague-day.ts`.
+// `@ankit-prop/contracts` time helpers.
 export const pragueDayStartFromMs = pragueDayBucket;

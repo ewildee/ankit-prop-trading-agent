@@ -2,29 +2,210 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
-## 0.4.30 — 2026-04-29 05:25 Europe/Amsterdam
+## 0.4.36 / @ankit-prop/news@0.2.3 — 2026-04-29 10:16 Europe/Amsterdam
 
-**Initiated by:** CodexExecutor, executing [ANKA-142](/ANKA/issues/ANKA-142) — implementation child of [ANKA-138](/ANKA/issues/ANKA-138) for ADR-0004.
+**Initiated by:** CodexExecutor, executing [ANKA-207](/ANKA/issues/ANKA-207) — close QA gaps on PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16).
 
-**Why:** ADR-0004 accepted re-enabling the existing GitHub Actions lint/typecheck/`bun test` workflow as-is. The prior `.disabled` suffix kept GitHub from scheduling the CI gate, leaving only local BLUEPRINT §0.2 commands as the safety net.
+**Changed** — `svc:news/restricted-window-evaluator`
 
-**Changed** — `infra:ci` workflow activation + operational cross-link
-
-- `.github/workflows/ci.yml.disabled` → `.github/workflows/ci.yml` via `git mv` only. Workflow content stays byte-identical: push to `main`, PR trigger, `oven-sh/setup-bun@v2` pinned to Bun `1.3.13`, `bun install --frozen-lockfile`, `bun run lint`, `bun run typecheck`, `bun test`.
-- `BLUEPRINT.md` §0.2 — adds the explicit ADR-0004 / [ANKA-142](/ANKA/issues/ANKA-142) / [ANKA-138](/ANKA/issues/ANKA-138) cross-link and states that future attempts to disable the workflow must amend the ADR first.
-- `.dev/journal.md` — records the implementation, verification plan, and smoke-test PR handoff.
-
-**Bumped**
-
-- root `ankit-prop-umbrella` 0.4.29 → 0.4.30.
+- `services/news/src/evaluator/restricted-window.spec.ts` — adds QA-requested regressions for the inclusive two-sided ±5 minute window, restricted events whose mapped symbols miss the requested instrument, and empty-instrument requests skipping the DB seam.
+- `services/news/package.json` — `@ankit-prop/news` `0.2.2` → `0.2.3`.
+- Root `package.json` — `0.4.35` → `0.4.36`.
 
 **Verification**
 
-- Local verification and the GitHub smoke-test PR are recorded in [ANKA-142](/ANKA/issues/ANKA-142). No `.spec.ts` test added because workflow YAML is not Bun-runtime code; the GitHub Actions PR run is the integration test.
+- `bun install` — clean; linked workspaces in the fresh worktree, with no final `bun.lock` diff.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 10 pass / 0 fail / 15 expects.
+- `bun run lint:fix services/news/src/evaluator/restricted-window.spec.ts` — exit 0; formatted the restricted-window spec and reported only pre-existing unrelated Biome diagnostics.
+- `bun run typecheck` — clean.
 
-**Smoke-test note**
+## 0.4.35 / @ankit-prop/news@0.2.2 — 2026-04-29 10:01 Europe/Amsterdam
 
-- PR #8 started the expected `lint + typecheck + test` workflow on `pull_request`, but run `25089452605` exceeded the 5-minute budget while still in `bun install --frozen-lockfile`. Per [ANKA-142](/ANKA/issues/ANKA-142), no cache/workflow tweak was folded into this diff; follow-up [ANKA-147](/ANKA/issues/ANKA-147) tracks that investigation.
+**Initiated by:** CodexExecutor, executing [ANKA-194](/ANKA/issues/ANKA-194) — reviewer-required corrections for PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16).
+
+**Changed** — `svc:news/restricted-window-evaluator`
+
+- `services/news/src/evaluator/restricted-window.ts` — narrows `/calendar/restricted` eligibility to `restriction === true`, matching BLUEPRINT §11.5's ±5-min blackout rule. High-impact rows with `restriction: false` are left to the separate 2-h pre-news tier-1 evaluator.
+- `services/news/src/evaluator/restricted-window.ts` — removes the hard-coded `instrument === 'ALL'` global-match sentinel; instrument matching now goes exclusively through `symbol-tag-mapper`.
+- `services/news/src/evaluator/restricted-window.spec.ts` — adds regressions for high-impact-but-unrestricted rows and `ALL` rows so both reviewer corrections stay pinned.
+- `services/news/package.json` — `@ankit-prop/news` `0.2.1` → `0.2.2`.
+- Root `package.json` — `0.4.34` → `0.4.35`.
+
+**Verification**
+
+- `bun install` — clean; refreshed `bun.lock` for `@ankit-prop/news@0.2.2`.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 7 pass / 0 fail / 11 expects.
+- `bun run lint:fix` — exit 0; no repo files changed by formatting, pre-existing unrelated warnings/infos remain.
+- `bun test` — 374 pass / 0 fail / 2158 expects.
+- `bun run typecheck` — clean.
+
+## 0.4.34 / @ankit-prop/news@0.2.1 — 2026-04-29 09:24 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-163](/ANKA/issues/ANKA-163) — `svc:news/restricted-window-evaluator` ±5 min tier-1 gate.
+
+**Why:** Wave-2 N5 of [ANKA-75](/ANKA/issues/ANKA-75) needs a pure evaluator before Elysia route wiring. The evaluator keeps calendar access, symbol-tag mapping, and time sources injected so the later server issue can reuse it without pulling config or DB globals into the rule logic.
+
+**Added** — `svc:news/restricted-window-evaluator`
+
+- `services/news/src/evaluator/restricted-window.ts` — exports `evaluateRestricted({ db, mapper, clock }, { atUtc, instruments })`, queries the inclusive ±5 min UTC window, filters tier-1 events (`impact === 'high' || restriction`), checks mapper-resolved affected symbols, validates the canonical `RestrictedReply`, and passes `pragueDayBucket`-derived day buckets to the DB seam for DST-safe store integration.
+- `services/news/src/evaluator/restricted-window.spec.ts` — covers +0/+4/+5/+6 minute boundaries, tier-2/3 ignore, `restriction: true` low-impact inclusion, multi-tag `XAUUSD` matching, Prague spring/fall DST bucket crossings, no-match, and empty instruments.
+- `services/news/src/evaluator/index.ts` — barrel export for the evaluator and DI types.
+
+**Changed** — workspace/package metadata
+
+- `services/news/package.json` — `@ankit-prop/news` `0.2.0` → `0.2.1`; adds direct workspace dependency on `@ankit-prop/contracts` for `RestrictedReply` and Prague helpers.
+- Root `package.json` — `0.4.33` → `0.4.34`; `bun.lock` refreshed by Bun 1.3.13.
+- `TODOS.md` — records [ANKA-163](/ANKA/issues/ANKA-163) as completed under Phase 5.
+
+**Contract note**
+
+- [ANKA-163](/ANKA/issues/ANKA-163) text mentions `rule: 'restricted_window'` plus `eventId` / `instrument` / `tag` / `eventTimeUtc`, but [ANKA-78](/ANKA/issues/ANKA-78), [ANKA-80](/ANKA/issues/ANKA-80), BLUEPRINT §11.4, and BLUEPRINT §19.2 pin the current canonical shape to `{ event, eta_seconds, rule }` with `rule: 'blackout_pm5'` for this endpoint. This implementation follows the shipped contract.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile with the new workspace edge.
+- `bun run lint:fix` — exit 0; Biome formatted the new evaluator files and reported only pre-existing warnings/infos in unrelated packages.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts services/news/src/symbol-tag-mapper.spec.ts packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/time.spec.ts` — 30 pass / 0 fail / 60 expects.
+- `bun run typecheck` — clean.
+
+## 0.4.33 / @ankit-prop/contracts@0.6.0 / @ankit-prop/eval-harness@0.1.4 — 2026-04-29 09:03 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (claude_local), executing [ANKA-158](/ANKA/issues/ANKA-158) — CodeReviewer APPROVE rebase + merge for [ANKA-129](/ANKA/issues/ANKA-129) (F1 of [ANKA-85](/ANKA/issues/ANKA-85)).
+
+**Why:** PR [#4](https://github.com/ewildee/ankit-prop-trading-agent/pull/4) was authored on top of `0.4.27` (contracts `0.4.0`) but `main` advanced to `0.4.32` / contracts `0.5.0` while it was queued. CodeReviewer APPROVE on head `ccecc67` was clean, so this slot rebases the verbatim Prague day-bucket extraction onto current `main`, resolving the version-slot collision (contracts `0.5.0` is taken by [ANKA-131](/ANKA/issues/ANKA-131)) by promoting contracts to `0.6.0` — same shape, next-minor, because the new public `time` sub-module remains additive on top of the now-shipped Treaty client.
+
+**Added** — `@ankit-prop/contracts` v0.5.0 → v0.6.0
+
+- `packages/shared-contracts/src/time.ts` — `pragueDayBucket` and `pragueParts` helpers, moved verbatim from `packages/eval-harness/src/prague-day.ts` (no rename, no behaviour change). BLUEPRINT §13 Prague TZ canon.
+- `packages/shared-contracts/src/time.spec.ts` — DST regression coverage moved verbatim (CET, CEST, spring DST, fall DST, midnight `pragueParts`).
+- `packages/shared-contracts/src/index.ts` — re-exports `pragueDayBucket`, `pragueParts`, and the `PragueParts` type alongside the existing Treaty client surface.
+
+**Changed** — `@ankit-prop/eval-harness` v0.1.3 → v0.1.4
+
+- `packages/eval-harness/src/sim-engine.ts` and `packages/eval-harness/src/ftmo-rules.ts` — switched the Prague helper import from the local module to `@ankit-prop/contracts`. Internal-only refactor; no public surface change.
+- Removed `packages/eval-harness/src/prague-day.ts` and `packages/eval-harness/src/prague-day.spec.ts` (relocated to contracts).
+
+**Verification**
+
+- `bun install` — clean (workspace re-link only).
+- `bun test packages/shared-contracts/src/time.spec.ts packages/eval-harness/src/sim-engine.spec.ts packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/ftmo-rules.props.spec.ts` — 30 pass / 0 fail / 974 expects.
+- `bun test` (post-rebase, includes [ANKA-131](/ANKA/issues/ANKA-131) Treaty + [ANKA-133](/ANKA/issues/ANKA-133) gateway specs that landed on `main` after the original PR head) — 367 pass / 0 fail / 2147 expects.
+- `bun run typecheck` — clean.
+- `bun run lint` — exit 0; only pre-existing Biome warnings/infos remain.
+- Pre-rebase reviewer evidence: [ANKA-158](/ANKA/issues/ANKA-158) CodeReviewer APPROVE on PR head `ccecc67` (342 pass on the older base).
+
+## @ankit-prop/ctrader-gateway@0.3.0 — 2026-04-29 08:04 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-133](/ANKA/issues/ANKA-133) — F4 gateway `/health` dogfood migration from [ANKA-85](/ANKA/issues/ANKA-85).
+
+**Why:** [ANKA-131](/ANKA/issues/ANKA-131) landed the workspace Elysia + Eden/Treaty foundation. The gateway health endpoint is the first service endpoint to adopt it while preserving the existing `HealthSnapshot` JSON shape and HTTP status behavior.
+
+**Changed** — `svc:gateway/health`
+
+- `services/ctrader-gateway/src/health-snapshot.ts` — split pure `buildHealthSnapshot(deps)` and health dependency types out of the transport module.
+- `services/ctrader-gateway/src/health-server.ts` — replaced the hand-rolled `Bun.serve` fetch router with `buildHealthApp(deps)` on Elysia; `startHealthServer(opts)` still returns the underlying Bun server for the existing `start.ts` shutdown path.
+- `services/ctrader-gateway/src/index.ts` — exports a type-only Treaty `App` alias from the Elysia health app.
+- `services/ctrader-gateway/package.json` — version `0.2.12` → `0.3.0`; declares the direct `elysia@1.4.28` dependency already approved in the workspace foundation.
+
+**Tests**
+
+- `services/ctrader-gateway/src/health-snapshot.spec.ts` — pure snapshot tests for degraded default, connected healthy state, and explicit unhealthy dependency state.
+- `services/ctrader-gateway/src/health-server.spec.ts` — Elysia `app.handle(new Request(...))` round-trips for `GET /health` 200, unhealthy → 503, and unknown path 404.
+- `services/ctrader-gateway/src/index.spec.ts` — `assertExportsTreaty` source smoke for the type-only `App` export.
+- Follow-up after CodeReviewer BLOCK: added live `startHealthServer({ port: 0 })` listener coverage and `rails: pending|unhealthy` snapshot branch tests.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean.
+- `bun run lint:fix` — exit 0; Biome reported pre-existing warnings/infos in unrelated files and made no final changes.
+- `bun test services/ctrader-gateway` — 113 pass / 0 fail / 626 expects after the follow-up coverage commit.
+- `bun test` — 364 pass / 0 fail / 2132 expects.
+- `bun run typecheck` — clean.
+- Runtime smoke: restarted the old gateway process on `:9201`; `curl http://127.0.0.1:9201/health` returned `version: "0.3.0"` from the Elysia server.
+
+## 0.4.32 / @ankit-prop/contracts@0.5.0 — 2026-04-29 07:43 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-131](/ANKA/issues/ANKA-131) — F3 Elysia + Eden/Treaty workspace HTTP foundation from [ANKA-85](/ANKA/issues/ANKA-85).
+
+**Why:** CEO direction on [ANKA-75](/ANKA/issues/ANKA-75) selected Elysia as the workspace HTTP framework and Eden/Treaty as the typed client. The pre-implementation gates are on file: [ANKA-134](/ANKA/issues/ANKA-134) pinned compatible versions, [ANKA-135](/ANKA/issues/ANKA-135) constrained the Treaty API shape/static registry pattern, and [ANKA-136](/ANKA/issues/ANKA-136) conditionally approved the supply-chain risk for exact pins only.
+
+**Added** — `@ankit-prop/contracts` v0.4.0 → v0.5.0
+
+- `packages/shared-contracts/src/treaty-client/create-treaty-client.ts` — `createTreatyClient<App>(baseUrl)` as a direct wrapper over Eden/Treaty's `treaty<App>(baseUrl)`, with no singleton, retry, timeout, normalization, config loading, or orchestration behavior.
+- `packages/shared-contracts/src/treaty-client/service-registry.ts` — static local-default `SERVICES` catalog for BLUEPRINT §19 ports and `/health` paths: supervisor 9100, gateway 9201, trader 9202, news 9203, dashboard 9204.
+- `packages/shared-contracts/src/treaty-client/assert-exports-treaty.ts` — source-level convention guard for type-only service `App` exports. Runtime module assertions cannot observe erased TypeScript types, so this intentionally checks service-index source text instead of pretending a runtime import can see `export type`.
+- `packages/shared-contracts/src/treaty-client/*.spec.ts` — 7 focused specs covering the toy Elysia/Treaty round-trip through `app.handle`, §19 registry pins, valid type-only `App` export forms, missing-export failure, and commented-out export rejection.
+- `packages/shared-contracts/src/treaty-client/README.md` — records the local rule: "Elysia for serving, Eden/Treaty for consuming."
+
+**Changed** — workspace dependencies
+
+- Root `package.json` — version 0.4.31 → 0.4.32; added exact approved pins `elysia@1.4.28` and `@elysiajs/eden@1.4.9`.
+- `bun.lock` — regenerated by Bun 1.3.13 and committed unedited for the approved dependency graph.
+- `packages/shared-contracts/src/index.ts` — re-exports the Treaty client helper, service registry constants/types, and export assertion helper.
+- `.dev/decisions.md` — ADR-0005 records the Elysia + Eden/Treaty foundation decision and rejected broader alternatives.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean.
+- `bun run lint:fix` — exit 0; Biome reported pre-existing warnings/infos in unrelated files, no errors.
+- `bun test packages/shared-contracts/src/treaty-client` — 7 pass / 0 fail / 11 expects.
+- `bun run typecheck` — clean.
+- `bun test` — 361 pass / 0 fail / 2127 expects.
+- `bun audit --registry=https://registry.npmjs.org` — no vulnerabilities found.
+
+## 0.4.31 — 2026-04-29 06:08 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (claude_local), executing [ANKA-132](/ANKA/issues/ANKA-132) — CodeReviewer CHANGES_REQUESTED on PR #6 head `4fb8be9` (stale `.dev/progress.md` handoff). Rebased onto current `origin/main` `1170be9` because [ANKA-130](/ANKA/issues/ANKA-130) / [ANKA-141](/ANKA/issues/ANKA-141) / [ANKA-149](/ANKA/issues/ANKA-149) / [ANKA-140](/ANKA/issues/ANKA-140) advanced main during the CodeReviewer turnaround window, so a `0.4.31` release on top of the now-merged `0.4.30` is the correct §0.2 audit shape (cannot reuse the `0.4.30` slot because main already published it under [ANKA-130](/ANKA/issues/ANKA-130)).
+
+**Changed** — `infra:tooling`
+
+- `AGENTS.md` — content unchanged from the reviewer-checked baseline at PR #6 head `4fb8be9`. The "PR merge protocol" section is preserved verbatim ([ANKA-137](/ANKA/issues/ANKA-137) / [ANKA-138](/ANKA/issues/ANKA-138) gating, allowed strategy `gh pr merge <N> --rebase --match-head-commit <sha>` only, ban on `--squash` and `--merge`, gh-CLI 403 fallback). Diff vs `4fb8be9:AGENTS.md` is byte-empty (`diff -q` clean).
+- `.dev/progress.md` — replaced with the current session block describing this audit-trail amend (stale-future-tense bullets removed, current state of the PR #6 head and the in-flight fix recorded instead). Resolves CodeReviewer's `b19f70b` BLOCK on the §0.2 progress-file contract.
+- `.dev/journal.md` — `0.4.30` open-ending bullets and the `PR #6 body will be updated` future-tense line in the prior entry are not edited (already-merged history is append-only); a fresh `0.4.31` entry above documents the rebase, the version-slot collision with [ANKA-130](/ANKA/issues/ANKA-130), and the squash of the CodeReviewer-fix amend into the same commit. The earlier `0.4.30` entries land verbatim below this `0.4.31` entry once the rebase merges.
+- Root `package.json` — version `0.4.30` → `0.4.31`. No sub-package version bumps.
+
+**Notes**
+
+- This release is a strict tightening + audit refresh of the same already-versioned in-flight contract from `4fb8be9`; the `AGENTS.md` "PR merge protocol" section content is byte-identical to the reviewer-checked baseline (which CodeReviewer's `4fb8be9` review explicitly approved on the substantive fix).
+- Per BLUEPRINT §0.2 narrow skip-class for AGENTS / CHANGELOG / journal / progress / version-bump-only changes, lint / typecheck / `bun test` were not re-run for this commit. The local commit-msg hook still fires on this commit and continues to enforce the canonical `Co-Authored-By:` casing.
+- Merge strategy for PR #6 itself is `--rebase --match-head-commit <sha>` only (per the very protocol this PR introduces). Squash-merge would re-introduce the failure mode the section names; `--merge` would land a synthetic body without the canonical footer.
+
+## @triplon/config@0.1.1 — 2026-04-29 05:28 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-143](/ANKA/issues/ANKA-143) — [ANKA-140](/ANKA/issues/ANKA-140) BLOCK fix for project config lookup.
+
+**Fixed** — `infra:config`
+
+- `packages/triplon-config/src/app-config.ts` — `defineAppConfig().paths.project()` now resolves `config/<name>.config.yaml`, matching BLUEPRINT §17 and the checked-in `config/*.example.yaml` layout.
+- `packages/triplon-config/src/define-config.spec.ts` — regression coverage proves a cwd-local `config/symbol-tag-map.config.yaml` is loaded through `defineAppConfig` when the user layer is empty.
+- `services/news/src/symbol-tag-mapper.spec.ts` — operator-facing regression proves `loadSymbolTagMap()` reads the project file before falling back to the bundled example.
+
+## 0.4.30 — 2026-04-29 05:53 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-130](/ANKA/issues/ANKA-130) — `infra:config` scaffold for `@triplon/config`, rebased above [ANKA-138](/ANKA/issues/ANKA-138)'s v0.4.29 mainline.
+
+**Why:** F2 of [ANKA-85](/ANKA/issues/ANKA-85) needs a local Bun-native config foundation before Wave-2 consumers can standardize on one loader and one generated schema artifact path. Scope stayed minimum-viable: SymbolTagMap only, no multi-source precedence beyond the compatibility loader already needed by `svc:news`.
+
+**Added** — `@triplon/config` v0.1.0
+
+- `packages/triplon-config/src/define-config.ts` — `defineConfig({ schema, sourceFile })`, synchronous `Bun.YAML.parse` loader, Zod validation, and `ConfigLoadError.path` for the first failing Zod path.
+- `packages/triplon-config/src/env-derivation.ts` — `deriveEnvName` / `pathToEnvName` deterministic path-to-`SCREAMING_SNAKE` helper.
+- `packages/triplon-config/src/schemas/symbol-tag-map.ts` — worked `SymbolTagMapSchema` example for `config/symbol-tag-map.example.yaml`.
+- `packages/triplon-config/src/codegen/*` — Bun `Glob`-based codegen over registered `config/*.example.yaml` schemas, deterministic JSON Schema / TypeScript type emission, and `--check` freshness mode.
+- `packages/triplon-config/src/generated/` — committed `symbol-tag-map.schema.json` and `symbol-tag-map.types.ts`.
+- Compatibility exports for existing `svc:news` usage of `@triplon/config` (`defineAppConfig`, `ConfigError`, `z`) so the local workspace package replaces the registry tarball cleanly.
+
+**Changed** — workspace tooling
+
+- Root `package.json` — version `0.4.29` → `0.4.30`; added `config:codegen`; wired `config:codegen --check` into `lint` and `config:codegen` into `lint:fix`.
+- `bun.lock` — records `packages/triplon-config` as the workspace provider for `@triplon/config`.
+
+**Verification**
+
+- `bun test packages/triplon-config`
+- `bun test services/news/src/symbol-tag-mapper.spec.ts`
+- `bun run config:codegen --check`
+- Final lint/test/typecheck gate recorded in [ANKA-130](/ANKA/issues/ANKA-130) issue comment.
 
 ## 0.4.29 — 2026-04-29 05:12 Europe/Amsterdam
 
@@ -72,7 +253,6 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Notes**
 
 - This is a §0.2 audit-trail correction, not a code revert. The `ci.yml.disabled` rename from `70ceb6c` stays as-is on `main`. Until [ANKA-138](/ANKA/issues/ANKA-138) lands the replacement gating workflow, BLUEPRINT §0.2 local agent commands remain the only gate.
-
 ## 0.4.27 — 2026-04-28 23:50 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-126](/ANKA/issues/ANKA-126) — `infra:tooling` worktree-first directive (defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) platform fix lands).
@@ -292,11 +472,15 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/market-data-twelvedata` 0.1.1 → 0.1.2 (patch — fetch safety and default-path bug fix).
-## 0.4.24 — 2026-04-28 13:49 Europe/Amsterdam
+- root `ankit-prop-umbrella` 0.4.21 → 0.4.22 (patch — workspace package version move; backfilled by [ANKA-160](/ANKA/issues/ANKA-160) — original entry omitted this line, but commit `aceecfe` advanced root from `0.4.21` to `0.4.22`).
+
+## ANKA-113 merge reconciliation — @ankit-prop/news 0.1.0 → 0.2.0 — 2026-04-28 13:49 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing the board-requested follow-up on [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
 
 **Why:** Board flagged that `svc:news/symbol-tag-mapper` should consume the operator-canonical configuration loader `@triplon/config` (internal NPM mirror; source at `~/Work/Projects/shared/config-loader`) instead of duplicating bespoke YAML loading, ad-hoc path resolution, and a custom `SymbolTagMapLoadError` shape. `@triplon/config` already provides layered file resolution (`~/.config/<scope>/<name>.config.yaml` → `./<name>.config.yaml` → override), Zod validation, and structured `ConfigError` codes — keeping the mapper's surface area minimal and consistent with the rest of Triplon Mac tooling.
+
+**ANKA-113 merge reconciliation:** Authored on PR #1 branch `anka-77-ftmo-calendar-cassette` (commit `e8bac18`) and landed on `main` via merge commit `05bf75b` (root `0.4.25 → 0.4.26`). The original branch-side `## 0.4.24` heading and `root ankit-prop-umbrella 0.4.23 → 0.4.24` bump line were demoted by [ANKA-160](/ANKA/issues/ANKA-160) because that root slot was already used on `main` by [ANKA-111](/ANKA/issues/ANKA-111) at 17:59. The `@ankit-prop/news` 0.1.0 → 0.2.0 package-level bump below still stands.
 
 **Changed** — `@ankit-prop/news` v0.1.0 → v0.2.0
 
@@ -312,7 +496,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/news` 0.1.0 → 0.2.0 (minor — public mapper API contract changed: sync return + `ConfigError` instead of `SymbolTagMapLoadError`. No external consumers yet — N2/N4 are still out of scope per the parent plan).
-- root `ankit-prop-umbrella` 0.4.23 → 0.4.24 (patch — workspace package version move).
+- ~~root `ankit-prop-umbrella` 0.4.23 → 0.4.24~~ — removed by [ANKA-160](/ANKA/issues/ANKA-160); branch-side root bump never advanced `main`'s `package.json` (see merge commit `05bf75b`).
 
 **Verification**
 
@@ -324,11 +508,13 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 - `@triplon/config` is dual-listed in `~/.bunfig.toml` `minimumReleaseAgeExcludes` so the 2-day install hold doesn't apply, and the `@triplon` scope token in `~/.npmrc` already points at the private registry — no repo-side npm/bun config needed.
 
-## 0.4.23 — 2026-04-28 13:19 Europe/Amsterdam
+## ANKA-113 merge reconciliation — @ankit-prop/news 0.0.2 → 0.1.0 — 2026-04-28 13:19 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
 
 **Why:** `svc:news` needs the symbol-tag-mapper sub-module before the calendar fetcher can turn FTMO `instrument` strings into the tracked trading symbols that restricted-window and pre-news evaluators consume. BLUEPRINT §11.3 requires splitting FTMO tags on `" + "` and §17.3 defines the operator-canonical `symbol-tag-map.config.yaml` shape. BLUEPRINT §5 forbids adding `yaml` / `js-yaml`, so this loader uses Bun's native `Bun.YAML.parse`.
+
+**ANKA-113 merge reconciliation:** Authored on PR #1 branch `anka-77-ftmo-calendar-cassette` (commit `42cb3ed` lineage) and landed on `main` via merge commit `05bf75b` (root `0.4.25 → 0.4.26`). The original branch-side `## 0.4.23` heading and `root ankit-prop-umbrella 0.4.22 → 0.4.23` bump line were demoted by [ANKA-160](/ANKA/issues/ANKA-160) because that root slot was already used on `main` by [ANKA-102](/ANKA/issues/ANKA-102) at 17:14. The `@ankit-prop/news` 0.0.2 → 0.1.0 package-level bump below still stands.
 
 **Added** — `@ankit-prop/news` v0.0.2 → v0.1.0
 
@@ -340,7 +526,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/news` 0.0.2 → 0.1.0 (minor — new public mapper module).
-- root `ankit-prop-umbrella` 0.4.22 → 0.4.23 (patch — workspace package version move).
+- ~~root `ankit-prop-umbrella` 0.4.22 → 0.4.23~~ — removed by [ANKA-160](/ANKA/issues/ANKA-160); branch-side root bump never advanced `main`'s `package.json` (see merge commit `05bf75b`).
 
 **Verification**
 
@@ -354,11 +540,13 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - The `SymbolTagMap` schema stays inline for now because `@ankit-prop/contracts` has no `config` namespace yet; follow-up [T009.c](TODOS.md) tracks lifting it once that shared surface exists.
 - `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
 
-## 0.4.22 — 2026-04-28 13:15 Europe/Amsterdam
+## ANKA-113 merge reconciliation — @ankit-prop/contracts 0.3.3 → 0.4.0 — 2026-04-28 13:15 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-78](/ANKA/issues/ANKA-78) under parent [ANKA-75](/ANKA/issues/ANKA-75).
 
 **Why:** The news service and gateway rail-7 `NewsClient` need one shared contract surface before the `svc:news` runtime lands. BLUEPRINT §11.2 pins the FTMO calendar item shape; [ANKA-78](/ANKA/issues/ANKA-78) extends that package surface with the restricted-window replies consumed by the later endpoint and force-flat work.
+
+**ANKA-113 merge reconciliation:** Authored on PR #1 branch `anka-77-ftmo-calendar-cassette` and landed on `main` via merge commit `05bf75b` (root `0.4.25 → 0.4.26`). The original branch-side `## 0.4.22` heading and `root ankit-prop-umbrella 0.4.21 → 0.4.22` bump line were demoted by [ANKA-160](/ANKA/issues/ANKA-160) because that root slot was already used on `main` by [ANKA-97](/ANKA/issues/ANKA-97) at 14:47. The `@ankit-prop/contracts` 0.3.3 → 0.4.0 package-level bump below still stands.
 
 **Added** — `@ankit-prop/contracts` v0.3.3 → v0.4.0
 
@@ -369,7 +557,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/contracts` 0.3.3 → 0.4.0 (minor — new public schema surface).
-- root `ankit-prop-umbrella` 0.4.21 → 0.4.22 (patch — workspace package version move).
+- ~~root `ankit-prop-umbrella` 0.4.21 → 0.4.22~~ — removed by [ANKA-160](/ANKA/issues/ANKA-160); branch-side root bump never advanced `main`'s `package.json` (see merge commit `05bf75b`).
 
 **Verification**
 
@@ -423,11 +611,13 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 - No service restart required: only the shared contracts package changed, and no service `/health` surface was running from this package.
 
-## 0.4.21 — 2026-04-28 13:13 Europe/Amsterdam
+## ANKA-113 merge reconciliation — @ankit-prop/news 0.0.1 → 0.0.2 — 2026-04-28 13:13 Europe/Amsterdam
 
 **Initiated by:** DocumentSpecialist (agent), executing [ANKA-77](/ANKA/issues/ANKA-77) under [ANKA-75](/ANKA/issues/ANKA-75).
 
 **Why:** `svc:news` needs a canonical real FTMO economic-calendar cassette for the 14-day replay and contract-change detector work described in BLUEPRINT §11.1-§11.3 and §21.3. The chosen 2026-03-23 → 2026-04-06 Prague window crosses the 2026-03-29 DST boundary and includes the requested high-impact USD, restricted, and multi-tag NFP coverage.
+
+**ANKA-113 merge reconciliation:** Authored on PR #1 branch `anka-77-ftmo-calendar-cassette` (commit `43f3a30`) and landed on `main` via merge commit `05bf75b` (root `0.4.25 → 0.4.26`). The original branch-side `## 0.4.21` heading and `root ankit-prop-umbrella 0.4.20 → 0.4.21` bump line were demoted by [ANKA-160](/ANKA/issues/ANKA-160) because that root slot was already used on `main` by [ANKA-31](/ANKA/issues/ANKA-31) at 14:30. The `@ankit-prop/news` 0.0.1 → 0.0.2 package-level bump below still stands.
 
 **Added** — `@ankit-prop/news` v0.0.2 cassette assets
 
@@ -441,7 +631,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/news` 0.0.1 → 0.0.2 (patch — version-pinned FTMO calendar cassette assets).
-- root `ankit-prop-umbrella` 0.4.20 → 0.4.21 (patch — workspace package version move).
+- ~~root `ankit-prop-umbrella` 0.4.20 → 0.4.21~~ — removed by [ANKA-160](/ANKA/issues/ANKA-160); branch-side root bump never advanced `main`'s `package.json` (see merge commit `05bf75b`).
 
 **Verification**
 

@@ -1,4 +1,4 @@
-import { pragueDayBucket } from './prague-day.ts';
+import { pragueDayBucket } from '@ankit-prop/contracts';
 import type { ClosedTrade, FtmoBreach, SimPosition } from './types.ts';
 
 export type FtmoSimulatorCfg = {
