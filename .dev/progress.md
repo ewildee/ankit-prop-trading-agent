@@ -2,11 +2,11 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-29 21:55 Europe/Amsterdam — [ANKA-201](/ANKA/issues/ANKA-201) DBF-002 applied to BLUEPRINT §17 / §25
+## 2026-04-29 22:05 Europe/Amsterdam — [ANKA-121](/ANKA/issues/ANKA-121) banner Designer fixes ready for re-verdict
 
-- BlueprintAuditor verdict on [ANKA-201](/ANKA/issues/ANKA-201) confirmed source-of-truth drift: `pkg:market-data-twelvedata` and its checked-in `data/market-data/twelvedata/<fixture-version>/` fixture root were absent from `BLUEPRINT.md` §17 / §25 even though 4 commits, the workspace, and `CHANGELOG.md` already reference the package.
-- Applied DBF-002 verbatim: §17 packages/ tree adds `market-data-twelvedata/` row with deletability comment; §17 data/ tree carves out the checked-in `data/market-data/twelvedata/<fixture-version>/` exception; §25.1 appends a `pkg:market-data-twelvedata` top-scope row (`Library (temporary, deletable)`, FoundingEngineer, disposal trigger [ANKA-67](/ANKA/issues/ANKA-67) reviewed each §22 phase boundary); §25.2 adds the `pkg:market-data-twelvedata/...` sub-module table with lifecycle reminder.
-- `DOC-BUG-FIXES.md` DBF-002 entry now records the patch commit subject.
-- ANKA-270 (`48e0d81`, `0.4.44`) landed on `main` mid-flight; rebased onto it, resolved CHANGELOG / journal append-conflicts (newest-first by timestamp), rebumped root `0.4.44` → `0.4.45` since `0.4.44` was already taken.
-- Verification: docs-only change. Per BLUEPRINT §0.2 smallest-verification rule, lint/test/typecheck not re-run (none could be affected by Markdown edits to `BLUEPRINT.md` / `DOC-BUG-FIXES.md` / `.dev/progress.md` / `.dev/journal.md`).
-- Next: rebase-merge PR #30, reassign [ANKA-201](/ANKA/issues/ANKA-201) to BlueprintAuditor for close-out audit, return to inbox.
+- Designer [ANKA-277](/ANKA/issues/ANKA-277) `CHANGES_REQUESTED`: `.version-chip-current` missing (dashboard self-row not green) and `.version-chip-stale` shared red with `unreachable`. QAEngineer [ANKA-278](/ANKA/issues/ANKA-278) approved separately (health 200, fail-closed correct, `gateway` row flipped `current` against running peer, no JS errors, 12 specs + flake check green).
+- Applied Designer's pre-written CSS verbatim to `services/dashboard/src/client/styles.css`: added `.version-chip-current` (green `#3a8f5c` / `#edf7f1`); split compound rule so `stale` is amber (`#d97706` / `#fffbeb`) and `unreachable` keeps red (`#e05252` / `#fff1f1`). No structural changes.
+- Bumps: `@ankit-prop/dashboard` `0.1.2` → `0.1.3`; root umbrella `0.4.44` → `0.4.46` (initial cut took `0.4.45` but [ANKA-201](/ANKA/issues/ANKA-201) DBF-002 landed on `main` mid-flight at `3217fc0` and consumed `0.4.45`; rebumped during conflict resolution rather than reordering history). CHANGELOG entry written.
+- Verification: `bun test services/dashboard/src` 12 pass, `bun run typecheck` clean, `bun x biome check services/dashboard` 1 pre-existing shim warning. Live `bun run --cwd services/dashboard start`: `GET :9204/health` → `0.1.3 healthy`, `GET :9204/api/version-matrix` → dashboard `state:current`, peers `state:unreachable`, bundled `main.css` contains all three distinct selectors.
+- Worktree was on `9668dd0`; fast-forwarded to `48e0d81`, committed, then rebased onto `3217fc0` after ANKA-201 landed on `main`. CHANGELOG / progress / journal conflicts resolved by ordering newest-first by timestamp; root version rebumped to `0.4.46`.
+- Next: rebase-merge PR (per the convention used by ANKA-201 PR #30 today, replacing the older direct-trunk-push convention used for `bda12a3`); reassign ANKA-121 to Designer with `in_review` for focused re-verdict; close after APPROVE.

@@ -90,7 +90,16 @@ select {
     text-transform: uppercase;
   }
 
-  .version-chip-stale,
+  .version-chip-current {
+    border-color: #3a8f5c;
+    background: #edf7f1;
+  }
+
+  .version-chip-stale {
+    border-color: #d97706;
+    background: #fffbeb;
+  }
+
   .version-chip-unreachable {
     border-color: #e05252;
     background: #fff1f1;
