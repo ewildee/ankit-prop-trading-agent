@@ -63,6 +63,29 @@ _Append-only, newest first. Never edit past entries._
 - Close [ANKA-222](/ANKA/issues/ANKA-222) and [ANKA-214](/ANKA/issues/ANKA-214) once PR #20 is closed (we land via the consolidated merge branch, then close PR #20 with a comment pointing to the merge commit).
 - Stale `feat/anka-164-pre-news` and `refactor/anka-214-pre-news-all-sentinel` remote branches can be pruned by operator after merge.
 
+## 2026-04-29 13:10 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-220](/ANKA/issues/ANKA-220) — resumed from ANKA-216 QA handoff)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `e8ce4a2c-4554-4f27-91db-921647915fb2`.
+
+**What was done**
+
+- Acknowledged the [ANKA-216](/ANKA/issues/ANKA-216) QA handoff: PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17) stays non-QA-ready until [ANKA-220](/ANKA/issues/ANKA-220) lands the `CalendarItem` -> `CalendarEvent` mapper and real DB integration regression.
+- Resumed the existing `codex/anka-162-calendar-fetcher` worktree, preserving the partial ANKA-220 mapper/fetcher/spec work already present there.
+- Added the missing fetcher regression for validated `CalendarItem` rows whose `date` cannot map to a persisted UTC event; the batch now fails closed as `schema_mismatch` with no partial upsert.
+- Updated `TODOS.md` with the completed `T009.f.1` mapper follow-up and refreshed `.dev/progress.md` for the current heartbeat.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile, checked 79 installs across 84 packages.
+- `bun run lint:fix` — exit 0; only pre-existing unrelated Biome warnings/infos.
+- `bun test services/news/src/fetcher` — 21 pass / 0 fail / 96 expects.
+- `bun test services/news/src/db/calendar-db.spec.ts` — 8 pass / 0 fail / 19 expects.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- Needs debug grep, commit, push to `origin/codex/anka-162-calendar-fetcher`, PR #17 description version-line update to `0.3.4`, and structured Paperclip handoff to FoundingEngineer. No service restart expected because `services/news` still has only the placeholder `start` script and no `/health` runtime.
+
 ## 2026-04-29 13:08 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-220](/ANKA/issues/ANKA-220) — PR #17 CalendarItem persistence fix)
 
 **Agent:** CodexExecutor (codex_local). **Run:** `a5009677-6f7b-457e-87da-355db4543731`.
