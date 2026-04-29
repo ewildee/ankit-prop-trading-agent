@@ -2,29 +2,6 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
-<<<<<<< HEAD
-## @ankit-prop/dashboard@0.1.3 — 2026-04-29 22:05 Europe/Amsterdam
-
-**Initiated by:** FoundingEngineer, addressing the Designer visual-truth gate `CHANGES_REQUESTED` from [ANKA-277](/ANKA/issues/ANKA-277) on the [ANKA-121](/ANKA/issues/ANKA-121) banner contract.
-
-**Why:** Designer's verdict found two CSS-only blockers on the BLUEPRINT §16.0 banner: (1) `.version-chip-current` had no rule, so the dashboard self-row at `state:"current"` was visually indistinguishable from a blank card next to red `unreachable` chips; (2) `.version-chip-stale` and `.version-chip-unreachable` shared the same red, so operators could not tell a stale build from a network timeout at a glance — different failure modes that need distinct affordance. Designer pre-wrote the exact selector additions; this CL applies them verbatim.
-
-**Changed** — `feat(svc:dashboard)`
-
-- `services/dashboard/src/client/styles.css` — adds `.version-chip-current` (green `#3a8f5c` / `#edf7f1`); splits the previous compound `.version-chip-stale, .version-chip-unreachable` into separate rules so `stale` is amber (`#d97706` / `#fffbeb`) and `unreachable` keeps red (`#e05252` / `#fff1f1`). `.version-chip-mismatch` (yellow), the health-status overlays, and the rest of the file are untouched.
-- `services/dashboard/package.json` — `@ankit-prop/dashboard` `0.1.2` → `0.1.3` (CSS rule additions to a shipped package per BLUEPRINT §0.2 / AGENTS.md after-every-change checklist).
-- `package.json` — root umbrella `0.4.44` → `0.4.46` (initial cut took `0.4.45`, but [ANKA-201](/ANKA/issues/ANKA-201) DBF-002 landed on `main` first at `3217fc0` and consumed `0.4.45`; the version was rebumped during conflict resolution rather than reordering history). The `@ankit-prop/dashboard@0.1.3` header on this entry is unchanged because it is package-named, not root-version-named.
-
-**Verification**
-
-- `bun test services/dashboard/src` → `12 pass / 0 fail / 21 expects` (CSS-only diff, version-matrix logic untouched).
-- `bun run typecheck` → clean.
-- `bun x biome check services/dashboard` → 1 pre-existing warning on the `react` ambient-shim, no errors.
-- `bun run --cwd services/dashboard start`; live probes:
-  - `GET :9204/health` → `{service:"dashboard", version:"0.1.3", status:"healthy", details.version_matrix_targets:5}` (post-bump).
-  - `GET :9204/api/version-matrix` → 5 rows: dashboard `state:"current"` at `0.1.3`, four offline peers `state:"unreachable"` (the exact scenario Designer's blocker covered).
-  - `GET :9204/assets/main.css` → bundle contains all three distinct selectors `.version-chip-current`, `.version-chip-stale`, `.version-chip-unreachable` (Tailwind v4's `@import "tailwindcss"` did not strip the new component rules).
-
 ## 0.4.47 / @ankit-prop/market-data@0.1.2 / @ankit-prop/market-data-twelvedata@0.1.3 / @ankit-prop/eval-harness@0.1.5 — 2026-04-29 22:10 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (implementation), CodeReviewer (verdict APPROVE), QAEngineer (verdict APPROVE for QA coverage), and FoundingEngineer (rebase onto current `main` and merge) — closing [ANKA-236](/ANKA/issues/ANKA-236) and porting the [ANKA-69](/ANKA/issues/ANKA-69) market-data contract WIP forward from `stash@{7}`.
@@ -61,6 +38,28 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - Service restart/health: package-only change; no long-running service package changed.
 - Reviewers: CodeReviewer APPROVE on rebased head `530b4988` (ANKA-266 predicate-fix re-review pass) and QAEngineer APPROVE for QA coverage on `91afb6e` (eight fail-closed paths audited; spec-only top-up commit covers `listAvailability` rejection of unknown symbols, loader-derived `tsEnd` against on-disk bogus values, and `typicalSpreadPips` zeroing).
 
+## @ankit-prop/dashboard@0.1.3 — 2026-04-29 22:05 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, addressing the Designer visual-truth gate `CHANGES_REQUESTED` from [ANKA-277](/ANKA/issues/ANKA-277) on the [ANKA-121](/ANKA/issues/ANKA-121) banner contract.
+
+**Why:** Designer's verdict found two CSS-only blockers on the BLUEPRINT §16.0 banner: (1) `.version-chip-current` had no rule, so the dashboard self-row at `state:"current"` was visually indistinguishable from a blank card next to red `unreachable` chips; (2) `.version-chip-stale` and `.version-chip-unreachable` shared the same red, so operators could not tell a stale build from a network timeout at a glance — different failure modes that need distinct affordance. Designer pre-wrote the exact selector additions; this CL applies them verbatim.
+
+**Changed** — `feat(svc:dashboard)`
+
+- `services/dashboard/src/client/styles.css` — adds `.version-chip-current` (green `#3a8f5c` / `#edf7f1`); splits the previous compound `.version-chip-stale, .version-chip-unreachable` into separate rules so `stale` is amber (`#d97706` / `#fffbeb`) and `unreachable` keeps red (`#e05252` / `#fff1f1`). `.version-chip-mismatch` (yellow), the health-status overlays, and the rest of the file are untouched.
+- `services/dashboard/package.json` — `@ankit-prop/dashboard` `0.1.2` → `0.1.3` (CSS rule additions to a shipped package per BLUEPRINT §0.2 / AGENTS.md after-every-change checklist).
+- `package.json` — root umbrella `0.4.44` → `0.4.46` (initial cut took `0.4.45`, but [ANKA-201](/ANKA/issues/ANKA-201) DBF-002 landed on `main` first at `3217fc0` and consumed `0.4.45`; the version was rebumped during conflict resolution rather than reordering history). The `@ankit-prop/dashboard@0.1.3` header on this entry is unchanged because it is package-named, not root-version-named.
+
+**Verification**
+
+- `bun test services/dashboard/src` → `12 pass / 0 fail / 21 expects` (CSS-only diff, version-matrix logic untouched).
+- `bun run typecheck` → clean.
+- `bun x biome check services/dashboard` → 1 pre-existing warning on the `react` ambient-shim, no errors.
+- `bun run --cwd services/dashboard start`; live probes:
+  - `GET :9204/health` → `{service:"dashboard", version:"0.1.3", status:"healthy", details.version_matrix_targets:5}` (post-bump).
+  - `GET :9204/api/version-matrix` → 5 rows: dashboard `state:"current"` at `0.1.3`, four offline peers `state:"unreachable"` (the exact scenario Designer's blocker covered).
+  - `GET :9204/assets/main.css` → bundle contains all three distinct selectors `.version-chip-current`, `.version-chip-stale`, `.version-chip-unreachable` (Tailwind v4's `@import "tailwindcss"` did not strip the new component rules).
+
 ## 0.4.45 — 2026-04-29 21:55 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-201](/ANKA/issues/ANKA-201) under CEO directive at comment `bdf72261` — apply DBF-002 verbatim after BlueprintAuditor verdict (comment `54b7d4a0`).
@@ -86,6 +85,70 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `packages/market-data/` is a phantom (only `node_modules/`); rename, populate, or remove. Likely [ANKA-69](/ANKA/issues/ANKA-69) placeholder.
 - `packages/triplon-config/` is a workspace package with own `package.json`/`src/`, while §5/§17/§25 frame `@triplon/config` as an external private-registry consumer. Vendored vs external drift needs its own DBF.
 - `TODOS.md` Phase tree has no entry for ANKA-67 / ANKA-68 / ANKA-69 historical-fixture work — Phase 0–7 layout is silent on this stream entirely.
+
+## @ankit-prop/news@0.5.2 — 2026-04-29 21:43 Europe/Amsterdam
+
+**Initiated by:** local-board QA handoff on [ANKA-169](/ANKA/issues/ANKA-169).
+
+**Why:** The ANKA-169 route, metrics, startup, and Treaty validation needed a runtime Eden/Treaty smoke test in addition to compile-time App-type assertions.
+
+**Changed** — `svc:news`
+
+- `services/news/src/app.spec.ts` — adds an in-process `createTreatyClient<NewsApp>(...)` smoke test against the composed `buildNewsApp`, routing the client call through `app.handle` and asserting the canonical `/health` response.
+- `services/news/package.json` / `bun.lock` — bumps `@ankit-prop/news` `0.5.1 -> 0.5.2`.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; no scoped files changed beyond formatting already applied, pre-existing unrelated Biome warnings/infos remain.
+- `bun test services/news/src/app.spec.ts` — 3 pass / 0 fail / 13 expects.
+- `bun test services/news/src/routes/calendar.spec.ts services/news/src/app.spec.ts services/news/src/metrics.spec.ts services/news/src/start.spec.ts services/news/src/db/calendar-db.spec.ts services/news/src/health/health-route.spec.ts packages/shared-contracts/src/treaty-client/create-treaty-client.spec.ts` — 45 pass / 0 fail / 105 expects.
+- `bun test` — 503 pass / 0 fail / 2475 expects.
+- `bun run typecheck` — clean.
+- Service restart/health smoke: `PORT=19269 NEWS_CALENDAR_DB_PATH=/tmp/anka-169-qa-news-calendar.db NODE_ENV=production bun run --cwd services/news start`; `/health` returned `200` with `"version":"0.5.2"` and `/metrics` emitted `ankit_news_fetch_age_seconds`.
+
+## @ankit-prop/news@0.5.1 — 2026-04-29 21:10 Europe/Amsterdam
+
+**Initiated by:** CodeReviewer CHANGES_REQUESTED follow-up on [ANKA-169](/ANKA/issues/ANKA-169), tracked as [ANKA-275](/ANKA/issues/ANKA-275).
+
+**Why:** The ANKA-169 route implementation left two contract gaps: `/calendar/window` accepted an unfiltered window without repeated `instruments` query params, and `/calendar/by-day` accepted regex-shaped but impossible dates that could throw below the route boundary.
+
+**Changed** — `svc:news`
+
+- `services/news/src/routes/calendar.ts` — extracts shared repeated-`instruments` validation, applies it to `/calendar/window`, rejects singular/comma/missing instrument shapes with `400`, filters window events through `resolveAffectedSymbols(...)`, and rejects impossible semantic days with `400 { error: 'day must be a valid YYYY-MM-DD date' }`.
+- `services/news/src/routes/calendar.spec.ts` — adds regressions for `/calendar/window` missing/comma/singular instruments, affected-symbol filtering, and impossible `/calendar/by-day` dates (`2026-99-99`, `2026-02-30`); the stale-freshness table now supplies valid window instruments.
+- `services/news/package.json` / `bun.lock` — bumps `@ankit-prop/news` `0.5.0 -> 0.5.1`.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; formatted touched files, with pre-existing unrelated workspace warnings/infos still reported.
+- `bun run lint` — exit 0; pre-existing unrelated workspace warnings/infos remain.
+- `bun run typecheck` — clean.
+- `bun test services/news/src/routes/calendar.spec.ts services/news/src/app.spec.ts` — 25 pass / 0 fail / 57 expects.
+- Service restart/health smoke: `PORT=19275 NEWS_CALENDAR_DB_PATH=/tmp/anka-275-news-calendar.db NODE_ENV=production bun run --cwd services/news start`; `/health` returned `200` with `"version":"0.5.1"`.
+
+## @ankit-prop/news@0.5.0 — 2026-04-29 20:54 Europe/Amsterdam
+
+**Initiated by:** Paperclip scoped wake for [ANKA-169](/ANKA/issues/ANKA-169) after the ANKA-163/164/166/168 blockers resolved.
+
+**Why:** Wave-2 N10 needs the news service to become a runnable Elysia service: calendar endpoints wired to the pure evaluators, freshness fail-closed behaviour at the route boundary, Prometheus metrics, a live `start.ts`, and a Treaty `App` type for downstream clients.
+
+**Changed** — `svc:news`
+
+- `services/news/src/app.ts` — composes canonical `/health`, existing `/health/details`, calendar routes, and `/metrics` into a single Elysia app with `HealthSnapshot` version reporting.
+- `services/news/src/routes/calendar.ts` — adds `/calendar/restricted`, `/calendar/pre-news-2h`, `/calendar/next-restricted`, `/calendar/window`, and `/calendar/by-day` handlers with repeated-`instruments` query validation, UTC `at/from/to` validation, and freshness fail-closed gating.
+- `services/news/src/metrics.ts` — emits Prometheus text for `ankit_news_fetch_age_seconds` and `ankit_news_unhealthy{reason}`, incrementing unhealthy counters only on `fresh -> !fresh` transitions.
+- `services/news/src/start.ts` — opens the Bun SQLite calendar DB, loads the `@triplon/config` symbol-tag map, starts the fetcher, listens on `PORT` (default `9203`), logs `news listening port=<port> version=<version>`, and gracefully stops fetcher/server/DB on SIGINT/SIGTERM.
+- `services/news/src/db/calendar-db.ts` — adds `selectEventsForPragueDay(day)` for the `/calendar/by-day` route.
+- `services/news/src/index.ts` — re-exports the full Elysia app `App` type for Eden/Treaty consumers.
+- `services/news/package.json` / `bun.lock` / `TODOS.md` — bumps `@ankit-prop/news` `0.4.3 -> 0.5.0`, makes `bun run --cwd services/news start` run the live entrypoint, and records T009.j complete.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; no final fixes applied, pre-existing unrelated workspace warnings/infos remain.
+- `bun test services/news/src/app.spec.ts services/news/src/routes/calendar.spec.ts services/news/src/metrics.spec.ts services/news/src/start.spec.ts services/news/src/db/calendar-db.spec.ts services/news/src/health/health-route.spec.ts` — 37 pass / 0 fail / 83 expects.
+- `bun test` — 496 pass / 0 fail / 2457 expects.
+- `bun run typecheck` — clean.
+- Service restart/health smoke: `PORT=19203 NEWS_CALENDAR_DB_PATH=/tmp/.../calendar.db NODE_ENV=production bun run --cwd services/news start`; `/health` returned `200` with `"version":"0.5.0"` and `/metrics` emitted `ankit_news_fetch_age_seconds`.
 
 ## 0.4.44 — 2026-04-29 20:38 Europe/Amsterdam
 

@@ -2,6 +2,50 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 22:28 Europe/Amsterdam — [ANKA-279](/ANKA/issues/ANKA-279) PR #29 merge-conflict resolution for [ANKA-169](/ANKA/issues/ANKA-169)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `e79adf77-6465-48d6-a7da-cff8cdd367c5`.
+
+**What was done**
+
+- Picked up [ANKA-279](/ANKA/issues/ANKA-279) from the scoped wake; the harness had already checked out the ANKA-169 PR #29 worktree.
+- Re-read BLUEPRINT §0 / §0.2 / §17 / §22 / §25 and fetched `https://bun.com/llms.txt` at 22:28 Europe/Amsterdam before touching branch files.
+- Ran `git fetch origin && git merge origin/main`; first conflicts were exactly the three expected narrative files: `.dev/journal.md`, `.dev/progress.md`, and `CHANGELOG.md`.
+- After push, `origin/main` advanced again; merged the new tip and resolved the second conflict set in `.dev/journal.md` and `.dev/progress.md`.
+- Resolved the narrative conflicts by keeping all lineages in newest-first order: main's 22:05 [ANKA-121](/ANKA/issues/ANKA-121) entry, 21:55 [ANKA-201](/ANKA/issues/ANKA-201) / 20:38 [ANKA-270](/ANKA/issues/ANKA-270) entries, and the PR-side `@ankit-prop/news@0.5.2`, `0.5.1`, and `0.5.0` entries.
+
+**Findings**
+
+- The first `git merge origin/main` auto-merged main's docs-governance files (`BLUEPRINT.md`, `.dev/decisions.md`, `DOC-BUG-FIXES.md`, root `package.json`) without conflicts; no unexpected service-source conflicts appeared.
+- After push, `origin/main` advanced again to `1885b6c`; the second merge produced only `.dev/journal.md` and `.dev/progress.md` conflicts, while `CHANGELOG.md`, root `package.json`, dashboard package metadata, and dashboard CSS auto-merged from main.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Did not introduce a new package version or changelog release entry for [ANKA-279](/ANKA/issues/ANKA-279); this child only reconciles already-released branch/main narrative and version metadata.
+
+**Unexpected behaviour**
+
+- `bun run lint` still reports unrelated pre-existing Biome warnings/infos in `packages/ctrader-vendor`, `packages/eval-harness`, and `packages/market-data-twelvedata`, while exiting 0.
+
+**Adaptations**
+
+- Refreshed `.dev/progress.md` to the current [ANKA-279](/ANKA/issues/ANKA-279) merge-resolution state rather than preserving either stale current-session block from the conflict.
+
+**Open endings**
+
+- Commit the merge with the Paperclip footer, push PR #29's branch, confirm GitHub reports `CLEAN` / `MERGEABLE`, and hand [ANKA-279](/ANKA/issues/ANKA-279) back to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80).
+
+**Verification**
+
+- `bun run lint` — exit 0; pre-existing unrelated Biome warnings/infos remain.
+- `bun run typecheck` — clean.
+- `bun test services/news/src/routes/calendar.spec.ts services/news/src/app.spec.ts services/news/src/metrics.spec.ts services/news/src/start.spec.ts services/news/src/db/calendar-db.spec.ts services/news/src/health/health-route.spec.ts packages/shared-contracts/src/treaty-client/create-treaty-client.spec.ts` — 45 pass / 0 fail / 105 expects.
+- Service restart skipped: no service package source or version changed in this child issue; the merge only reconciles metadata/log files and main's already-shipped docs changes.
+
 ## 2026-04-29 22:05 Europe/Amsterdam — [ANKA-121](/ANKA/issues/ANKA-121) dashboard banner — Designer CHANGES_REQUESTED resolved (CSS-only)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** heartbeat (issue_children_completed wake on ANKA-121 after [ANKA-277](/ANKA/issues/ANKA-277) and [ANKA-278](/ANKA/issues/ANKA-278) closed).
@@ -34,6 +78,7 @@ _Append-only, newest first. Never edit past entries._
 - Worktree was on `9668dd0`; fast-forwarded to `48e0d81` before edits, then rebased onto `3217fc0` after [ANKA-201](/ANKA/issues/ANKA-201) DBF-002 landed on `main` mid-flight. CHANGELOG / progress / journal conflicts resolved by ordering newest-first (22:05 above 21:55). Root umbrella rebumped `0.4.45` → `0.4.46` since `0.4.45` was consumed by ANKA-201; the `@ankit-prop/dashboard@0.1.3` CHANGELOG header is unchanged because it is package-named, not root-version-named.
 - Reassigning [ANKA-121](/ANKA/issues/ANKA-121) to Designer with `in_review` for the focused re-verdict — only the two pre-written CSS rules were touched, no structural changes. Closing ANKA-121 after Designer APPROVE.
 - Switching from the older direct-trunk-push convention used for `bda12a3` to the rebase-merge PR convention now in use (per ANKA-201 PR #30 today). Pushed branch and will open the PR after this resolution lands.
+
 ## 2026-04-29 21:55 Europe/Amsterdam — [ANKA-201](/ANKA/issues/ANKA-201) DBF-002 applied verbatim to BLUEPRINT §17 / §25
 
 **Agent:** FoundingEngineer (claude_local). **Run:** issue_children_completed wake from CEO comment `bdf72261`. **Worktree:** `.paperclip/worktrees/ANKA-201-catalog-pkg-market-data-twelvedata-in-blueprint-layout-and-scope-tree` off `9668dd0`, then rebased onto `48e0d81` after ANKA-270 landed on `main` mid-flight.
@@ -71,6 +116,113 @@ _Append-only, newest first. Never edit past entries._
 - Reassign [ANKA-201](/ANKA/issues/ANKA-201) to BlueprintAuditor for close-out audit per AGENTS.md doc-fix review matrix.
 - Three out-of-scope drift items already enumerated in DBF-002 (phantom `packages/market-data/`, vendored `@triplon/config`, missing TODOS.md Phase tree entries) need separate audit follow-ups when next QA sweep runs.
 
+## 2026-04-29 21:43 Europe/Amsterdam — @ankit-prop/news v0.5.2 ([ANKA-169](/ANKA/issues/ANKA-169) QA validation)
+
+**Agent:** QAEngineer (codex_local). **Run:** `e8299573-3dae-48ba-8d19-d6cd92784d13`.
+
+**What was done**
+
+- Responded to the local-board comment asking for route/metrics/startup validation on [ANKA-169](/ANKA/issues/ANKA-169).
+- Re-read BLUEPRINT §0.2/§9/§13/§13.5/§19.2/§22/§25 and fetched `https://bun.com/llms.txt` at 21:41 Europe/Amsterdam before Bun-runtime test edits.
+- Reviewed existing route, metrics, startup, health, and Treaty coverage for the news service.
+- Added an in-process Treaty smoke test to `services/news/src/app.spec.ts`, routing `createTreatyClient<NewsApp>(...)` through the composed `buildNewsApp` via `app.handle`.
+- Bumped `@ankit-prop/news` `0.5.1 -> 0.5.2`.
+
+**Findings**
+
+- Existing ANKA-169/ANKA-275 specs already covered the five calendar routes, bad query shapes, stale-calendar fail-closed handling, metrics transition counting, and DB-unwriteable startup failure.
+- The remaining QA gap was runtime Treaty validation for the composed service app; previous checks were type-only or toy-app-only.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; pre-existing unrelated Biome warnings/infos remain.
+- `bun test services/news/src/app.spec.ts` — 3 pass / 0 fail / 13 expects.
+- `bun test services/news/src/routes/calendar.spec.ts services/news/src/app.spec.ts services/news/src/metrics.spec.ts services/news/src/start.spec.ts services/news/src/db/calendar-db.spec.ts services/news/src/health/health-route.spec.ts packages/shared-contracts/src/treaty-client/create-treaty-client.spec.ts` — 45 pass / 0 fail / 105 expects.
+- `bun test` — 503 pass / 0 fail / 2475 expects.
+- `bun run typecheck` — clean.
+- Service restart/health smoke: `PORT=19269 NEWS_CALENDAR_DB_PATH=/tmp/anka-169-qa-news-calendar.db NODE_ENV=production bun run --cwd services/news start`; `/health` returned `200` with `"version":"0.5.2"` and `/metrics` emitted `ankit_news_fetch_age_seconds`.
+
+**Open endings**
+
+- Hand [ANKA-169](/ANKA/issues/ANKA-169) back to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80) for final owner disposition.
+
+## 2026-04-29 21:10 Europe/Amsterdam — @ankit-prop/news v0.5.1 ([ANKA-275](/ANKA/issues/ANKA-275) calendar route review gaps)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `3768aa71-d908-41e5-b48f-5263ad3be44b`.
+
+**What was done**
+
+- Resumed the existing ANKA-169 PR worktree for the ANKA-275 child issue after CodeReviewer requested changes.
+- Fetched `https://bun.com/llms.txt` at 21:10 Europe/Amsterdam and re-read BLUEPRINT §0/§0.2/§5/§11.4/§19.2/§22/§25 before Bun-runtime edits.
+- Split repeated-instrument validation so `/calendar/window` and the existing restricted/pre-news/next-restricted routes share the same singular/comma/missing shape checks.
+- Updated `/calendar/window` to require repeated `instruments` and filter parsed `CalendarItem[]` through `resolveAffectedSymbols(...)` before returning.
+- Updated `/calendar/by-day` to reject regex-shaped impossible dates before DB access.
+- Added focused handler regressions and bumped `@ankit-prop/news` `0.5.0 -> 0.5.1`.
+
+**Findings**
+
+- The original `/calendar/window` implementation validated only UTC `from/to`, so stale-route tests still passed without exercising the documented `instruments[]` contract.
+- `Date.parse('2026-02-30T00:00:00.000Z')` normalizes to March rather than failing, so the route needs a round-trip ISO date check, not just finite parsing.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Kept the fix route-local and reused `resolveAffectedSymbols(...)` directly instead of adding an evaluator abstraction, matching the issue constraint and existing mapper surface.
+
+**Unexpected behaviour**
+
+- `bun run lint` and `bun run lint:fix` still emit unrelated pre-existing Biome warnings/infos in other packages while exiting 0.
+
+**Adaptations**
+
+- Ran `bun run lint` in addition to the mandatory `lint:fix` because ANKA-275 explicitly requested `bun run lint` evidence in the close comment.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; formatted touched files, pre-existing unrelated workspace warnings/infos remain.
+- `bun run lint` — exit 0; pre-existing unrelated workspace warnings/infos remain.
+- `bun run typecheck` — clean.
+- `bun test services/news/src/routes/calendar.spec.ts services/news/src/app.spec.ts` — 25 pass / 0 fail / 57 expects.
+- Service restart/health smoke: `PORT=19275 NEWS_CALENDAR_DB_PATH=/tmp/anka-275-news-calendar.db NODE_ENV=production bun run --cwd services/news start`; `/health` returned `200` with `"version":"0.5.1"`.
+
+**Open endings**
+
+- Hand [ANKA-275](/ANKA/issues/ANKA-275) back to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80) for review routing.
+
+## 2026-04-29 20:55 Europe/Amsterdam — @ankit-prop/news v0.5.0 ([ANKA-169](/ANKA/issues/ANKA-169) router/start/metrics/Treaty)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `81bf57b1-ccc7-41e6-8a34-791b409761cd`.
+
+**What was done**
+
+- Resumed ANKA-169 on `issue_blockers_resolved` and rebased the issue worktree onto `origin/main` so the ANKA-163/164/166/168 blocker code was present.
+- Fetched `https://bun.com/llms.txt` at 20:42 Europe/Amsterdam and re-read BLUEPRINT §0/§0.2/§5/§11.4/§19/§20.2/§22/§25 before Bun-runtime edits.
+- Added `services/news/src/app.ts` with canonical `/health`, existing `/health/details`, calendar routes, and `/metrics` composed into a single Elysia app.
+- Added `services/news/src/routes/calendar.ts` with `/calendar/restricted`, `/calendar/pre-news-2h`, `/calendar/next-restricted`, `/calendar/window`, and `/calendar/by-day`; repeated `instruments` shape and UTC `at/from/to` inputs now fail with `400` on bad shape.
+- Added `services/news/src/metrics.ts` with Prometheus text for `ankit_news_fetch_age_seconds` and `ankit_news_unhealthy{reason}`, counting only `fresh -> !fresh` transitions.
+- Added `services/news/src/start.ts`; `bun run --cwd services/news start` now opens the calendar DB, loads symbol-tag config, starts the fetcher, listens on `PORT` default `9203`, and handles SIGINT/SIGTERM shutdown.
+- Extended `CalendarDb` with `selectEventsForPragueDay(day)` and re-exported the full News `App` type from `services/news/src/index.ts`.
+- Bumped `@ankit-prop/news` `0.4.3 -> 0.5.0`, updated `bun.lock`, `CHANGELOG.md`, `.dev/progress.md`, and `TODOS.md` T009.j.
+
+**Findings**
+
+- The existing ANKA-168 `/health/details` route is a freshness-specific detail surface, not the supervisor-facing `HealthSnapshot`; ANKA-169 adds canonical `/health` at the composed app level while preserving `/health/details`.
+- `bun install` under Bun 1.3.13 did not advance the workspace version line in `bun.lock`; updated the `services/news` lockfile version slot directly, matching prior news-version entries.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; no final fixes applied, pre-existing unrelated workspace warnings/infos remain.
+- `bun test services/news/src/app.spec.ts services/news/src/routes/calendar.spec.ts services/news/src/metrics.spec.ts services/news/src/start.spec.ts services/news/src/db/calendar-db.spec.ts services/news/src/health/health-route.spec.ts` — 37 pass / 0 fail / 83 expects.
+- `bun test` — 496 pass / 0 fail / 2457 expects.
+- `bun run typecheck` — clean.
+- Service restart/health smoke: `PORT=19203 NEWS_CALENDAR_DB_PATH=/tmp/.../calendar.db NODE_ENV=production bun run --cwd services/news start`; `/health` returned `200` with `"version":"0.5.0"` and `/metrics` emitted `ankit_news_fetch_age_seconds`.
+
+**Open endings**
+
+- Hand [ANKA-169](/ANKA/issues/ANKA-169) to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592), then QAEngineer after review per issue acceptance.
 ## 2026-04-29 20:38 Europe/Amsterdam — [ANKA-270](/ANKA/issues/ANKA-270) Layer-1 of [ANKA-268](/ANKA/issues/ANKA-268) remediation: GitHub merge-mode buttons disabled
 
 **Agent:** CEO (claude_local). **Run:** heartbeat (issue_reopened_via_comment wake on ANKA-270).
@@ -99,7 +251,6 @@ _Append-only, newest first. Never edit past entries._
 **Open endings**
 
 - PR for this commit opens against `main` and must be merged via `gh pr merge <N> --rebase --match-head-commit <sha>` (now the only path GitHub will offer). On merge, the CEO heartbeat closes ANKA-270 and updates the ANKA-270 thread with the post-merge audit output.
-
 ## 2026-04-29 20:30 Europe/Amsterdam — [ANKA-168](/ANKA/issues/ANKA-168) news `/health/details` Elysia route + Treaty export
 
 **Agent:** CodexExecutor (codex_local). **Run:** `a8e678dd-8203-4138-8e06-6b710436e69d`.

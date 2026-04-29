@@ -50,6 +50,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
   - [x] **T009.g** `svc:news/next-restricted-locator` 48h restricted-event ETA helper — _[ANKA-166](/ANKA/issues/ANKA-166)_.
   - [x] **T009.h** `svc:news/freshness-monitor` pure 2 h staleness watchdog over fetch metadata, including fail-closed review fixes for future timestamps and unknown health markers — _[ANKA-167](/ANKA/issues/ANKA-167)_.
   - [x] **T009.i** `svc:news/health` Elysia `/health/details` route with news health contract and type-only Treaty `App` export — _[ANKA-168](/ANKA/issues/ANKA-168)_.
+  - [x] **T009.j** `svc:news` Elysia app composition, calendar routes, `/metrics`, live `start.ts`, and full Treaty `App` export — _[ANKA-169](/ANKA/issues/ANKA-169)_.
   - [x] **T009.c** Migrate `SymbolTagMap` schema/loader ownership to `@triplon/config` generated artifacts — _Closes [ANKA-165](/ANKA/issues/ANKA-165)_.
 
 ## Phase 6 — `dashboard`

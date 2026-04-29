@@ -98,6 +98,36 @@ describe('calendar-db', () => {
     });
   });
 
+  test('selectEventsForPragueDay lists events whose Prague-local date matches the requested day', () => {
+    const dayStart = event({
+      id: 'day-start',
+      eventTsUtc: '2026-04-27T22:00:00.000Z',
+      date: '2026-04-28T00:00:00+02:00',
+      title: 'Prague day start',
+    });
+    const inside = event({
+      id: 'inside',
+      eventTsUtc: '2026-04-28T10:00:00.000Z',
+      date: '2026-04-28T12:00:00+02:00',
+      title: 'Prague noon',
+    });
+    const nextDay = event({
+      id: 'next-day',
+      eventTsUtc: '2026-04-28T22:00:00.000Z',
+      date: '2026-04-29T00:00:00+02:00',
+      title: 'Next Prague day',
+    });
+
+    withDb(':memory:', (db) => {
+      db.upsertEvents([nextDay, inside, dayStart]);
+
+      expect(db.selectEventsForPragueDay('2026-04-28')).toEqual([
+        calendarItem(dayStart),
+        calendarItem(inside),
+      ]);
+    });
+  });
+
   test('multi-tag FTMO instruments round-trip raw instrument and parsed tags for mapping', async () => {
     const event = (await cassetteEvents()).find((candidate) =>
       candidate.instrument.includes(' + '),
