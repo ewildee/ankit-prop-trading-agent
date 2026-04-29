@@ -1,11 +1,17 @@
 import {
   CalendarItem,
   type CalendarItem as CalendarItemType,
-  pragueDayBucket,
   type RestrictedReason,
   RestrictedReply,
   type RestrictedReply as RestrictedReplyType,
 } from '@ankit-prop/contracts';
+import {
+  type InstrumentMatcher,
+  matchesAnyInstrument,
+  normalizeInstruments,
+  parseAtUtc,
+  pragueBucketsForWindow,
+} from './_match.ts';
 
 const RESTRICTED_WINDOW_MS = 5 * 60 * 1000;
 
@@ -21,9 +27,7 @@ export interface RestrictedWindowDb {
   ): readonly CalendarItemType[];
 }
 
-export interface RestrictedWindowMapper {
-  resolveAffectedSymbols(rawInstrument: string): readonly string[];
-}
+export type RestrictedWindowMapper = InstrumentMatcher;
 
 export interface RestrictedWindowDeps {
   readonly db: RestrictedWindowDb;
@@ -45,7 +49,10 @@ export function evaluateRestricted(
     return restrictedReply([]);
   }
 
-  const atMs = parseAtUtc(input.atUtc ?? new Date(deps.clock.now()).toISOString());
+  const atMs = parseAtUtc(
+    input.atUtc ?? new Date(deps.clock.now()).toISOString(),
+    'restricted-window',
+  );
   const fromMs = atMs - RESTRICTED_WINDOW_MS;
   const toMs = atMs + RESTRICTED_WINDOW_MS;
   const events = deps.db.selectEventsBetween(
@@ -80,44 +87,6 @@ function restrictedReply(reasons: RestrictedReason[]): RestrictedReplyType {
   return RestrictedReply.parse({ restricted: reasons.length > 0, reasons });
 }
 
-function normalizeInstruments(instruments: readonly string[]): string[] {
-  const seen = new Set<string>();
-  const normalized: string[] = [];
-  for (const instrument of instruments) {
-    const value = instrument.trim();
-    if (value.length === 0 || seen.has(value)) continue;
-    seen.add(value);
-    normalized.push(value);
-  }
-  return normalized;
-}
-
-function parseAtUtc(atUtc: string): number {
-  const atMs = Date.parse(atUtc);
-  if (!Number.isFinite(atMs)) {
-    throw new RangeError(`restricted-window: invalid atUtc ${JSON.stringify(atUtc)}`);
-  }
-  return atMs;
-}
-
-function pragueBucketsForWindow(fromMs: number, toMs: number): number[] {
-  const buckets = [pragueDayBucket(fromMs)];
-  const endBucket = pragueDayBucket(toMs);
-  if (endBucket !== buckets[0]) {
-    buckets.push(endBucket);
-  }
-  return buckets;
-}
-
 function isRestrictedEvent(event: CalendarItemType): boolean {
   return event.restriction === true;
-}
-
-function matchesAnyInstrument(
-  event: CalendarItemType,
-  instruments: readonly string[],
-  mapper: RestrictedWindowMapper,
-): boolean {
-  const affectedSymbols = mapper.resolveAffectedSymbols(event.instrument);
-  return instruments.some((instrument) => affectedSymbols.includes(instrument));
 }

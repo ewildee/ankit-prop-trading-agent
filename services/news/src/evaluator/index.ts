@@ -1,3 +1,12 @@
+export {
+  type FindNextRestrictedInput,
+  findNextRestricted,
+  MalformedCalendarRowError,
+  type NextRestrictedClock,
+  type NextRestrictedDb,
+  type NextRestrictedDeps,
+  type NextRestrictedMapper,
+} from './next-restricted.ts';
 export type {
   EvaluatePreNewsDeps,
   EvaluatePreNewsRequest,
