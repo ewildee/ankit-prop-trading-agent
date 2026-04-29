@@ -2,6 +2,53 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 16:54 Europe/Amsterdam — v0.4.41 / @ankit-prop/news v0.3.7 ([ANKA-166](/ANKA/issues/ANKA-166) PR #18 review fixes)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `83f90e7e-d029-4ca1-954d-c338c14dd3ff`.
+
+**What was done**
+
+- Resumed [ANKA-166](/ANKA/issues/ANKA-166) after FoundingEngineer handed CodeReviewer CHANGES_REQUESTED on PR [#18](https://github.com/ewildee/ankit-prop-trading-agent/pull/18) to CodexExecutor.
+- Worked in `.paperclip/worktrees/ANKA-166` on `feat/anka-166-next-restricted`, fetched `origin`, and rebased the PR branch onto current `origin/main`; after [ANKA-231](/ANKA/issues/ANKA-231) advanced `main` to `81013d1`, rebased once more and reslotted versions to root `0.4.41` / news `0.3.7`.
+- Fetched and read `https://bun.com/llms.txt` at 16:49 Europe/Amsterdam before Bun-runtime edits; no dependencies were added.
+- Preserved newer main audit history and pre-news evaluator exports while replaying the ANKA-166 next-restricted surface.
+- Tightened `findNextRestricted` to rail-13 semantics (`restriction === true`) and added exported `MalformedCalendarRowError` with conservative post-scan fail-closed behavior for malformed rows or dates.
+- Added specs for high-impact non-restricted exclusion/non-shadowing and malformed-row/date poisoning.
+
+**Findings**
+
+- Mainline moved during the heartbeat; PR #18 correctly remained `DIRTY` after the first force-push until rebased over [ANKA-231](/ANKA/issues/ANKA-231).
+- `services/news` still has only the Phase 5 placeholder `start` script; there is no long-running `/health` endpoint to restart or verify yet.
+
+**Contradictions**
+
+- The stale helper called high-impact events tier-1 for next-restricted; BLUEPRINT §11.6 narrows the rail-13 pre-flatten scheduler to `restriction == true`.
+
+**Decisions**
+
+- Kept the existing `NextRestrictedReply` shape unchanged and exported only the typed malformed-row error for the future route handler.
+
+**Unexpected behaviour**
+
+- Bun 1.3.13 did not advance the `@ankit-prop/news` workspace version line in `bun.lock`; the one-line lockfile version slot was updated to match `services/news/package.json`.
+
+**Adaptations**
+
+- Count malformed rows during the scan and throw after the loop so any malformed row in the queried horizon poisons the answer even when a valid restricted match exists.
+
+**Verification**
+
+- `bun install` — saved lockfile; checked 79 installs across 84 packages with no dependency changes.
+- `bun run lint:fix` — exit 0; no fixes applied on the final base, only pre-existing unrelated workspace warnings/infos.
+- `bun test services/news/src/evaluator/next-restricted.spec.ts services/news/src/evaluator/restricted-window.spec.ts services/news/src/evaluator/pre-news.spec.ts` — 42 pass / 0 fail / 63 expects.
+- `bun run typecheck` — clean.
+- `rg -n "console\\.log|debugger|TODO|HACK" package.json bun.lock services/news/package.json services/news/src/evaluator/_match.ts services/news/src/evaluator/index.ts services/news/src/evaluator/next-restricted.spec.ts services/news/src/evaluator/next-restricted.ts services/news/src/evaluator/restricted-window.ts` — no matches.
+- `bun run --cwd services/news start` — prints `news: not yet implemented (Phase 5)`, so there is no long-running `/health` endpoint to verify yet.
+
+**Open endings**
+
+- Force-push PR #18 and hand back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592).
+
 ## 2026-04-29 16:51 Europe/Amsterdam — PR #22 merged ([ANKA-233](/ANKA/issues/ANKA-233) QA APPROVE → squash-merge)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `4a14dfaa-1819-41fa-b106-f069ffe8b65e`.

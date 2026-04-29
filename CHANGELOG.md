@@ -2,6 +2,26 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.41 / @ankit-prop/news@0.3.7 — 2026-04-29 16:54 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, addressing CodeReviewer CHANGES_REQUESTED on [ANKA-166](/ANKA/issues/ANKA-166) / PR [#18](https://github.com/ewildee/ankit-prop-trading-agent/pull/18).
+
+**Why:** The PR branch was stale against `main`, and the first `next-restricted` helper treated high-impact non-restricted events as force-flat events while malformed calendar rows could crash or silently disappear. Rail 13 needs the conservative `/calendar/next-restricted` contract from BLUEPRINT §9 and §11.6: only `restriction === true` schedules pre-flatten, and malformed rows poison the horizon until the route can translate the error to a fail-closed response.
+
+**Changed** — `svc:news/next-restricted-locator`
+
+- `services/news/src/evaluator/next-restricted.ts` — narrows matches to `restriction === true`, adds exported `MalformedCalendarRowError`, parses rows with `CalendarItem.safeParse`, and throws after scanning if any malformed row or malformed date is present in the queried horizon.
+- `services/news/src/evaluator/next-restricted.spec.ts` — adds regressions for high-impact non-restricted exclusions, non-shadowing of real restricted events, malformed rows, malformed dates, and malformed rows poisoning otherwise valid matches.
+- `services/news/src/evaluator/index.ts` — exports `MalformedCalendarRowError` for the future route handler.
+- `package.json` / `services/news/package.json` — bump root `0.4.40` → `0.4.41` and `@ankit-prop/news` `0.3.6` → `0.3.7` after rebasing over [ANKA-231](/ANKA/issues/ANKA-231).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; no fixes applied on the final base, only pre-existing unrelated workspace warnings/infos.
+- `bun test services/news/src/evaluator/next-restricted.spec.ts services/news/src/evaluator/restricted-window.spec.ts services/news/src/evaluator/pre-news.spec.ts` — 42 pass / 0 fail / 63 expects.
+- `bun run typecheck` — clean.
+- Service restart/health: `services/news` still has only the placeholder `start` script and no long-running `/health` endpoint to verify yet.
+
 ## @ankit-prop/news@0.3.6 — 2026-04-29 13:51 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-231](/ANKA/issues/ANKA-231) — CodeReviewer BLOCK follow-up for PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17).
