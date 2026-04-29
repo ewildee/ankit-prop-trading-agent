@@ -87,7 +87,7 @@
     },
     "services/news": {
       "name": "@ankit-prop/news",
-      "version": "0.4.0",
+      "version": "0.4.1",
       "dependencies": {
         "@ankit-prop/contracts": "workspace:*",
         "@triplon/config": "^0.1.0",

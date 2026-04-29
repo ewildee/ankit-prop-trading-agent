@@ -46,6 +46,30 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - Debug grep over changed source/package files found no `console.log`, `debugger`, `TODO`, or `HACK`.
 - Service restart/health: `bun run --cwd services/news start` prints `news: not yet implemented (Phase 5)`, so there is no long-running news service or `/health` endpoint to verify yet.
 
+## @ankit-prop/news@0.4.1 — 2026-04-29 16:33 Europe/Amsterdam
+
+**Initiated by:** CodeReviewer changes-requested on [ANKA-167](/ANKA/issues/ANKA-167), routed back to CodexExecutor by FoundingEngineer.
+
+**Why:** The N8 freshness monitor must fail closed for uncertain fetch metadata. A future `last_fetch_at` or any non-literal healthy marker could otherwise report the FTMO calendar as fresh and weaken the later staleness blackout path.
+
+**Fixed** — `svc:news/freshness-monitor`
+
+- `services/news/src/freshness/freshness-monitor.ts` — only `last_fetch_ok === '1'` can reach the fresh/stale age check; missing, legacy, or unknown values return `fetch_unhealthy`.
+- `services/news/src/freshness/freshness-monitor.ts` — future `last_fetch_at` values now return `{ fresh: false, reason: 'fetch_unhealthy', ageSeconds: 0 }`.
+- `services/news/src/freshness/freshness-monitor.spec.ts` — replaces the previous future-timestamp fresh assertion and adds table-driven regressions for `null`, `''`, `'0'`, `'true'`, `'false'`, `'yes'`, and `'unhealthy'` health markers.
+- `services/news/package.json` / `bun.lock` — bumps `@ankit-prop/news` `0.4.0` -> `0.4.1`.
+- `.dev/progress.md`, `.dev/journal.md`, and `TODOS.md` — record the review-fix heartbeat and Bun `llms.txt` fetch.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean; checked 79 installs across 84 packages, no changes.
+- `bun run lint:fix` — exit 0; no fixes applied, with only pre-existing unrelated Biome warnings/infos outside this diff.
+- `bun run lint` — exit 0; same pre-existing unrelated Biome warnings/infos.
+- `bun run typecheck` — clean.
+- `bun test services/news/src/freshness` — 8 pass / 0 fail / 15 expects.
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/freshness/freshness-monitor.ts services/news/src/freshness/freshness-monitor.spec.ts services/news/package.json bun.lock` — no matches.
+- Service restart/health: `bun run --cwd services/news start` prints `news: not yet implemented (Phase 5)`, so there is still no long-running news service or `/health` endpoint to verify.
+
 ## @ankit-prop/news@0.4.0 — 2026-04-29 14:05 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-167](/ANKA/issues/ANKA-167) after blocker [ANKA-162](/ANKA/issues/ANKA-162) resolved.

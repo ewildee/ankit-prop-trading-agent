@@ -63,6 +63,41 @@ describe('freshness-monitor', () => {
     }
   });
 
+  test('returns fetch_unhealthy unless last_fetch_ok is explicitly healthy', () => {
+    const cases: ReadonlyArray<{
+      readonly name: string;
+      readonly lastFetchOk: string | null;
+    }> = [
+      { name: 'missing marker', lastFetchOk: null },
+      { name: 'empty marker', lastFetchOk: '' },
+      { name: 'explicit failure', lastFetchOk: '0' },
+      { name: 'true string', lastFetchOk: 'true' },
+      { name: 'false string', lastFetchOk: 'false' },
+      { name: 'yes string', lastFetchOk: 'yes' },
+      { name: 'unknown unhealthy string', lastFetchOk: 'unhealthy' },
+    ];
+
+    for (const item of cases) {
+      const meta: Record<string, string> = {
+        last_fetch_at: isoBefore(NOW, 60_000),
+      };
+      if (item.lastFetchOk !== null) {
+        meta.last_fetch_ok = item.lastFetchOk;
+      }
+
+      const monitor = createFreshnessMonitor({
+        db: new InMemoryFreshnessDb(meta),
+        clock: { nowUtc: () => NOW },
+      });
+
+      expect(monitor.currentSnapshot()).toEqual({
+        ageSeconds: 60,
+        fresh: false,
+        reason: 'fetch_unhealthy',
+      });
+    }
+  });
+
   test('treats a healthy fetch older than 2h as stale_calendar', () => {
     const monitor = createFreshnessMonitor({
       db: new InMemoryFreshnessDb({
@@ -111,7 +146,7 @@ describe('freshness-monitor', () => {
     });
   });
 
-  test('clamps negative ageSeconds to zero when the fetch timestamp is in the future', () => {
+  test('fails closed when the fetch timestamp is in the future', () => {
     const monitor = createFreshnessMonitor({
       db: new InMemoryFreshnessDb({
         last_fetch_at: isoAfter(NOW, 60_000),
@@ -122,8 +157,8 @@ describe('freshness-monitor', () => {
 
     expect(monitor.currentSnapshot()).toEqual({
       ageSeconds: 0,
-      fresh: true,
-      reason: 'fresh',
+      fresh: false,
+      reason: 'fetch_unhealthy',
     });
   });
 
