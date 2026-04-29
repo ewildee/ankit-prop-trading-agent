@@ -376,6 +376,47 @@ describe('createCalendarFetcher.fetchOnce', () => {
     expect(records.some((record) => record.event === 'fetcher.fetch_error')).toBe(true);
   });
 
+  test('fails closed before fetch when the clock returns an invalid instant', async () => {
+    const db = new InMemoryCalendarDb();
+    const { logger, records } = captureLogger();
+    const fetcher = createCalendarFetcher({
+      db,
+      logger,
+      clock: { nowUtc: () => 'not-a-date' },
+      fetch() {
+        throw new Error('fetch must not be called');
+      },
+    });
+
+    const result = await fetcher.fetchOnce();
+
+    expect(result).toEqual({ ok: false, reason: 'fetch_error' });
+    expect(db.meta.get('last_fetch_ok')).toBe('0');
+    expect(records.some((record) => record.event === 'fetcher.fetch_error')).toBe(true);
+  });
+
+  test('reports root-level schema mismatches with a root path', async () => {
+    const db = new InMemoryCalendarDb();
+    const { logger, records } = captureLogger();
+    const fetcher = createCalendarFetcher({
+      db,
+      logger,
+      clock: { nowUtc: () => NOW },
+      fetch() {
+        return jsonResponse(null);
+      },
+    });
+
+    const result = await fetcher.fetchOnce();
+
+    expect(result).toEqual({ ok: false, reason: 'schema_mismatch' });
+    expect(records).toContainEqual({
+      event: 'fetcher.schema_mismatch',
+      path: '<root>',
+      message: 'fetcher.schema_mismatch',
+    });
+  });
+
   test('marks persistence failures unhealthy instead of leaving the previous healthy state', async () => {
     const db = new FailingUpsertCalendarDb();
     const { logger, records } = captureLogger();
@@ -480,13 +521,44 @@ describe('createCalendarFetcher.start/stop', () => {
     expect(intervals).toHaveLength(1);
     expect(intervals[0]?.ms).toBe(30 * 60 * 1_000);
 
+    fetcher.start();
+    expect(intervals).toHaveLength(1);
+
     intervals[0]?.callback();
     expect(calls).toBe(2);
 
     fetcher.stop();
     expect(cleared).toHaveLength(1);
 
+    fetcher.stop();
+    expect(cleared).toHaveLength(1);
+
     intervals[0]?.callback();
     expect(calls).toBe(3);
+  });
+
+  test('catches unexpected background fetch errors and can use global timer fallback', async () => {
+    const db = new InMemoryCalendarDb();
+    const errors: Record<string, unknown>[] = [];
+    const fetcher = createCalendarFetcher({
+      db,
+      logger: {
+        warn() {
+          throw new Error('logger offline');
+        },
+        error(payload, message) {
+          errors.push({ ...payload, message });
+        },
+      },
+      fetch() {
+        return jsonResponse({ error: 'bad request' }, 400);
+      },
+    });
+
+    fetcher.start();
+    fetcher.stop();
+    await Bun.sleep(0);
+
+    expect(errors.some((record) => record.event === 'fetcher.unhandled_error')).toBe(true);
   });
 });

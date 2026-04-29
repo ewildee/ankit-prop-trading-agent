@@ -2,6 +2,33 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.48 / @ankit-prop/news@0.5.3 — 2026-04-30 00:29 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, implementing [ANKA-170](/ANKA/issues/ANKA-170) after [ANKA-169](/ANKA/issues/ANKA-169) unblocked the full `svc:news` Elysia app.
+
+**Why:** Phase 5 needed an end-to-end cassette replay and drift/DST regression gate before the FTMO calendar service can be trusted as the hard-rail news input. The gate also needed to fail locally because ADR-0005 retired public CI for this repo.
+
+**Added** — `test(svc:news)`
+
+- `services/news/test/integration/cassette-replay.spec.ts` — replays the recorded 14-day FTMO cassette through `createCalendarFetcher`, in-memory SQLite persistence, and the composed `buildNewsApp` routes (`/calendar/window`, `/calendar/by-day`, `/calendar/restricted`, `/calendar/pre-news-2h`, `/calendar/next-restricted`). It asserts full cassette row count, persisted freshness metadata, tracked-symbol filtering, NFP restricted snapshots for `NAS100` / `XAUUSD`, and tier-one 2-hour pre-news restrictions.
+- `services/news/test/contract/calendar-schema-drift.spec.ts` — compares cassette item keys against the strict `CalendarItem` contract and emits on-call-focused messages for extra upstream keys, schema keys removed locally, or required cassette keys disappearing.
+- `services/news/test/integration/prague-dst.spec.ts` — pins Prague spring-forward and fall-back behavior against explicit FTMO offsets, including the two distinct `2026-10-25T02:30` local instants.
+- Focused coverage top-ups in `services/news/src/app.spec.ts`, `services/news/src/freshness/freshness-monitor.spec.ts`, and `services/news/src/fetcher/calendar-fetcher.spec.ts` so the native Bun coverage threshold passes per file.
+
+**Changed** — `svc:news`
+
+- `bunfig.toml` — adds Bun-native coverage thresholds for the news service surface: `lines = 0.9`, `statements = 0.9`, `functions = 0.85`, with unrelated workspaces ignored for coverage accounting.
+- `services/news/README.md` — documents the focused test gate and the Bun 1.3 limitation: Bun exposes line, statement, and function thresholds, but no separate branch-threshold key, so the requested 85% branch gate is represented by the closest native executable-decision threshold (`functions = 0.85`) until Bun adds branch thresholds.
+- `package.json` / `services/news/package.json` — bump root `0.4.47` → `0.4.48` and `@ankit-prop/news` `0.5.2` → `0.5.3`.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; pre-existing unrelated Biome warnings/infos remain in packages outside this diff.
+- `bun run typecheck` — clean.
+- `bun test` — 552 pass / 0 fail / 2764 expects.
+- `bun test --coverage` — 552 pass / 0 fail / 2764 expects; aggregate covered surface 99.24% functions / 99.45% lines. Lowest included files remain above threshold: `calendar-fetcher.ts` 90.48% functions / 98.36% lines and `routes/calendar.ts` 94.29% functions / 95.19% lines.
+- Service restart/health: `PORT=19270 NEWS_CALENDAR_DB_PATH=/tmp/anka-170-news-calendar.db NODE_ENV=production bun run --cwd services/news start`; `GET /health` returned HTTP 200 with `version:"0.5.3"` and `status:"healthy"`.
+
 ## 0.4.47 / @ankit-prop/market-data@0.1.2 / @ankit-prop/market-data-twelvedata@0.1.3 / @ankit-prop/eval-harness@0.1.5 — 2026-04-29 22:10 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (implementation), CodeReviewer (verdict APPROVE), QAEngineer (verdict APPROVE for QA coverage), and FoundingEngineer (rebase onto current `main` and merge) — closing [ANKA-236](/ANKA/issues/ANKA-236) and porting the [ANKA-69](/ANKA/issues/ANKA-69) market-data contract WIP forward from `stash@{7}`.

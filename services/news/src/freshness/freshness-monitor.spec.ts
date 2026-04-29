@@ -153,6 +153,23 @@ describe('freshness-monitor', () => {
     });
   });
 
+  test('uses the default wall clock when no test clock is injected', () => {
+    const lastFetchAt = new Date().toISOString();
+    const monitor = createFreshnessMonitor({
+      db: new InMemoryFreshnessDb({
+        last_fetch_at: lastFetchAt,
+        last_fetch_ok: '1',
+      }),
+    });
+
+    const snapshot = monitor.currentSnapshot();
+
+    expect(snapshot.fresh).toBe(true);
+    expect(snapshot.lastFetchAtUtc).toBe(lastFetchAt);
+    expect(snapshot.reason).toBe('fresh');
+    expect(snapshot.ageSeconds).toBeGreaterThanOrEqual(0);
+  });
+
   test('fails closed when the fetch timestamp is in the future', () => {
     const monitor = createFreshnessMonitor({
       db: new InMemoryFreshnessDb({
