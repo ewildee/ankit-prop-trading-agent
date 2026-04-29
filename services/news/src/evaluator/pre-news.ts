@@ -43,15 +43,31 @@ export function evaluatePreNews(
     return restrictedReply([]);
   }
 
-  const atMs = Date.parse(atUtc ?? clock?.nowUtc() ?? '');
+  const atMs = parseInstant(atUtc ?? clock?.nowUtc());
+  if (atMs === null) {
+    return failClosed('invalid_pre_news_time');
+  }
+
   const toMs = atMs + PRE_NEWS_LOOKAHEAD_MS;
   const events = db.queryRange(new Date(atMs).toISOString(), new Date(toMs).toISOString());
-  const reasons = events
-    .map((event) => CalendarItem.parse(event))
-    .filter(isTier1Event)
-    .filter((event) => isInsidePreNewsWindow(event, atMs, toMs))
-    .filter((event) => affectsAnyInstrument(event, activeInstruments, mapper, logger))
-    .map((event) => reasonFor(event, atMs));
+  const reasons: RestrictedReason[] = [];
+  for (const rawEvent of events) {
+    const parsed = CalendarItem.safeParse(rawEvent);
+    if (!parsed.success) {
+      return failClosed('malformed_calendar_event');
+    }
+    const event = parsed.data;
+    if (!isTier1Event(event)) continue;
+    if (!affectsAnyInstrument(event, activeInstruments, mapper, logger)) continue;
+
+    const eventMs = parseInstant(event.date);
+    if (eventMs === null) {
+      return failClosed(`malformed_calendar_event_date:${event.title}`);
+    }
+    if (isInsidePreNewsWindow(eventMs, atMs, toMs)) {
+      reasons.push(reasonFor(event, eventMs, atMs));
+    }
+  }
 
   return restrictedReply(reasons);
 }
@@ -60,12 +76,24 @@ function restrictedReply(reasons: RestrictedReason[]): RestrictedReplyType {
   return RestrictedReply.parse({ restricted: reasons.length > 0, reasons });
 }
 
+function failClosed(event: string): RestrictedReplyType {
+  return RestrictedReply.parse({
+    restricted: true,
+    reasons: [{ event, eta_seconds: 0, rule: 'stale_calendar' }],
+  });
+}
+
 function isTier1Event(event: CalendarItemType): boolean {
   return event.impact === 'high' || event.restriction;
 }
 
-function isInsidePreNewsWindow(event: CalendarItemType, atMs: number, toMs: number): boolean {
-  const eventMs = Date.parse(event.date);
+function parseInstant(value: string | undefined): number | null {
+  if (value === undefined) return null;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : null;
+}
+
+function isInsidePreNewsWindow(eventMs: number, atMs: number, toMs: number): boolean {
   return eventMs >= atMs && eventMs < toMs;
 }
 
@@ -80,10 +108,10 @@ function affectsAnyInstrument(
   return instruments.some((instrument) => affectedSymbols.includes(instrument));
 }
 
-function reasonFor(event: CalendarItemType, atMs: number): RestrictedReason {
+function reasonFor(event: CalendarItemType, eventMs: number, atMs: number): RestrictedReason {
   return {
     event: event.title,
-    eta_seconds: Math.trunc((Date.parse(event.date) - atMs) / 1000),
+    eta_seconds: Math.trunc((eventMs - atMs) / 1000),
     rule: 'pre_news_2h',
   };
 }

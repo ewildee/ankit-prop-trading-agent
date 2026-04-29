@@ -78,6 +78,66 @@ describe('evaluatePreNews', () => {
     });
   });
 
+  test('uses clock.nowUtc when atUtc is omitted', () => {
+    const observed: string[][] = [];
+    const reply = evaluatePreNews(
+      {
+        db: db(
+          [event({ date: '2026-04-28T12:30:00Z', title: 'Clock-Sourced Event' })],
+          (fromUtc, toUtc) => observed.push([fromUtc, toUtc]),
+        ),
+        mapper: MAP,
+        clock: { nowUtc: () => '2026-04-28T12:00:00Z' },
+      },
+      { instruments: ['XAUUSD'] },
+    );
+
+    expect(observed).toEqual([['2026-04-28T12:00:00.000Z', '2026-04-28T14:00:00.000Z']]);
+    expect(reply).toEqual({
+      restricted: true,
+      reasons: [{ event: 'Clock-Sourced Event', eta_seconds: 1800, rule: 'pre_news_2h' }],
+    });
+  });
+
+  test('fails closed when both atUtc and clock are omitted', () => {
+    const reply = evaluatePreNews({ db: db([]), mapper: MAP }, { instruments: ['XAUUSD'] });
+
+    expect(reply).toEqual({
+      restricted: true,
+      reasons: [{ event: 'invalid_pre_news_time', eta_seconds: 0, rule: 'stale_calendar' }],
+    });
+  });
+
+  test('fails closed when evaluation time is malformed', () => {
+    const reply = evaluatePreNews(
+      { db: db([]), mapper: MAP },
+      { atUtc: 'not-a-date', instruments: ['XAUUSD'] },
+    );
+
+    expect(reply).toEqual({
+      restricted: true,
+      reasons: [{ event: 'invalid_pre_news_time', eta_seconds: 0, rule: 'stale_calendar' }],
+    });
+  });
+
+  test('fails closed on malformed relevant tier-1 event dates', () => {
+    const reply = evaluatePreNews(
+      { db: db([event({ date: 'not-a-date', title: 'Malformed NFP' })]), mapper: MAP },
+      { atUtc: '2026-04-28T12:00:00Z', instruments: ['XAUUSD'] },
+    );
+
+    expect(reply).toEqual({
+      restricted: true,
+      reasons: [
+        {
+          event: 'malformed_calendar_event_date:Malformed NFP',
+          eta_seconds: 0,
+          rule: 'stale_calendar',
+        },
+      ],
+    });
+  });
+
   test('includes tier-1 events exactly at atUtc', () => {
     const reply = evaluatePreNews(
       { db: db([event({ date: '2026-04-28T12:00:00Z', title: 'FOMC Statement' })]), mapper: MAP },
