@@ -81,6 +81,7 @@
       "dependencies": {
         "@ankit-prop/contracts": "workspace:*",
         "@ankit-prop/eval-harness": "workspace:*",
+        "@triplon/config": "^0.1.0",
         "zod": "4.3.6",
       },
     },
@@ -147,6 +148,8 @@
     "@protobufjs/pool": ["@protobufjs/pool@1.1.0", "https://npm-registry-mirror.triplon.io/@protobufjs/pool/-/pool-1.1.0.tgz", {}, "sha512-0kELaGSIDBKvcgS4zkjz1PeddatrjYcmMWOlAuAPwAeccUrPHdUqo/J6LiymHHEiJT5NrF1UVwxY14f+fy4WQw=="],
 
     "@protobufjs/utf8": ["@protobufjs/utf8@1.1.0", "https://npm-registry-mirror.triplon.io/@protobufjs/utf8/-/utf8-1.1.0.tgz", {}, "sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw=="],
+
+    "@triplon/config": ["@triplon/config@0.1.0", "https://npm-registry.triplon.io/@triplon/config/-/config-0.1.0.tgz", { "dependencies": { "zod": "^4.3.6" }, "bin": { "render-config-schema": "bin/render-config-schema.ts" } }, "sha512-zbQdxEh2oApFsZs84qkA8Jt85d+YL4EN7blKabDt07OUKfVJqBZrStk1hi5jLBWosP0K40ZpQ2PnFuuZVyg2qg=="],
 
     "@triplon/proc-supervisor": ["@triplon/proc-supervisor@workspace:packages/proc-supervisor"],
 

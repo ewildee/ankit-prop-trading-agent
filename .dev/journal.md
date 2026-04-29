@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:28 Europe/Amsterdam — v0.4.30 ([ANKA-84](/ANKA/issues/ANKA-84) — `svc:news/start`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-84](/ANKA/issues/ANKA-84); blocker issues were done, but their code lived on parallel feature branches.
+- Created `.paperclip/worktrees/ANKA-84` and based `anka-84-news-start` on `origin/anka-83-news-server`, then integrated `origin/anka-82-news-fetcher` to make the DB/fetcher/server surfaces available together.
+- Fetched `https://bun.com/llms.txt` at 05:18 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0-§0.2, §5, §11, §17, §19, §22, and §25 before editing.
+- Added `services/news/src/start.ts` with `@triplon/config` resolution, DB-open-before-bind, non-blocking fetcher startup, Bun.serve mounting, `/health/details` package-version wiring, idempotent stop, and CLI signal handlers.
+- Added `services/news/src/start.spec.ts` for happy path, DB-open rejection before server bind, and idempotent stop.
+- Updated `services/news/package.json` start script and restored explicit `@triplon/config`; bumped root `0.4.29 → 0.4.30` and `@ankit-prop/news 0.3.1 → 0.4.0`.
+
+**Findings**
+
+- [ANKA-82](/ANKA/issues/ANKA-82) and [ANKA-83](/ANKA/issues/ANKA-83) are done in Paperclip but not on a common branch; `origin/main` lacked `calendar-db.ts`, `fetcher.ts`, and `server.ts` at heartbeat start.
+- `@triplon/config` v0.1.0 supports Zod defaults when no file/env exists, so the news start config can boot with defaults and still accept env/file overrides.
+
+**Decisions**
+
+- Kept first fetch non-blocking by starting the fetcher without awaiting the returned promise; stale-calendar fail-closed remains owned by the server/gateway health path.
+- Used `@ankit-prop/contracts` logger factory for the fetcher/server logger shape instead of adding a new logging dependency.
+
+**Unexpected behaviour**
+
+- The dependency branch merge conflicted only in audit markdown; both sides' journal/changelog entries were preserved before adding the [ANKA-84](/ANKA/issues/ANKA-84) entry.
+- Standalone smoke initially exposed `pino-pretty` transport resolution failing under Bun isolated installs; the service fallback logger now forces JSON mode (`pretty: false`) while preserving the shared redact/base logger factory.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with pre-existing unsafe suggestions; focused news specs 24 pass / 0 fail / 63 expects; `bun run typecheck` clean; standalone `bun run --cwd services/news start` on port 9323 returned `/health/details.version = 0.4.0` and shut down on SIGINT.
+- Still need commit, push, and Paperclip issue update.
+
 ## 2026-04-28 18:38 Europe/Amsterdam — v0.4.29 ([ANKA-116](/ANKA/issues/ANKA-116) — `svc:news/server` review fix)
 
 **What was done**
@@ -65,6 +97,65 @@ _Append-only, newest first. Never edit past entries._
 
 - Verification: `bun run lint:fix` exit 0 with unrelated pre-existing unsafe suggestions; targeted specs 25 pass / 0 fail / 58 expects; `bun run typecheck` clean; modified-file debug grep clean.
 - [ANKA-84](/ANKA/issues/ANKA-84) must wire config, fetcher, DB, server startup, signal handling, and real `/health` process verification.
+## 2026-04-28 18:34 Europe/Amsterdam — v0.4.29 ([ANKA-82](/ANKA/issues/ANKA-82) — `svc:news/fetcher` CR fix)
+
+**What was done**
+
+- Addressed [CodeReviewer](/ANKA/agents/codereviewer)'s BLOCK on [ANKA-115](/ANKA/issues/ANKA-115), relayed by [FoundingEngineer](/ANKA/agents/foundingengineer).
+- Fetched `https://bun.com/llms.txt` at 18:33 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §11.7-§11.8 and focused the diff on `services/news/src/fetcher.ts` plus `services/news/src/fetcher.spec.ts`.
+- Added a post-parse, pre-persist `items.length === 0` guard that records `news_fetch_empty_items` through `recordFailure`, includes `attempt` and request-window diagnostics, does not retry, does not call `upsertItems`, and does not advance `lastSuccessAt`.
+- Added regressions for single empty-items fail-closed health and repeated empty-items responses emitting one `news_fetch_unhealthy` warning.
+- Bumped `@ankit-prop/news` 0.3.0 → 0.3.1 and root `ankit-prop-umbrella` 0.4.28 → 0.4.29.
+
+**Findings**
+
+- The existing `recordFailure` path already preserved the one-shot unhealthy alert behavior; the missing piece was classifying empty `items` before success persistence.
+
+**Decisions**
+
+- Did not retry empty `items`; BLUEPRINT §11.8 treats it as a contract-change/unhealthy signal, not a transient 5xx.
+
+**Unexpected behaviour**
+
+- None.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; `bun test services/news/src/fetcher.spec.ts` 6 pass / 0 fail / 24 expects; `bun run typecheck` clean; modified-code debug grep clean.
+- Push is still pending in this heartbeat.
+- No `/health` restart is possible yet because [ANKA-84](/ANKA/issues/ANKA-84) owns news boot wiring and the current service still has only the placeholder `start` script.
+
+## 2026-04-28 18:22 Europe/Amsterdam — v0.4.28 ([ANKA-82](/ANKA/issues/ANKA-82) — `svc:news/fetcher`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-82](/ANKA/issues/ANKA-82); blocker [ANKA-78](/ANKA/issues/ANKA-78) was resolved and there were no pending comments.
+- Fetched `https://bun.com/llms.txt` at 18:06 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §11.1-§11.8, §17, §22, and §25 plus heartbeat context.
+- Stacked `anka-82-news-fetcher` on `origin/anka-78-79-81-rebuild` because `main` did not contain the `@ankit-prop/contracts/news` or `calendar-db` files required by the issue.
+- Added `createFetcher` with injected fetch/clock/logger, immediate start fetch, 30-minute default cadence, Prague-offset 14-day window query, Zod validation, `upsertItems` persistence, retry backoff, and fail-closed health reporting.
+- Added cassette, backoff, schema-mismatch, one-shot unhealthy alert, and Prague URL-rendering specs.
+- Added `pragueIsoWithOffset` to `pkg:eval-harness/prague-day` and package subpath exports for the issue-specified imports.
+- Bumped root 0.4.27 → 0.4.28, `@ankit-prop/news` 0.2.3 → 0.3.0, `@ankit-prop/eval-harness` 0.1.3 → 0.1.4, and `@ankit-prop/contracts` 0.4.0 → 0.4.1.
+
+**Findings**
+
+- The issue-mentioned `packages/news-cassettes/ftmo-calendar-2026-04-14_2026-04-28.json` path is not present on the current stack branch; the shipped cassette lives at `services/news/test/cassettes/ftmo-2026-03-23-week.json`.
+
+**Decisions**
+
+- Kept symbol-tag canonicalization out of the fetcher because the accepted `createFetcher` signature does not include a tag map and this issue only requires validated calendar persistence plus honest freshness health.
+
+**Unexpected behaviour**
+
+- After adding the `@ankit-prop/eval-harness` workspace dependency, `bun install` had to refresh workspace resolution before root `bun test` could import the new subpath.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with pre-existing unrelated unsafe suggestions; `bun test services/news/src/fetcher.spec.ts packages/eval-harness/src/prague-day.spec.ts` 12 pass / 0 fail / 39 expects; `bun run typecheck` clean; modified-code debug grep clean.
+- Push is still pending in this heartbeat.
+- No `/health` restart is possible yet because [ANKA-84](/ANKA/issues/ANKA-84) owns news boot wiring and the current service still has only the placeholder `start` script.
 
 ## 2026-04-28 14:14 Europe/Amsterdam — v0.4.27 ([ANKA-89](/ANKA/issues/ANKA-89) — `svc:news/calendar-db`)
 

@@ -34,10 +34,11 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 ## Phase 5 — `news`
 
 - [x] **T009.a** Shared news calendar contracts (`packages/shared-contracts/src/news.ts`) for [ANKA-78](/ANKA/issues/ANKA-78): port BLUEPRINT §11.2 schemas plus `RestrictedReply` / `NextRestrictedReply`.
-- [ ] **T009** FTMO calendar fetcher with `timezone=Europe%2FPrague`; 2-h staleness blackout.
+- [~] **T009** FTMO calendar fetcher with `timezone=Europe%2FPrague`; 2-h staleness blackout. _ANKA-82 fetcher/backoff in progress._
   - [x] **T009.b** `svc:news/symbol-tag-mapper` YAML loader + `instrument` multi-tag split for tracked symbols — _ANKA-79_.
   - [x] **T009.d** `svc:news/calendar-db` bun:sqlite store with init SQL, idempotent upsert, range query, and tmp-dir regression coverage — _ANKA-81_.
   - [x] **T009.e** `svc:news/server` Bun.serve-compatible routes with fail-closed staleness gate — _ANKA-83_.
+  - [x] **T009.f** `svc:news/start` boot wiring (config → DB → fetcher → server → signals) — _ANKA-84_.
   - [ ] **T009.c** Lift `SymbolTagMap` schema into `@ankit-prop/contracts/config` once the config package surface exists.
 
 ## Phase 6 — `dashboard`

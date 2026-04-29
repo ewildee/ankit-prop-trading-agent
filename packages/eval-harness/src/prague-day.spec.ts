@@ -3,7 +3,7 @@
 // Prague day, which can mask same-Prague-day breaches.
 
 import { describe, expect, test } from 'bun:test';
-import { pragueDayBucket, pragueParts } from './prague-day.ts';
+import { pragueDayBucket, pragueIsoWithOffset, pragueParts } from './prague-day.ts';
 
 describe('prague-day', () => {
   test('CET (winter): bucket flips at 23:00 UTC, not 00:00 UTC', () => {
@@ -48,5 +48,13 @@ describe('prague-day', () => {
     expect(p.day).toBe(6);
     expect(p.hour).toBe(0);
     expect(p.minute).toBe(30);
+  });
+
+  test('pragueIsoWithOffset renders explicit CET/CEST offsets for FTMO query windows', () => {
+    expect(pragueIsoWithOffset(Date.UTC(2026, 0, 5, 23, 30, 0))).toBe('2026-01-06T00:30:00+01:00');
+    expect(pragueIsoWithOffset(Date.UTC(2026, 6, 15, 12, 5, 7))).toBe('2026-07-15T14:05:07+02:00');
+    expect(pragueIsoWithOffset(Date.UTC(2026, 6, 15, 12, 5, 7, 999))).toBe(
+      '2026-07-15T14:05:07+02:00',
+    );
   });
 });

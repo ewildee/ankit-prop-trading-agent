@@ -2,15 +2,14 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-28 18:38 Europe/Amsterdam — [ANKA-116](/ANKA/issues/ANKA-116) `svc:news/server` review fix
+## 2026-04-29 05:32 Europe/Amsterdam — [ANKA-84](/ANKA/issues/ANKA-84) `svc:news/start`
 
-- Wake reason: `issue_assigned`; acknowledged CodeReviewer BLOCK and scoped this heartbeat to the two fail-open findings plus offsetless `at`.
-- Fetched `https://bun.com/llms.txt` at 18:35 Europe/Amsterdam before Bun runtime edits.
-- Re-read BLUEPRINT §0-§0.2, §5, §9, §11, §17, §22, §25 and inspected `server.ts`, `server.spec.ts`, `symbol-tag-mapper.ts`, and `calendar-db.ts`.
-- Kept work in `../ankit-prop-trading-agent-paperclip-anka83`; primary checkout remains dirty on unrelated `anka-82-news-fetcher` files.
-- Fixed route symbol matching to use `resolveAffectedSymbols()` and a tracked-symbol map, so `USD` now blocks `XAUUSD` / `NAS100`.
-- Replaced Prague-day-key DB reads with the actual route evaluation window around `at`, covering the previous Prague-day ±5m overlap after midnight.
-- Tightened `at` validation to require explicit `Z` or numeric offset.
-- Added regressions for mapped tags, Prague-midnight blackout overlap, and offsetless `at`; bumped root `0.4.28 → 0.4.29` and `@ankit-prop/news 0.3.0 → 0.3.1`.
-- Verification: `bun run lint:fix` exit 0 with unrelated warnings; focused specs 31 pass / 0 fail / 60 expects; `bun run typecheck` clean.
-- Remaining: commit, push `anka-83-news-server`, and return [ANKA-116](/ANKA/issues/ANKA-116) for CodeReviewer.
+- Wake reason: `issue_blockers_resolved`; all blockers are done in Paperclip, but dependency code is still on feature branches.
+- Worktree: `.paperclip/worktrees/ANKA-84`, branch `anka-84-news-start`, based on `origin/anka-83-news-server`.
+- Fetched `https://bun.com/llms.txt` at 2026-04-29 05:18 Europe/Amsterdam (33157 bytes).
+- Re-read BLUEPRINT §0-§0.2, §5, §11, §17, §19, §22, §25 and issue heartbeat context.
+- Integrated `origin/anka-82-news-fetcher` into the worktree; conflict markers removed while preserving both branch journal/changelog entries.
+- Implemented `services/news/src/start.ts` + `start.spec.ts`, updated `services/news` start script/dependency, bumped root 0.4.30 and news 0.4.0.
+- Verification: `bun run lint:fix` exit 0 (pre-existing unsafe suggestions), focused news specs 24 pass / 0 fail / 63 expects, `bun run typecheck` clean.
+- Smoke: `bun run --cwd services/news start` on port 9323 returned `/health/details.version = 0.4.0`, `dbOk = true`, then SIGINT shutdown clean.
+- Next: commit + push `anka-84-news-start`, update [ANKA-84](/ANKA/issues/ANKA-84).

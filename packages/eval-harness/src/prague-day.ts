@@ -52,3 +52,26 @@ export function pragueDayBucket(tsMs: number): number {
   const p = pragueParts(tsMs);
   return Date.UTC(p.year, p.month - 1, p.day);
 }
+
+export function pragueIsoWithOffset(tsMs: number): string {
+  const p = pragueParts(tsMs);
+  const tsSecondMs = Math.floor(tsMs / 1000) * 1000;
+  const offsetMs = Date.UTC(p.year, p.month - 1, p.day, p.hour, p.minute, p.second) - tsSecondMs;
+  const offsetMinutes = Math.trunc(offsetMs / 60_000);
+  const sign = offsetMinutes >= 0 ? '+' : '-';
+  const absMinutes = Math.abs(offsetMinutes);
+  const offsetHours = Math.trunc(absMinutes / 60);
+  const offsetRemainder = absMinutes % 60;
+
+  return `${pad4(p.year)}-${pad2(p.month)}-${pad2(p.day)}T${pad2(p.hour)}:${pad2(
+    p.minute,
+  )}:${pad2(p.second)}${sign}${pad2(offsetHours)}:${pad2(offsetRemainder)}`;
+}
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function pad4(n: number): string {
+  return String(n).padStart(4, '0');
+}
