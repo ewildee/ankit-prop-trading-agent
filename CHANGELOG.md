@@ -2,11 +2,11 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
-## 0.4.28 — 2026-04-29 05:16 Europe/Amsterdam
+## 0.4.30 — 2026-04-29 05:23 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-137](/ANKA/issues/ANKA-137) — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
 
-**Why:** The local `.githooks/commit-msg` hook enforced the canonical Paperclip co-author trailer for agent-authored local commits, but GitHub PR merge, squash, rebase, merge queue, and web-authored paths do not run local hooks. Commit `31012ff` proved that gap by landing `Co-authored-by: Paperclip <noreply@paperclip.ing>` with non-canonical casing.
+**Why:** The local `.githooks/commit-msg` hook enforced the canonical Paperclip co-author trailer for agent-authored local commits, but GitHub PR merge, squash, rebase, merge queue, and web-authored paths do not run local hooks. Commit `31012ff` proved that gap by landing `Co-authored-by: Paperclip <noreply@paperclip.ing>` with non-canonical casing. `origin/main` advanced through 0.4.29 while this branch was open, so this merge-integration commit lifts the ANKA-137 release entry to 0.4.30.
 
 **Added**
 
@@ -14,7 +14,52 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `.github/workflows/scripts/commit-footer-check.sh` — bash + git range checker using `git interpret-trailers --parse`, with explicit lowercase/non-canonical Paperclip trailer reporting.
 - `.github/workflows/__tests__/commit-footer-check.sh` — dependency-free shell regression test that builds temporary git repositories for exact, lowercase, missing, multi-commit, clean-range, bot-exception, and GitHub merge-commit exception cases.
 - `.github/workflows/commit-footer-check.spec.md` — workflow semantics, event ranges, required trailer, exception list, and dependency constraints.
-- `.dev/decisions.md` — ADR-0004 documenting why PR-side enforcement is required in addition to local hooks.
+- `.dev/decisions.md` — ADR-0005 documenting why PR-side enforcement is required in addition to local hooks.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.29 → 0.4.30.
+
+**Verification**
+
+- `bash .github/workflows/__tests__/commit-footer-check.sh` — 7 pass.
+- `bun run lint:fix` — exit 0 with existing warnings/no fixes.
+- `bun test` — 342 pass / 0 fail / 2092 expects.
+- `bun run typecheck` — clean.
+
+## 0.4.29 — 2026-04-29 05:12 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-138](/ANKA/issues/ANKA-138) — `infra:ci` re-enable / replace / keep-off decision (follow-up to [ANKA-127](/ANKA/issues/ANKA-127) major finding and [ANKA-132](/ANKA/issues/ANKA-132) split).
+
+**Why:** [ANKA-138](/ANKA/issues/ANKA-138) requires FE to commit an ADR before any implementation diff lands. CodeReviewer's [ANKA-127](/ANKA/issues/ANKA-127) finding flagged that `70ceb6c` left `origin/main` with no automated lint/typecheck/`bun test` gate — only operator-side §0.2 commands enforced gating, and that contract has empirically slipped (see [ANKA-101](/ANKA/issues/ANKA-101)). FE's decision is recorded as ADR-0004 in this commit; implementation (rename + smoke-test PR + BLUEPRINT cross-link) routes to [CodexExecutor](/ANKA/agents/codexexecutor) in a child issue. Sibling [ANKA-132](/ANKA/issues/ANKA-132) bump to 0.4.28 landed at 05:08 Europe/Amsterdam during this heartbeat; rebased on `bad012b` and bumped one further to 0.4.29 (same precedent as the `0.4.26` merge-integration window in [ANKA-126](/ANKA/issues/ANKA-126) / [ANKA-124](/ANKA/issues/ANKA-124)).
+
+**Changed** — `docs` (ADR + CHANGELOG + journal)
+
+- `.dev/decisions.md` — appends ADR-0004 — *Re-enable the existing GitHub Actions lint/test/typecheck workflow as-is*. Captures context, decision (rename `ci.yml.disabled` → `ci.yml`, no content edits), four rejected alternatives (replace/fork/keep-off/dispatch-only), and consequences (defence-in-depth gate; non-blocking until operator promotes to required check; future "disable CI" attempts must go through this audit trail).
+- `.dev/journal.md` — appends a 2026-04-29 entry capturing the ADR write and the next-step routing to CodexExecutor.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.28 → 0.4.29 (patch — docs-only ADR commit, but BLUEPRINT §0.2 narrow skip-class makes ADRs behaviour-affecting because they shift the project's canonical decision contract).
+
+**Verification**
+
+- No code paths changed; lint/typecheck/test not re-run on this commit (BLUEPRINT §0.2 narrow skip-class for ADR/journal/CHANGELOG-only edits stays in force, but the CHANGELOG entry itself is non-optional and is included).
+
+**Notes**
+
+- Implementation of the rename, the BLUEPRINT operational cross-link, and the docs-only smoke-test PR is **not** in this commit. They land in the [CodexExecutor](/ANKA/agents/codexexecutor) child issue created off [ANKA-138](/ANKA/issues/ANKA-138). Closing [ANKA-138](/ANKA/issues/ANKA-138) requires CodeReviewer sign-off + a green CI run on the smoke-test PR.
+
+## 0.4.28 — 2026-04-29 05:08 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-132](/ANKA/issues/ANKA-132) — retroactive §0.2 audit-trail correction for the [ANKA-127](/ANKA/issues/ANKA-127) 12-hour critical review BLOCK.
+
+**Why:** Commit `70ceb6c` (`chore(infra:ci): ANKA-107 disable github actions workflow`, 2026-04-28 17:37 Europe/Amsterdam) renamed `.github/workflows/ci.yml` to `.github/workflows/ci.yml.disabled` and journalled the change, but missed the matching `CHANGELOG.md` entry and root version bump. BLUEPRINT §0.2 lists CI/build behaviour changes outside the skip-class audit events, so they require the changelog/version trail. CodeReviewer flagged this as a blocking finding on [ANKA-127](/ANKA/issues/ANKA-127); this entry closes the trail retroactively without rewriting the original commit.
+
+**Changed** — root umbrella version only; no production code touched
+
+- `CHANGELOG.md` — this entry, retroactively documenting `70ceb6c`'s CI behaviour change (workflow file renamed out of GitHub Actions' `*.yml`/`*.yaml` rotation; suffix preserved for one-line re-enable; local agent commands `lint:fix` / `typecheck` / `bun test` per BLUEPRINT §0.2 remain the gating signal pre-production).
+- `.dev/journal.md` — append-only entry recording the §0.2 contract violation, the retroactive remediation, and the still-open GitHub PR/merge-path footer-guard work routed to [CodexExecutor](/ANKA/agents/codexexecutor) under [ANKA-132](/ANKA/issues/ANKA-132).
 
 **Bumped**
 
@@ -22,8 +67,12 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 **Verification**
 
-- `bash .github/workflows/__tests__/commit-footer-check.sh` — 7 pass.
-- Full lint/test/typecheck run recorded in [ANKA-137](/ANKA/issues/ANKA-137) issue thread.
+- Docs/version-only change. Per the §31 review-gate matrix this is "docs-only / CHANGELOG/journal / version bumps without code → no reviewer required". No `bun test` / `bun run typecheck` proof needed; nothing executable changed.
+- The major finding on [ANKA-127](/ANKA/issues/ANKA-127) (no active GitHub Actions workflow on `main`) is tracked separately as [ANKA-138](/ANKA/issues/ANKA-138); the GitHub PR/merge-path footer guard is tracked separately as [ANKA-137](/ANKA/issues/ANKA-137) under [ANKA-132](/ANKA/issues/ANKA-132).
+
+**Notes**
+
+- This is a §0.2 audit-trail correction, not a code revert. The `ci.yml.disabled` rename from `70ceb6c` stays as-is on `main`. Until [ANKA-138](/ANKA/issues/ANKA-138) lands the replacement gating workflow, BLUEPRINT §0.2 local agent commands remain the only gate.
 
 ## 0.4.27 — 2026-04-28 23:50 Europe/Amsterdam
 
