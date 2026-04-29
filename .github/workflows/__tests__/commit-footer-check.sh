@@ -176,8 +176,8 @@ merge_commit_message() {
   git -C "$repo" commit-tree "$first_parent^{tree}" -p "$first_parent" -p "$second_parent" -m "$subject"
 }
 
-skips_single_github_merge_commit() {
-  local repo initial_branch base side merged_base head result status
+fails_two_parent_merge_looking_commit_without_trailer() {
+  local repo initial_branch base side merged_base head result status output
 
   repo=$(new_repo)
   base=$(commit_message "$repo" 'chore: base' "$REQUIRED_TRAILER")
@@ -191,8 +191,31 @@ skips_single_github_merge_commit() {
   git -C "$repo" update-ref refs/heads/main "$head"
   result=$(run_check "$repo" "$merged_base..$head")
   status=$(printf '%s\n' "$result" | sed -n '1p')
+  output=$(printf '%s\n' "$result" | sed '1d')
 
-  [ "$status" = "0" ]
+  [ "$status" != "0" ] || return 1
+  assert_contains "$output" "$head"
+  assert_contains "$output" '<missing>'
+}
+
+fails_normal_push_merge_range_without_merge_commit_trailer() {
+  local repo initial_branch base feature head result status output
+
+  repo=$(new_repo)
+  base=$(commit_message "$repo" 'chore: base' "$REQUIRED_TRAILER")
+  initial_branch=$(git -C "$repo" rev-parse --abbrev-ref HEAD)
+  git -C "$repo" switch -q -c feature "$base"
+  feature=$(commit_message "$repo" 'docs: feature branch' "$REQUIRED_TRAILER")
+  git -C "$repo" switch -q "$initial_branch"
+  head=$(merge_commit_message "$repo" "$base" "$feature" 'Merge pull request #123 from ewildee/example')
+  git -C "$repo" update-ref refs/heads/main "$head"
+  result=$(run_check "$repo" "$base..$head")
+  status=$(printf '%s\n' "$result" | sed -n '1p')
+  output=$(printf '%s\n' "$result" | sed '1d')
+
+  [ "$status" != "0" ] || return 1
+  assert_contains "$output" "$head"
+  assert_contains "$output" '<missing>'
 }
 
 fails_spoofed_github_merge_subject_without_merge_topology() {
@@ -220,6 +243,7 @@ run_test 'fails with missing Paperclip trailer and reports <missing>' fails_with
 run_test 'fails first offending commit in multi-commit range' fails_first_offending_commit_in_multi_commit_range
 run_test 'passes a clean multi-commit range' passes_clean_multi_commit_range
 run_test 'fails forged bot-authored commits without Paperclip trailer' fails_forged_bot_author_without_trailer
-run_test 'skips a single real GitHub merge commit' skips_single_github_merge_commit
+run_test 'fails two-parent merge-looking commits without Paperclip trailer' fails_two_parent_merge_looking_commit_without_trailer
+run_test 'fails push merge ranges when the merge commit lacks Paperclip trailer' fails_normal_push_merge_range_without_merge_commit_trailer
 run_test 'fails spoofed GitHub merge subject without merge topology' fails_spoofed_github_merge_subject_without_merge_topology
 run_test 'checkout does not persist credentials' checkout_does_not_persist_credentials

@@ -2,6 +2,33 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.33 — 2026-04-29 05:54 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-151](/ANKA/issues/ANKA-151) review follow-up for [ANKA-137](/ANKA/issues/ANKA-137) / [ANKA-144](/ANKA/issues/ANKA-144) — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
+
+**Why:** CodeReviewer found that the previous single-commit GitHub merge exemption still false-failed the normal GitHub "Create a merge commit" push to `main`, where the `before..sha` range contains clean PR commits plus a trailer-less GitHub-generated merge commit.
+
+**Changed** — `infra:ci/commit-footer-check`
+
+- `.github/workflows/scripts/commit-footer-check.sh` — applies the topology-checked GitHub merge exemption per commit instead of only when the entire range has one commit.
+- `.github/workflows/commit-footer-check.spec.md` — documents that normal push-merge ranges may contain clean PR commits plus a trailer-less GitHub merge commit, while one-parent spoofed merge subjects still fail closed.
+- `.dev/progress.md` / `.dev/journal.md` — records the ANKA-151 heartbeat and fresh Bun docs fetch.
+
+**Added**
+
+- `.github/workflows/__tests__/commit-footer-check.sh` — adds a push-merge regression covering clean PR commits followed by a trailer-less real GitHub merge commit in the same checked range.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.32 → 0.4.33.
+
+**Verification**
+
+- `bash .github/workflows/__tests__/commit-footer-check.sh` — 10 pass.
+- `bun run lint:fix` — exit 0 with existing warnings/no fixes.
+- `bun test` — 342 pass / 0 fail / 2092 expects.
+- `bun run typecheck` — clean.
+
 ## 0.4.32 — 2026-04-29 05:38 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-146](/ANKA/issues/ANKA-146) security respin for [ANKA-137](/ANKA/issues/ANKA-137) — `infra:ci` GitHub PR/merge-path Paperclip footer guard.

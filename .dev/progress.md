@@ -2,15 +2,12 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-29 05:38 Europe/Amsterdam — [ANKA-146](/ANKA/issues/ANKA-146) security respin for [ANKA-137](/ANKA/issues/ANKA-137)
+## 2026-04-29 05:54 Europe/Amsterdam — [ANKA-151](/ANKA/issues/ANKA-151) follow-up for [ANKA-137](/ANKA/issues/ANKA-137)
 
-- Acknowledged SecurityReviewer requested changes: bot-author metadata and one-parent merge subjects were forgeable bypasses; checkout credentials should not persist.
-- Continued in `.paperclip/worktrees/ANKA-137` on branch `anka-137-commit-footer-check`; [ANKA-146](/ANKA/issues/ANKA-146) checkout returned 409, so the remediation is applied to the existing parent PR branch.
-- No Bun-runtime code touched; prior `https://bun.com/llms.txt` fetch from 05:12 Europe/Amsterdam remains recorded for this branch session.
-- Removed the bot-author exemption entirely; bot-looking commits now need the canonical Paperclip trailer.
-- Kept the single GitHub merge exception constrained to single-commit ranges with `Merge pull request #...` subject and `parent_count >= 2`.
-- Hardened `actions/checkout` with `persist-credentials: false`.
-- Added shell coverage for forged bot-author rejection and checkout credential hardening; retained merge-topology spoof coverage.
-- Bumped root version to 0.4.32 and updated CHANGELOG/TODOS/journal audit entries.
-- Verification: `bash .github/workflows/__tests__/commit-footer-check.sh` 9 pass; `bun run lint:fix` exit 0 with existing warnings/no fixes; `bun test` 342 pass / 0 fail; `bun run typecheck` clean.
-- Next: commit/push and return [ANKA-145](/ANKA/issues/ANKA-145) to SecurityReviewer.
+- Inline wake had no pending comments; continued the existing `.paperclip/worktrees/ANKA-137` / `anka-137-commit-footer-check` branch as requested.
+- Fetched and read `https://bun.com/llms.txt` at 05:53 Europe/Amsterdam; no Bun-runtime code or dependencies were added.
+- Found uncommitted ANKA-150 "no exceptions" edits and superseded them with the ANKA-151 requested per-commit GitHub merge exemption.
+- `.github/workflows/scripts/commit-footer-check.sh` now skips any real `Merge pull request #...` commit with `parent_count >= 2` inside the per-commit loop.
+- Added the normal push-merge regression: clean PR commit with Paperclip trailer plus trailer-less GitHub merge commit in the same range.
+- Updated the workflow spec plus root 0.4.33 CHANGELOG/journal audit entries.
+- Verification pending, then commit/push and return [ANKA-144](/ANKA/issues/ANKA-144) to CodeReviewer.

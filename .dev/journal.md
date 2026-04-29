@@ -2,6 +2,37 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:54 Europe/Amsterdam — v0.4.33 ([ANKA-151](/ANKA/issues/ANKA-151) — [ANKA-137](/ANKA/issues/ANKA-137) push-merge false-fail fix)
+
+**What was done**
+
+- Followed the scoped Paperclip wake for [ANKA-151](/ANKA/issues/ANKA-151), using the inline issue payload because no fallback fetch was requested and no new comments were pending.
+- Kept work in `.paperclip/worktrees/ANKA-137` on branch `anka-137-commit-footer-check`, per the child issue's exact instruction to update the existing [ANKA-137](/ANKA/issues/ANKA-137) PR branch.
+- Fetched and read `https://bun.com/llms.txt` at 05:53 Europe/Amsterdam; no Bun-runtime code or new dependencies were added.
+- Restored the topology-checked GitHub merge exemption and moved it to the per-commit loop so normal push-to-`main` merge ranges do not false-fail.
+- Added the push-merge regression: clean PR commit with the canonical trailer plus trailer-less real GitHub merge commit in the same `before..merge` range.
+- Updated `commit-footer-check.spec.md`, bumped root `ankit-prop-umbrella` to 0.4.33, and updated the 0.4.33 CHANGELOG/progress audit trail.
+
+**Findings**
+
+- The worktree had uncommitted [ANKA-150](/ANKA/issues/ANKA-150) "no exceptions" edits in the same files. [ANKA-151](/ANKA/issues/ANKA-151) superseded that dirty state with explicit instructions to keep the existing topology check and apply it per commit.
+
+**Contradictions**
+
+- The uncommitted ANKA-150 notes described code that this heartbeat intentionally replaced, so the uncommitted v0.4.33 journal/progress/changelog text was updated to match the final ANKA-151 change.
+
+**Decisions**
+
+- No new design decision; followed the CTO-scoped ANKA-151 file list and kept the exemption narrow: `Merge pull request #...` subject plus at least two parents.
+
+**Unexpected behaviour**
+
+- None.
+
+**Open endings**
+
+- [ANKA-144](/ANKA/issues/ANKA-144) needs CodeReviewer re-review after this commit lands on PR #7. GitHub red/green smoke is still pending before [ANKA-137](/ANKA/issues/ANKA-137) can close.
+
 ## 2026-04-29 05:38 Europe/Amsterdam — v0.4.32 ([ANKA-146](/ANKA/issues/ANKA-146) — [ANKA-137](/ANKA/issues/ANKA-137) security hardening)
 
 **What was done**
