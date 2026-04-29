@@ -2,6 +2,35 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 10:01 Europe/Amsterdam — v0.4.35 / @ankit-prop/news v0.2.2 ([ANKA-194](/ANKA/issues/ANKA-194) PR #16 restricted-window corrections)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped continuation wake on [ANKA-194](/ANKA/issues/ANKA-194).
+
+**What was done**
+
+- Resumed the existing `.paperclip/worktrees/ANKA-163` worktree on `feat/anka-163-restricted-window`; shared root checkout untouched.
+- Fetched and read `https://bun.com/llms.txt` at 10:01 Europe/Amsterdam before Bun-runtime edits.
+- Narrowed `evaluateRestricted` so `/calendar/restricted` only includes FTMO rows with `restriction === true`.
+- Removed the `ALL` instrument sentinel and kept symbol matching exclusively mapper-driven.
+- Added focused specs for high-impact-but-unrestricted rows and `ALL` rows, and bumped root/news versions with CHANGELOG/progress updates.
+
+**Findings**
+
+- BLUEPRINT §11.5 splits the rules: ±5-min blackout uses `restriction === true`, while the separate 2-h pre-news evaluator uses tier-1 (`impact === 'high' OR restriction === true`).
+- GitHub PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16) is open/draft on `feat/anka-163-restricted-window`; connector review-thread read showed no active inline review threads at fetch time.
+
+**Verification**
+
+- `bun install` — clean; refreshed `bun.lock` for `@ankit-prop/news@0.2.2`.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 7 pass / 0 fail / 11 expects.
+- `bun run lint:fix` — exit 0; no repo files changed by formatting, pre-existing unrelated warnings/infos remain.
+- `bun test` — 374 pass / 0 fail / 2158 expects.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- Commit and push the existing PR branch; no service restart expected because `services/news` still has no live `start` implementation.
+
 ## 2026-04-29 09:24 Europe/Amsterdam — v0.4.34 / @ankit-prop/news v0.2.1 ([ANKA-163](/ANKA/issues/ANKA-163) restricted-window evaluator)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-163](/ANKA/issues/ANKA-163).

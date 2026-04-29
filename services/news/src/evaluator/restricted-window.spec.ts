@@ -11,12 +11,12 @@ const MAP = new Map<string, readonly string[]>([
 ]);
 
 describe('evaluateRestricted', () => {
-  test('includes tier-1 events at +0, +4, and +5 minutes but excludes +6 minutes', () => {
+  test('includes restricted events at +0, +4, and +5 minutes but excludes +6 minutes', () => {
     const db = dbWithEvents([
-      event({ title: 'At now', date: '2026-04-28T12:00:00Z' }),
-      event({ title: 'Plus four', date: '2026-04-28T12:04:00Z' }),
-      event({ title: 'Plus five', date: '2026-04-28T12:05:00Z' }),
-      event({ title: 'Plus six', date: '2026-04-28T12:06:00Z' }),
+      event({ title: 'At now', date: '2026-04-28T12:00:00Z', restriction: true }),
+      event({ title: 'Plus four', date: '2026-04-28T12:04:00Z', restriction: true }),
+      event({ title: 'Plus five', date: '2026-04-28T12:05:00Z', restriction: true }),
+      event({ title: 'Plus six', date: '2026-04-28T12:06:00Z', restriction: true }),
     ]);
 
     const reply = evaluateRestricted(deps(db), { atUtc: AT_UTC, instruments: ['XAUUSD'] });
@@ -33,8 +33,14 @@ describe('evaluateRestricted', () => {
     expect(db.calls[0]?.toUtc).toBe('2026-04-28T12:05:00.000Z');
   });
 
-  test('ignores tier-2 and tier-3 events unless FTMO marks them restricted', () => {
+  test('ignores high-impact, tier-2, and tier-3 events unless FTMO marks them restricted', () => {
     const db = dbWithEvents([
+      event({
+        title: 'High impact ignored',
+        impact: 'high',
+        restriction: false,
+        date: '2026-04-28T12:00:00Z',
+      }),
       event({ title: 'Medium ignored', impact: 'medium', date: '2026-04-28T12:00:00Z' }),
       event({ title: 'Low ignored', impact: 'low', date: '2026-04-28T12:01:00Z' }),
       event({
@@ -54,7 +60,9 @@ describe('evaluateRestricted', () => {
   });
 
   test('matches a multi-tag event when either tag affects the instrument', () => {
-    const db = dbWithEvents([event({ title: 'Gold and dollar shock', instrument: 'USD + Gold' })]);
+    const db = dbWithEvents([
+      event({ title: 'Gold and dollar shock', instrument: 'USD + Gold', restriction: true }),
+    ]);
 
     const reply = evaluateRestricted(deps(db), { atUtc: AT_UTC, instruments: ['XAUUSD'] });
 
@@ -62,8 +70,21 @@ describe('evaluateRestricted', () => {
     expect(reply.reasons.map((reason) => reason.event)).toEqual(['Gold and dollar shock']);
   });
 
+  test('does not treat ALL as a global instrument sentinel', () => {
+    const db = dbWithEvents([
+      event({ title: 'All-market calendar row', instrument: 'ALL', restriction: true }),
+    ]);
+
+    const reply = evaluateRestricted(deps(db), { atUtc: AT_UTC, instruments: ['XAUUSD'] });
+
+    expect(reply).toEqual({
+      restricted: false,
+      reasons: [],
+    });
+  });
+
   test('computes Prague day buckets across the spring DST boundary', () => {
-    const db = dbWithEvents([event({ date: '2026-03-29T21:59:00Z' })]);
+    const db = dbWithEvents([event({ date: '2026-03-29T21:59:00Z', restriction: true })]);
 
     evaluateRestricted(deps(db), {
       atUtc: '2026-03-29T21:59:00Z',
@@ -74,7 +95,7 @@ describe('evaluateRestricted', () => {
   });
 
   test('computes Prague day buckets across the fall DST boundary', () => {
-    const db = dbWithEvents([event({ date: '2026-10-25T22:59:00Z' })]);
+    const db = dbWithEvents([event({ date: '2026-10-25T22:59:00Z', restriction: true })]);
 
     evaluateRestricted(deps(db), {
       atUtc: '2026-10-25T22:59:00Z',

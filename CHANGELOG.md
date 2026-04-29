@@ -2,6 +2,26 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.35 / @ankit-prop/news@0.2.2 — 2026-04-29 10:01 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-194](/ANKA/issues/ANKA-194) — reviewer-required corrections for PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16).
+
+**Changed** — `svc:news/restricted-window-evaluator`
+
+- `services/news/src/evaluator/restricted-window.ts` — narrows `/calendar/restricted` eligibility to `restriction === true`, matching BLUEPRINT §11.5's ±5-min blackout rule. High-impact rows with `restriction: false` are left to the separate 2-h pre-news tier-1 evaluator.
+- `services/news/src/evaluator/restricted-window.ts` — removes the hard-coded `instrument === 'ALL'` global-match sentinel; instrument matching now goes exclusively through `symbol-tag-mapper`.
+- `services/news/src/evaluator/restricted-window.spec.ts` — adds regressions for high-impact-but-unrestricted rows and `ALL` rows so both reviewer corrections stay pinned.
+- `services/news/package.json` — `@ankit-prop/news` `0.2.1` → `0.2.2`.
+- Root `package.json` — `0.4.34` → `0.4.35`.
+
+**Verification**
+
+- `bun install` — clean; refreshed `bun.lock` for `@ankit-prop/news@0.2.2`.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 7 pass / 0 fail / 11 expects.
+- `bun run lint:fix` — exit 0; no repo files changed by formatting, pre-existing unrelated warnings/infos remain.
+- `bun test` — 374 pass / 0 fail / 2158 expects.
+- `bun run typecheck` — clean.
+
 ## 0.4.34 / @ankit-prop/news@0.2.1 — 2026-04-29 09:24 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-163](/ANKA/issues/ANKA-163) — `svc:news/restricted-window-evaluator` ±5 min tier-1 gate.

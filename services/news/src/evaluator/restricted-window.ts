@@ -59,7 +59,7 @@ export function evaluateRestricted(
   const reasons: RestrictedReason[] = [];
   for (const rawEvent of events) {
     const event = CalendarItem.parse(rawEvent);
-    if (!isTier1Event(event)) continue;
+    if (!isRestrictedEvent(event)) continue;
 
     const eventMs = Date.parse(event.date);
     if (!Number.isFinite(eventMs) || Math.abs(eventMs - atMs) > RESTRICTED_WINDOW_MS) continue;
@@ -109,8 +109,8 @@ function pragueBucketsForWindow(fromMs: number, toMs: number): number[] {
   return buckets;
 }
 
-function isTier1Event(event: CalendarItemType): boolean {
-  return event.impact === 'high' || event.restriction;
+function isRestrictedEvent(event: CalendarItemType): boolean {
+  return event.restriction === true;
 }
 
 function matchesAnyInstrument(
@@ -118,7 +118,6 @@ function matchesAnyInstrument(
   instruments: readonly string[],
   mapper: RestrictedWindowMapper,
 ): boolean {
-  if (event.instrument === 'ALL') return true;
   const affectedSymbols = mapper.resolveAffectedSymbols(event.instrument);
   return instruments.some((instrument) => affectedSymbols.includes(instrument));
 }
