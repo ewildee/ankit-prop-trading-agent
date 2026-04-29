@@ -2,7 +2,7 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
-## 0.4.33 — 2026-04-29 05:54 Europe/Amsterdam
+## 0.4.34 — 2026-04-29 05:57 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-151](/ANKA/issues/ANKA-151) review follow-up for [ANKA-137](/ANKA/issues/ANKA-137) / [ANKA-144](/ANKA/issues/ANKA-144) — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
 
@@ -20,7 +20,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 **Bumped**
 
-- root `ankit-prop-umbrella` 0.4.32 → 0.4.33.
+- root `ankit-prop-umbrella` 0.4.33 → 0.4.34.
 
 **Verification**
 

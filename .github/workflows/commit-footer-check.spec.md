@@ -34,17 +34,22 @@ compares the parsed lines case-sensitively. A non-canonical casing such as
 the workflow prints that observed line. A commit with no Paperclip trailer
 fails with `<missing>`.
 
-## Commit-Level Exceptions
+## Exceptions
 
-There are no commit-level exceptions. Author name, author email,
-committer, commit subject, and parent topology are all commit-controlled
-metadata, so they are not trusted for bypass decisions.
+The exception list is intentionally hard-coded and fail-closed:
+
+- a commit whose subject starts with `Merge pull request #` and whose
+  commit has merge topology (`parent_count >= 2`)
+
+The GitHub merge-commit exception is evaluated per commit, so a normal
+push-to-`main` merge range can contain clean PR commits plus a trailer-less
+GitHub merge commit without false-failing. A one-parent commit that spoofs
+the GitHub merge subject is still checked for the Paperclip trailer and
+fails closed.
 
 Bot-looking author names or emails are not exempt because normal commits
 can forge that metadata. Automation commits must include the canonical
 Paperclip trailer unless a future policy can prove a non-forgeable actor.
-Merge-looking subjects and two-parent topology are also not exempt for the
-same reason.
 
 ## Implementation
 
@@ -54,6 +59,7 @@ checker lives at `scripts/commit-footer-check.sh`, and
 `__tests__/commit-footer-check.sh` builds temporary git repositories to
 cover passing exact trailers, lowercase trailers, missing trailers,
 multi-commit first-offender reporting, clean multi-commit ranges, bot
-author forgery rejection, one-parent and two-parent merge-looking subject
-rejection, push-merge range rejection when the merge commit lacks the
-canonical trailer, and a static checkout credential-hardening assertion.
+author forgery rejection, the per-commit GitHub merge exception in both
+single-commit and normal push-merge ranges, a one-parent spoofed GitHub
+merge-subject regression, and a static checkout credential-hardening
+assertion.

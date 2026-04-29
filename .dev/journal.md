@@ -2,7 +2,7 @@
 
 _Append-only, newest first. Never edit past entries._
 
-## 2026-04-29 05:54 Europe/Amsterdam — v0.4.33 ([ANKA-151](/ANKA/issues/ANKA-151) — [ANKA-137](/ANKA/issues/ANKA-137) push-merge false-fail fix)
+## 2026-04-29 05:57 Europe/Amsterdam — v0.4.34 ([ANKA-151](/ANKA/issues/ANKA-151) — [ANKA-137](/ANKA/issues/ANKA-137) push-merge false-fail fix)
 
 **What was done**
 
@@ -11,15 +11,15 @@ _Append-only, newest first. Never edit past entries._
 - Fetched and read `https://bun.com/llms.txt` at 05:53 Europe/Amsterdam; no Bun-runtime code or new dependencies were added.
 - Restored the topology-checked GitHub merge exemption and moved it to the per-commit loop so normal push-to-`main` merge ranges do not false-fail.
 - Added the push-merge regression: clean PR commit with the canonical trailer plus trailer-less real GitHub merge commit in the same `before..merge` range.
-- Updated `commit-footer-check.spec.md`, bumped root `ankit-prop-umbrella` to 0.4.33, and updated the 0.4.33 CHANGELOG/progress audit trail.
+- Updated `commit-footer-check.spec.md`, bumped root `ankit-prop-umbrella` to 0.4.34, and updated the 0.4.34 CHANGELOG/progress audit trail.
 
 **Findings**
 
-- The worktree had uncommitted [ANKA-150](/ANKA/issues/ANKA-150) "no exceptions" edits in the same files. [ANKA-151](/ANKA/issues/ANKA-151) superseded that dirty state with explicit instructions to keep the existing topology check and apply it per commit.
+- The branch already included the [ANKA-150](/ANKA/issues/ANKA-150) "no exceptions" commit at version 0.4.33. [ANKA-151](/ANKA/issues/ANKA-151) superseded that state with explicit instructions to keep the existing topology check and apply it per commit, so this follow-up bumps to 0.4.34.
 
 **Contradictions**
 
-- The uncommitted ANKA-150 notes described code that this heartbeat intentionally replaced, so the uncommitted v0.4.33 journal/progress/changelog text was updated to match the final ANKA-151 change.
+- The issue description expected 0.4.32 → 0.4.33, but origin already carried 0.4.33 from [ANKA-150](/ANKA/issues/ANKA-150); this heartbeat preserves version monotonicity with 0.4.34.
 
 **Decisions**
 

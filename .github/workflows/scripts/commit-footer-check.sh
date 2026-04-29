@@ -6,6 +6,17 @@ readonly REQUIRED_PAPERCLIP_TRAILER='Co-Authored-By: Paperclip <noreply@papercli
 readonly PAPERCLIP_TRAILER_PATTERN='^co-authored-by: paperclip <noreply@paperclip[.]ing>$'
 readonly RULE_LINK='AGENTS.md commit footer rule and ANKA-137'
 
+is_github_merge_commit() {
+  local sha=$1
+  local subject=$2
+  local parent_count
+
+  [[ "$subject" == Merge\ pull\ request\ \#* ]] || return 1
+
+  parent_count=$(git show -s --format=%P "$sha" | wc -w | tr -d ' ')
+  [ "$parent_count" -ge 2 ]
+}
+
 print_footer_error() {
   local sha=$1
   local observed=$2
@@ -37,6 +48,15 @@ check_commit_footer_range() {
 
   while IFS= read -r sha; do
     [ -n "$sha" ] || continue
+
+    local subject
+
+    subject=$(git log -1 --format=%s "$sha")
+
+    if is_github_merge_commit "$sha" "$subject"; then
+      printf 'Skipping GitHub merge commit %s (%s).\n' "$sha" "$subject"
+      continue
+    fi
 
     local message
     local trailers
