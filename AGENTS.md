@@ -24,50 +24,73 @@ npm package for something Bun already ships is a red flag (§5.3
 forbidden list). Record the date+time of the last fetch in
 `.dev/progress.md`.
 
-## Worktree-first for multi-file changes (defensive guard, [ANKA-126](/ANKA/issues/ANKA-126))
+## Worktree-first for multi-file changes (defensive guard, [ANKA-126](/ANKA/issues/ANKA-126), [ANKA-241](/ANKA/issues/ANKA-241))
 
-Until the Paperclip platform fix from [ANKA-98](/ANKA/issues/ANKA-98)
-lands (per-issue worktrees by default in the `claude_local` adapter),
-agents share a single checkout per company. Concurrent heartbeats have
-stomped each other and lost multi-file refactors. To stop reaching for
-stash/reset workarounds, the working contract is:
+> **Failure mode (read this first).** Until [ANKA-98](/ANKA/issues/ANKA-98)
+> ships, all agents share a single checkout per company. **If you do
+> multi-file edits in the shared root and a concurrent heartbeat does a
+> `git checkout` mid-edit, all your uncommitted changes are silently
+> wiped.** This has already happened five times (see [ANKA-31](/ANKA/issues/ANKA-31)
+> / [ANKA-98](/ANKA/issues/ANKA-98) / [ANKA-126](/ANKA/issues/ANKA-126)).
+> The shared root checkout is **not safe** for multi-file edits. Do not
+> argue with this rule — branch flaps are non-recoverable.
 
-1. **Trigger.** If your change touches more than one file, or will take
-   more than one Bash tool turn to complete, do **not** edit the shared
-   root checkout. Start with a worktree.
-2. **Create.** From the shared root, run:
+You **MUST** use a per-issue worktree for any change that touches more
+than one file, or that takes more than one Bash tool turn to complete.
+A `PreToolUse` hook in `.claude/settings.json` will block your second
+modifying tool call (`Edit` / `Write` / `MultiEdit` / mutating `Bash`)
+in the shared root during a Paperclip heartbeat — it is not advisory.
+
+The canonical recipe (use the helper, do not hand-roll `git worktree`
+commands):
+
+1. **Start.** From the shared root:
 
    ```sh
-   git worktree add .paperclip/worktrees/<issueId> <baseBranch>
-   # e.g. git worktree add .paperclip/worktrees/ANKA-126 origin/main
+   scripts/paperclip-worktree.sh start <issueId> [<base-ref>]
+   # e.g. scripts/paperclip-worktree.sh start ANKA-241 origin/main
    ```
 
-   where `<issueId>` is the Paperclip issue id (e.g. `ANKA-126`) and
-   `<baseBranch>` is the branch you would otherwise check out (typically
-   `origin/main`, or the parent feature branch when the work explicitly
-   continues someone else's PR). Add `-b <branch-name>` if you also need
-   a fresh feature branch.
-3. **Work in the worktree.** All edits, `bun` commands, commits, and
+   Defaults `<base-ref>` to `origin/main`. Prints the absolute path of
+   the resulting worktree at `.paperclip/worktrees/<issueId>`.
+2. **Work in the worktree.** All edits, `bun` commands, commits, and
    pushes happen inside `.paperclip/worktrees/<issueId>`. Use absolute
    paths so you don't accidentally touch the shared root.
-4. **Return for merge only.** Only return to the shared root checkout
-   for a final fast-forward merge into `main` (or for a no-op when
-   you've already pushed the feature branch and a PR will land it).
-5. **Cleanup.** On success: `git worktree remove .paperclip/worktrees/<issueId>`.
-   If the work needs another heartbeat, leave the worktree in place —
-   the next heartbeat resumes there directly. Stale worktrees are
-   acceptable; they will be pruned wholesale once [ANKA-98](/ANKA/issues/ANKA-98)
-   lands.
-6. **Exception.** Single-line / single-file fixes that complete in one
-   Bash turn (typo, CHANGELOG timestamp, `.dev/journal.md` append) may
-   run in the shared root. Anything else uses a worktree.
+3. **Finish.** When the feature branch is merged (or pushed for PR
+   review):
+
+   ```sh
+   scripts/paperclip-worktree.sh finish <issueId>
+   ```
+
+   Fast-forward-merges into the current shared-root branch when safe,
+   then removes the worktree.
+4. **Cleanup.** Stale worktrees from `done`/`cancelled` issues:
+
+   ```sh
+   scripts/paperclip-worktree.sh cleanup
+   ```
+
+5. **Exception (one-shot only).** Single-line / single-file fixes that
+   complete in one Bash turn (typo, CHANGELOG timestamp,
+   `.dev/journal.md` append) may run in the shared root. The hook lets
+   the **first** modifying tool call through; the second will block.
+   Anything more than that uses a worktree.
+
+### Hook opt-out (board user only)
+
+The hook honours `ANKA_ALLOW_ROOT_MULTIFILE=1` so the human board user
+can still hand-edit the shared root without fighting the guard.
+**Agents must not set this env var.** If you find yourself wanting to
+opt out, that is a signal you should be in a worktree instead.
 
 `.paperclip/worktrees/` is gitignored. It is **not** the same as the
 out-of-repo Paperclip instance directory at `~/.paperclip/`; this is a
 local-only working tree directory inside the company repo.
 
-Remove this section once [ANKA-98](/ANKA/issues/ANKA-98) ships and the
-`claude_local` adapter creates per-issue worktrees automatically.
+Remove this section, the hook, and the helper script once
+[ANKA-98](/ANKA/issues/ANKA-98) ships and the `claude_local` adapter
+creates per-issue worktrees automatically.
 
 ## Working methodology (BLUEPRINT §0.2)
 
