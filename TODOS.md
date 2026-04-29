@@ -41,7 +41,8 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
   - [x] **T009.b** `svc:news/symbol-tag-mapper` YAML loader + `instrument` multi-tag split for tracked symbols — _ANKA-79_.
   - [x] **T009.d** `svc:news/restricted-window-evaluator` pure ±5 min tier-1 evaluator — _[ANKA-163](/ANKA/issues/ANKA-163)_; QA gap coverage _[ANKA-207](/ANKA/issues/ANKA-207)_.
   - [x] **T009.e** `svc:news/calendar-db` Bun SQLite store + `init.sql` — _ANKA-161_.
-  - [x] **T009.f** `svc:news/calendar-fetcher` Zod validation + 3-attempt 5xx retry + 30-minute cadence — _[ANKA-162](/ANKA/issues/ANKA-162)_.
+  - [x] **T009.f** `svc:news/calendar-fetcher` Zod validation + 3-attempt 5xx retry + 30-minute cadence + CalendarItem→CalendarEvent persistence mapping — _[ANKA-162](/ANKA/issues/ANKA-162)_, _[ANKA-220](/ANKA/issues/ANKA-220)_.
+    - [x] **T009.f.1** Map validated FTMO `CalendarItem` payloads to persisted `CalendarEvent` rows before DB upsert — _[ANKA-220](/ANKA/issues/ANKA-220)_.
   - [ ] **T009.c** Lift `SymbolTagMap` schema into `@ankit-prop/contracts/config` once the config package surface exists.
 
 ## Phase 6 — `dashboard`

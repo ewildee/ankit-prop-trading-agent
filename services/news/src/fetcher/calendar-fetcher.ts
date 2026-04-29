@@ -1,8 +1,9 @@
-import { type CalendarItem, CalendarResponse } from '@ankit-prop/contracts';
+import { type CalendarEvent, CalendarResponse } from '@ankit-prop/contracts';
 
 import { calendarFetchBackoffDelayMs } from './backoff.ts';
+import { CalendarItemMapError, mapCalendarItemToEvent } from './map-event.ts';
 
-export type CalendarEvent = CalendarItem;
+export type { CalendarEvent } from '@ankit-prop/contracts';
 
 export type CalendarFetchFailureReason =
   | 'persistent_5xx'
@@ -217,9 +218,24 @@ export function createCalendarFetcher(opts: CreateCalendarFetcherOptions): Calen
         return { ok: false, reason: 'empty_window' };
       }
 
+      let events: CalendarEvent[];
+      try {
+        events = parsed.data.items.map(mapCalendarItemToEvent);
+      } catch (error) {
+        if (error instanceof CalendarItemMapError) {
+          await markFetchFailedBestEffort(opts.db, logger);
+          logger.warn(
+            { event: 'fetcher.schema_mismatch', path: error.field, reason: error.message },
+            'fetcher.schema_mismatch',
+          );
+          return { ok: false, reason: 'schema_mismatch' };
+        }
+        throw error;
+      }
+
       const fetchedAt = clock.nowUtc();
       try {
-        await opts.db.upsertEvents(parsed.data.items, fetchedAt);
+        await opts.db.upsertEvents(events, fetchedAt);
         await opts.db.setMeta('last_fetch_at', fetchedAt);
         await opts.db.setMeta('last_fetch_ok', '1');
       } catch (error) {
@@ -227,7 +243,7 @@ export function createCalendarFetcher(opts: CreateCalendarFetcherOptions): Calen
         logger.warn({ event: 'fetcher.persist_error', error }, 'fetcher.persist_error');
         return { ok: false, reason: 'persist_error' };
       }
-      return { ok: true, events: parsed.data.items, fetchedAt };
+      return { ok: true, events, fetchedAt };
     }
 
     await markFetchFailedBestEffort(opts.db, logger);

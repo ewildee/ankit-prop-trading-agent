@@ -63,6 +63,33 @@ _Append-only, newest first. Never edit past entries._
 - Close [ANKA-222](/ANKA/issues/ANKA-222) and [ANKA-214](/ANKA/issues/ANKA-214) once PR #20 is closed (we land via the consolidated merge branch, then close PR #20 with a comment pointing to the merge commit).
 - Stale `feat/anka-164-pre-news` and `refactor/anka-214-pre-news-all-sentinel` remote branches can be pruned by operator after merge.
 
+## 2026-04-29 13:08 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-220](/ANKA/issues/ANKA-220) — PR #17 CalendarItem persistence fix)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `a5009677-6f7b-457e-87da-355db4543731`.
+
+**What was done**
+
+- Consumed [ANKA-220](/ANKA/issues/ANKA-220), the CodeReviewer blocking follow-up for PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17): the fetcher fed raw `CalendarResponse.items` into the real `CalendarDb`, which expects persisted `CalendarEvent` records.
+- Fetched and read `https://bun.com/llms.txt` at 13:07 Europe/Amsterdam before Bun-runtime edits.
+- Added `mapCalendarItemToEvent(item)` with deterministic `ftmo-` ids derived from `eventTsUtc|title|instrument|eventType` using `Bun.CryptoHasher`, UTC timestamp conversion, raw `date` preservation, parsed `instrumentTags`, first-tag `currency`, and `restricted: item.restriction`.
+- Added typed `CalendarItemMapError` for unparseable item dates or empty currency tags.
+- Wired `createCalendarFetcher.fetchOnce()` to map all parsed items before persistence; mapper errors now fail closed as `schema_mismatch`, best-effort mark `last_fetch_ok=0`, log `fetcher.schema_mismatch`, and skip partial DB writes.
+- Added mapper unit tests, fetcher mapper-error regression coverage, and an integration spec proving `createCalendarFetcher` persists through real `openCalendarDb({ path: ':memory:' })` and remains idempotent on repeated payloads.
+- Bumped `@ankit-prop/news` `0.3.3` → `0.3.4`.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile, checked 79 installs across 84 packages.
+- `bun run lint:fix` — exit 0; formatted touched files and reported only pre-existing unrelated Biome warnings/infos.
+- `bun test services/news/src/fetcher` — 21 pass / 0 fail / 96 expects.
+- `bun test services/news/src/db/calendar-db.spec.ts` — 8 pass / 0 fail / 19 expects.
+- `bun run typecheck` — clean.
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/fetcher/... services/news/package.json` — no matches.
+
+**Open endings**
+
+- Needs PR #17 rebase onto current `origin/main`, force-push, mergeability confirmation, and Paperclip handoff. No service restart expected because `services/news` still has only the placeholder `start` script and no `/health` runtime.
+
 ## 2026-04-29 13:06 Europe/Amsterdam — PR #14 merged ([ANKA-218](/ANKA/issues/ANKA-218) re-review APPROVE)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` wake on [ANKA-218](/ANKA/issues/ANKA-218).
