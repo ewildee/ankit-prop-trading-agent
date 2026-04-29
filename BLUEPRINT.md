@@ -1868,7 +1868,11 @@ ankit-prop-umbrella/
 │   ├── proc-supervisor/              # @triplon/proc-supervisor
 │   ├── eval-harness/                 # @ankit-prop/eval-harness  (LIBRARY)
 │   ├── ctrader-vendor/               # vendored ctrader-ts or in-house
-│   └── shared-contracts/             # @ankit-prop/contracts (Zod schemas)
+│   ├── shared-contracts/             # @ankit-prop/contracts (Zod schemas)
+│   └── market-data-twelvedata/       # @ankit-prop/market-data-twelvedata
+│                                     # ANKA-68 one-shot TwelveData fetcher;
+│                                     # deletable once cTrader-live history
+│                                     # subsumes the same windows
 ├── services/
 │   ├── ctrader-gateway/              # broker socket + hard rails
 │   ├── trader/                       # modular monolith with N account loops
@@ -1884,7 +1888,15 @@ ankit-prop-umbrella/
 │   ├── supervisor.example.yaml
 │   ├── recovery.example.yaml
 │   └── symbol-tag-map.example.yaml
-└── data/                             # gitignored runtime state
+└── data/                             # gitignored runtime state, except…
+    ├── market-data/
+    │   └── twelvedata/<fixture-version>/    # CHECKED IN (ANKA-67 / ANKA-68
+    │                                        # TwelveData fixtures: bars/,
+    │                                        # symbols/, manifest.json,
+    │                                        # adversarial-windows.json,
+    │                                        # fetch-log.jsonl). Force-added
+    │                                        # past the data/ ignore rule;
+    │                                        # version-pinned, immutable.
     ├── trader.db                     # decisions, trades, orders, executions, costs
     ├── audit-log/<account_id>.jsonl
     ├── trade-memory/<account_id>.jsonl
@@ -2796,6 +2808,7 @@ appears.
 | `pkg:eval-harness` | Library | `packages/eval-harness` | `@ankit-prop/eval-harness` | Backtest, paper-replay, FTMO rule simulator |
 | `pkg:contracts` | Library | `packages/shared-contracts` | `@ankit-prop/contracts` | Zod schemas shared across services |
 | `pkg:ctrader-vendor` | Library | `packages/ctrader-vendor` | `@ankit-prop/ctrader-vendor` | Vendored `ctrader-ts` or in-house client |
+| `pkg:market-data-twelvedata` | Library (temporary, deletable) | `packages/market-data-twelvedata` | `@ankit-prop/market-data-twelvedata` | One-shot, resumable Bun fetcher for TwelveData REST historical bars (NAS100, XAUUSD; 1m/5m/15m/1h/1d). Writes versioned, checked-in fixtures under `data/market-data/twelvedata/<fixture-version>/` for `pkg:eval-harness/bar-data-cache` consumers. **Lifecycle:** delete the package, the scope tag, and the fixture tree together once `pkg:ctrader-vendor` live-history coverage subsumes the windows it fetches (parent ticket [ANKA-67](/ANKA/issues/ANKA-67)). **Owner:** FoundingEngineer; disposal trigger reviewed at every §22 phase boundary. |
 | `svc:supervisor` | Service runtime | `services/...` (none — supervisor is `pkg:` only) | — | (alias of `pkg:supervisor` runtime; reserved) |
 | `svc:gateway` | Service | `services/ctrader-gateway` | `@ankit-prop/ctrader-gateway` | Broker socket + hard guardrails |
 | `svc:trader` | Service | `services/trader` | `@ankit-prop/trader` | Modular monolith with N account loops |
@@ -2949,6 +2962,27 @@ appears.
 | `proto` | Vendored `Spotware/openapi-proto-messages` at pinned commit |
 | `framing` | 4-byte length prefix vs WSS-frame variants |
 | `smoke-test` | The 7-step gate harness |
+
+#### `pkg:market-data-twelvedata/...`
+
+Lifecycle reminder: this package is explicitly temporary (see §25.1).
+When ANKA-67 disposes of the TwelveData fetch path, delete this block,
+the package, the `pkg:market-data-twelvedata` GitHub label, and the
+`data/market-data/twelvedata/` fixture tree in one commit.
+
+| Sub-module | Purpose |
+|------------|---------|
+| `cli` | `td-fetch plan` / `td-fetch fetch` Bun entrypoint |
+| `planner` | Window → call/credit budget; `--dry-run` first |
+| `twelve-data-client` | REST `time_series` adapter; auth, retries, rate-limit feedback |
+| `rate-limiter` | Grow-tier 55-credits-per-minute token bucket |
+| `fetcher` | Orchestrates planner + client + fixture-store; resumable; fail-closed ingestion |
+| `fixture-store` | Versioned write/read of `<fixture-version>/{bars,symbols,manifest,fetch-log}` |
+| `schema` | Zod schemas for fixture files (bar line, manifest, symbol-meta, adversarial-windows, fetch-log) |
+| `symbols` | NAS100 / XAUUSD identity capture (TD alias, exchange, calendar, DST) |
+| `timeframes` | Allowed 1m/5m/15m/1h/1d set + per-timeframe call sizing |
+| `adversarial-windows` | NFP / FOMC / ECB / market-holiday manifest builder |
+| `index` | Public re-exports for harness consumption |
 
 #### Cross-cutting (`infra:*`) sub-modules
 

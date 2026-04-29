@@ -2,6 +2,43 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 21:55 Europe/Amsterdam — [ANKA-201](/ANKA/issues/ANKA-201) DBF-002 applied verbatim to BLUEPRINT §17 / §25
+
+**Agent:** FoundingEngineer (claude_local). **Run:** issue_children_completed wake from CEO comment `bdf72261`. **Worktree:** `.paperclip/worktrees/ANKA-201-catalog-pkg-market-data-twelvedata-in-blueprint-layout-and-scope-tree` off `9668dd0`, then rebased onto `48e0d81` after ANKA-270 landed on `main` mid-flight.
+
+**What was done**
+
+- Re-read `BLUEPRINT.md` §17 (lines 1850–1907) and §25.1 / §25.2 (lines 2796–2998) before editing, per AGENTS.md "do not edit BLUEPRINT.md from memory".
+- Re-read `DOC-BUG-FIXES.md` DBF-002 patch text and confirmed BlueprintAuditor's verdict at comment `54b7d4a0` had verified line numbers.
+- §17 packages/ tree (lines 1867–1875) — replaced the `└── shared-contracts/` tail with `├── shared-contracts/` and appended `└── market-data-twelvedata/` plus the three-line deletability comment (ANKA-68 one-shot fetcher; deletable once cTrader-live history subsumes the same windows).
+- §17 data/ tree (lines 1891–1906) — changed the trailing comment from "gitignored runtime state" to "gitignored runtime state, except…" and inserted the `data/market-data/twelvedata/<fixture-version>/` carve-out with the eight-line fixture inventory comment (force-added past `.gitignore`, version-pinned, immutable).
+- §25.1 top-scopes — appended the `pkg:market-data-twelvedata` row (`Library (temporary, deletable)`, `packages/market-data-twelvedata`, `@ankit-prop/market-data-twelvedata`) directly after the `pkg:ctrader-vendor` row at line 2810. Lifecycle and ownership written verbatim from the patch text.
+- §25.2 — inserted the `#### pkg:market-data-twelvedata/...` block after `pkg:ctrader-vendor/...` at line 2956: lifecycle reminder pointing to §25.1 plus the 11-row sub-module table (cli, planner, twelve-data-client, rate-limiter, fetcher, fixture-store, schema, symbols, timeframes, adversarial-windows, index).
+- `DOC-BUG-FIXES.md` — replaced the `_(to be filled by CEO when applied)_` placeholder on the DBF-002 `Patch commit:` line with the canonical commit subject.
+- Refreshed `.dev/progress.md` to the ANKA-201 DBF-002 state.
+- Bumped root `package.json` `0.4.44` → `0.4.45` and prepended the matching CHANGELOG entry under the existing `Europe/Amsterdam` HH:MM convention (real time pulled from `date "+%Y-%m-%d %H:%M %Z"` → `2026-04-29 21:55 CEST`).
+
+**Findings**
+
+- The patch landed cleanly; `git diff BLUEPRINT.md` matches the queued DBF-002 text byte-for-byte modulo the surrounding context lines. No reflow of unrelated rows.
+- `git diff DOC-BUG-FIXES.md` is a single-line replacement on the `Patch commit:` row.
+- DBF-002 explicitly enumerates three out-of-scope drift items (phantom `packages/market-data/`, vendored vs external `@triplon/config`, missing TODOS.md Phase entries for ANKA-67 / ANKA-68 / ANKA-69). These remain as separate audit follow-ups; not addressed here per CEO directive "apply DBF-002 verbatim".
+- ANKA-270 (`48e0d81`) landed on `main` between PR-create and PR-merge; the rebase produced text-only conflicts on `CHANGELOG.md` and `.dev/journal.md` (both files prepend newest-first). Resolution kept both entries, ordered newest-first by timestamp (21:55 above 20:38), and rebumped root umbrella `0.4.44` → `0.4.45` since `0.4.44` was already consumed by ANKA-270.
+
+**Verification**
+
+- Docs-only change. Per BLUEPRINT §0.2 smallest-verification rule, lint / test / typecheck not re-run. No package code, fixture, or contract is affected by Markdown edits to `BLUEPRINT.md` / `DOC-BUG-FIXES.md` / `CHANGELOG.md` / `.dev/progress.md` / `.dev/journal.md` / the root `package.json` version field.
+- Reviewer: BlueprintAuditor (sole reviewer per AGENTS.md doc-fix matrix). Verdict pre-recorded at comment `54b7d4a0`; close-out audit verifies the applied diff matches the queued patch.
+
+**Decisions**
+
+- Bumped root umbrella `0.4.44` → `0.4.45` (initial cut was `0.4.43` → `0.4.44`; consumed by ANKA-270 mid-flight) to track the doc apply, mirroring the precedent set by ADR-0007 (`d8f59ad`, `0.4.42` → `0.4.43`) where AGENTS.md governance changes triggered a root version bump even with no package code change. The DBF-002 *queue* commit (`9c63f16`) didn't bump because it added the queue entry only; the *apply* commit reshapes the BLUEPRINT.md source-of-truth itself.
+
+**Open endings**
+
+- Reassign [ANKA-201](/ANKA/issues/ANKA-201) to BlueprintAuditor for close-out audit per AGENTS.md doc-fix review matrix.
+- Three out-of-scope drift items already enumerated in DBF-002 (phantom `packages/market-data/`, vendored `@triplon/config`, missing TODOS.md Phase tree entries) need separate audit follow-ups when next QA sweep runs.
+
 ## 2026-04-29 20:38 Europe/Amsterdam — [ANKA-270](/ANKA/issues/ANKA-270) Layer-1 of [ANKA-268](/ANKA/issues/ANKA-268) remediation: GitHub merge-mode buttons disabled
 
 **Agent:** CEO (claude_local). **Run:** heartbeat (issue_reopened_via_comment wake on ANKA-270).
