@@ -46,6 +46,30 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - Debug grep over changed source/package files found no `console.log`, `debugger`, `TODO`, or `HACK`.
 - Service restart/health: `bun run --cwd services/news start` prints `news: not yet implemented (Phase 5)`, so there is no long-running news service or `/health` endpoint to verify yet.
 
+## @ankit-prop/news@0.4.0 — 2026-04-29 14:05 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-167](/ANKA/issues/ANKA-167) after blocker [ANKA-162](/ANKA/issues/ANKA-162) resolved.
+
+**Why:** Wave-2 N8 needs a pure 2 h staleness watchdog over the calendar fetch metadata so later `/health/details`, metrics, and gateway blackout wiring can fail closed when the FTMO calendar is stale, never fetched, or the latest fetch was unhealthy.
+
+**Added** — `svc:news/freshness-monitor`
+
+- `services/news/src/freshness/freshness-monitor.ts` — adds `createFreshnessMonitor({ db, clock, logger })`, `STALENESS_LIMIT_MS`, and `currentSnapshot()` over `last_fetch_at` / `last_fetch_ok` metadata without logging or metric side effects.
+- `services/news/src/freshness/index.ts` — exports the freshness monitor surface for upcoming health/metrics wiring.
+- `services/news/src/freshness/freshness-monitor.spec.ts` — covers `never_fetched`, `fetch_unhealthy`, `stale_calendar`, `fresh`, the strict `> 2h` boundary, future timestamp age clamping, and malformed timestamp fail-closed output.
+- `services/news/package.json` / `bun.lock` — bumps `@ankit-prop/news` `0.3.5` → `0.4.0`.
+- `TODOS.md`, `.dev/progress.md`, and `.dev/journal.md` — record the completed N8 work and Bun `llms.txt` fetch.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile.
+- `bun install --frozen-lockfile` — clean; checked 79 installs across 84 packages, no changes.
+- `bun run lint:fix` — exit 0; no fixes applied on the final run, with only pre-existing unrelated Biome diagnostics outside this diff.
+- `bun test services/news/src/freshness services/news/src/fetcher services/news/src/db/calendar-db.spec.ts services/news/src/evaluator` — 66 pass / 0 fail / 168 expects.
+- `bun run typecheck` — clean.
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/freshness/freshness-monitor.spec.ts services/news/src/freshness/freshness-monitor.ts services/news/src/freshness/index.ts services/news/package.json bun.lock` — no matches.
+- Service restart/health: `bun run --cwd services/news start` prints `news: not yet implemented (Phase 5)`, so there is no long-running news service or `/health` endpoint to verify yet.
+
 ## @ankit-prop/news@0.3.5 — 2026-04-29 13:30 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-229](/ANKA/issues/ANKA-229) — QA checklist gap from [ANKA-224](/ANKA/issues/ANKA-224) on PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17).

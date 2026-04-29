@@ -45,6 +45,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
     - [x] **T009.f.1** Map validated FTMO `CalendarItem` payloads to persisted `CalendarEvent` rows before DB upsert — _[ANKA-220](/ANKA/issues/ANKA-220)_.
     - [x] **T009.f.2** Reject offsetless and impossible `CalendarItem.date` values before deriving `eventTsUtc` — _[ANKA-231](/ANKA/issues/ANKA-231)_.
   - [x] **T009.g** `svc:news/next-restricted-locator` 48h restricted-event ETA helper — _[ANKA-166](/ANKA/issues/ANKA-166)_.
+  - [x] **T009.h** `svc:news/freshness-monitor` pure 2 h staleness watchdog over fetch metadata — _[ANKA-167](/ANKA/issues/ANKA-167)_.
   - [ ] **T009.c** Lift `SymbolTagMap` schema into `@ankit-prop/contracts/config` once the config package surface exists.
 
 ## Phase 6 — `dashboard`
