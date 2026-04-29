@@ -2,6 +2,32 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 06:08 Europe/Amsterdam — docs-only ([ANKA-140](/ANKA/issues/ANKA-140) — PR #5 merge)
+
+**What was done**
+
+- Scoped Paperclip wake on [ANKA-140](/ANKA/issues/ANKA-140) following [CodeReviewer's APPROVE](/ANKA/issues/ANKA-140#comment-313abc99-36d4-4060-b4ae-2a85917346dc) on PR #5 head `24153fec8ad2c3f052afa6e380f143eb9a7c376f` (zero blocking, zero major, zero minor findings).
+- Verified PR mergeability via `gh pr view 5` — `MERGEABLE`/`CLEAN`. PR was still in draft, so promoted with `gh pr ready 5` then merged via `gh pr merge 5 --rebase --delete-branch` per the [ANKA-132](/ANKA/issues/ANKA-132) merge protocol (rebase only — server-side merge commits strip the canonical `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer).
+- `origin/main` advanced `733c53e..9dab3ee` (`9dab3ee5a91895ef854927462e6f5aa24c42976d`). Local `.paperclip/worktrees/ANKA-130` worktree removed; remote branch `anka-130-triplon-config` deleted by `--delete-branch`.
+- Closed [ANKA-140](/ANKA/issues/ANKA-140) (own issue, in_review → done) and [ANKA-130](/ANKA/issues/ANKA-130) (parent, owned by CodexExecutor) with chain-of-command PATCH per the reviewer's hand-back.
+- Authored this docs-only journal/progress entry on a fresh worktree at `.paperclip/worktrees/ANKA-140` off `origin/main` (branch `anka-140-merge-journal`) rather than committing on the orphaned `anka-121-dashboard-shell` shared-root branch — keeps merge-action housekeeping out of unrelated feature scope.
+
+**Findings**
+
+- Local branch deletion blocked by Safety Net (`git branch -D` rejected without merge check) because rebase-merge produced a new SHA on `origin/main`, so the local branch tip looked unmerged. Remote branch is already deleted — left the stale local ref in place; harmless and will get pruned manually by Étienne. No protocol drift.
+- PR #5 was a draft when the review came in. Filed as a one-off observation: future Codex-authored PRs that go straight to review should be marked ready at push time so the reviewer doesn't need an extra `gh pr ready` round-trip in the merge handoff. Not worth a process change yet — single occurrence.
+- Chain-of-command PATCH on [ANKA-130](/ANKA/issues/ANKA-130) succeeded even though the issue was assigned to CodexExecutor (`5e6c5e8b-...`) — confirms FE has direct close authority over reports' issues without needing a checkout reassign.
+
+**Decisions**
+
+- Not creating a follow-up child issue for the stale local branch ref — single-host artefact, no operational impact, and the user's manual `git branch -D` is the cheapest fix. Logged here for traceability instead.
+- Not bumping any package version — no production code changed; this is a `.dev/` journal-only commit. Per AGENTS.md trivial docs-only row of the review-gate matrix, no reviewer required; closing self.
+
+**Open endings**
+
+- F2 of [ANKA-85](/ANKA/issues/ANKA-85) (`@triplon/config` scaffold) is now landed on `main`. Wave-2 of [ANKA-75](/ANKA/issues/ANKA-75) (additional config consumers — agent-config, broker-config, news-config tables in §17) is unblocked; sequencing waits on the next CEO-prioritised heartbeat.
+- The orphaned `anka-121-dashboard-shell` branch in the shared root remains the active dashboard-shell scope; not touched by this entry.
+
 ## 2026-04-29 05:49 Europe/Amsterdam — @triplon/config v0.1.2 ([ANKA-149](/ANKA/issues/ANKA-149) — [ANKA-140](/ANKA/issues/ANKA-140) BLOCK fix)
 
 **What was done**
