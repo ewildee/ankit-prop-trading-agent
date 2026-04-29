@@ -2,6 +2,23 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:53 Europe/Amsterdam — v0.4.30 ([ANKA-130](/ANKA/issues/ANKA-130) — `@triplon/config` F2 scaffold rebase)
+
+**What was done**
+
+- Preserved the [ANKA-130](/ANKA/issues/ANKA-130) local `@triplon/config` scaffold while rebasing the PR branch above [ANKA-138](/ANKA/issues/ANKA-138)'s v0.4.29 mainline during [ANKA-149](/ANKA/issues/ANKA-149) conflict resolution.
+- Added `packages/triplon-config` v0.1.0 with `defineConfig`, `ConfigLoadError`, env-name derivation, local `defineAppConfig` compatibility exports, SymbolTagMap schema, deterministic codegen, and generated SymbolTagMap artifacts.
+- Kept root `config:codegen` scripts and `bun.lock` workspace provider wiring for `@triplon/config`.
+- Re-versioned the umbrella 0.4.29 → 0.4.30 so the rebased config scaffold remains above main's latest audit-trail release.
+
+**Findings**
+
+- The conflict was metadata-only (`.dev/journal.md`, `CHANGELOG.md`, root `package.json`); source files and `bun.lock` staged cleanly from the original config scaffold commit.
+
+**Open endings**
+
+- Continue the rebase through [ANKA-141](/ANKA/issues/ANKA-141) and [ANKA-149](/ANKA/issues/ANKA-149), then rerun the required verification on the final rebased tree.
+
 ## 2026-04-29 05:12 Europe/Amsterdam — v0.4.29 ([ANKA-138](/ANKA/issues/ANKA-138) — ADR-0004 re-enable GHA lint/test/typecheck workflow)
 
 **What was done**
@@ -65,7 +82,6 @@ _Append-only, newest first. Never edit past entries._
 - Push branch + open PR for this audit-trail fix; merge to `main` (FF) and close [ANKA-132](/ANKA/issues/ANKA-132). Then route [ANKA-127](/ANKA/issues/ANKA-127) back to CodeReviewer with the citation chain.
 - Wait on Codex for [ANKA-137](/ANKA/issues/ANKA-137); FE writes the [ANKA-138](/ANKA/issues/ANKA-138) ADR next heartbeat.
 - This is a §0.2 audit-trail correction, not a code revert. `ci.yml.disabled` from `70ceb6c` stays disabled until [ANKA-138](/ANKA/issues/ANKA-138) ships its replacement.
-
 ## 2026-04-28 23:50 Europe/Amsterdam — v0.4.27 ([ANKA-126](/ANKA/issues/ANKA-126) — worktree-first defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) lands)
 
 **What was done.** Added the in-repo defensive guard for the per-issue worktree convention while we wait for the Paperclip `claude_local` per-issue-worktree platform fix from [ANKA-98](/ANKA/issues/ANKA-98).

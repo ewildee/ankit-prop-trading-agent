@@ -1,0 +1,19 @@
+{
+  "name": "@triplon/config",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Bun-native YAML config loading, env-name derivation, and schema artifacts for Ankit Prop Trader.",
+  "main": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas/symbol-tag-map": "./src/schemas/symbol-tag-map.ts"
+  },
+  "scripts": {
+    "config:codegen": "bun run src/codegen/run.ts",
+    "config:codegen:check": "bun run src/codegen/check.ts"
+  },
+  "dependencies": {
+    "zod": "4.3.6"
+  }
+}
