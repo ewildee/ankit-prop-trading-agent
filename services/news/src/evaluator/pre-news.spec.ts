@@ -43,6 +43,41 @@ describe('evaluatePreNews', () => {
     expect(queried).toBe(false);
   });
 
+  test('queries the exact half-open two-hour UTC range and filters mixed boundary events', () => {
+    const observed: string[][] = [];
+    const reply = evaluatePreNews(
+      {
+        db: db(
+          [
+            event({ date: '2026-04-28T11:59:00Z', title: 'Before Window' }),
+            event({ date: '2026-04-28T12:00:00Z', title: 'At Window Start' }),
+            event({ date: '2026-04-28T13:59:00Z', title: 'Inside Final Minute' }),
+            event({ date: '2026-04-28T14:00:00Z', title: 'At Exclusive End' }),
+            event({ date: '2026-04-28T12:30:00Z', impact: 'medium', title: 'Tier Two' }),
+            event({ date: '2026-04-28T13:00:00Z', impact: 'low', title: 'Tier Three' }),
+            event({
+              date: '2026-04-28T12:45:00Z',
+              instrument: 'EUR',
+              title: 'Unmapped Instrument',
+            }),
+          ],
+          (fromUtc, toUtc) => observed.push([fromUtc, toUtc]),
+        ),
+        mapper: MAP,
+      },
+      { atUtc: '2026-04-28T12:00:00Z', instruments: ['XAUUSD'] },
+    );
+
+    expect(observed).toEqual([['2026-04-28T12:00:00.000Z', '2026-04-28T14:00:00.000Z']]);
+    expect(reply).toEqual({
+      restricted: true,
+      reasons: [
+        { event: 'At Window Start', eta_seconds: 0, rule: 'pre_news_2h' },
+        { event: 'Inside Final Minute', eta_seconds: 7140, rule: 'pre_news_2h' },
+      ],
+    });
+  });
+
   test('includes tier-1 events exactly at atUtc', () => {
     const reply = evaluatePreNews(
       { db: db([event({ date: '2026-04-28T12:00:00Z', title: 'FOMC Statement' })]), mapper: MAP },
