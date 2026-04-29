@@ -2,6 +2,28 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.35 — 2026-04-29 06:11 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), following up on [ANKA-150](/ANKA/issues/ANKA-150) reviewer convergence for [ANKA-137](/ANKA/issues/ANKA-137) / PR #7 — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
+
+**Why:** CodeReviewer requested the forged two-parent merge-looking commit regression in the exact multi-commit PR range shape: one clean PR commit followed by the forged trailer-less `Merge pull request #...` commit.
+
+**Changed** — `infra:ci/commit-footer-check`
+
+- `.github/workflows/__tests__/commit-footer-check.sh` — adds the multi-commit PR-range forged merge regression and asserts the checker reports `<missing>` against the forged sha.
+- `.github/workflows/commit-footer-check.spec.md` / `TODOS.md` / `.dev/progress.md` / `.dev/journal.md` — record the added coverage and reviewer handoff.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.34 → 0.4.35.
+
+**Verification**
+
+- `bash .github/workflows/__tests__/commit-footer-check.sh` — 14 pass.
+- `bun run lint:fix` — exit 0 with existing warnings/no fixes.
+- `bun test` — initial fresh-worktree run failed because workspace/package links were not installed; after `bun install`, 342 pass / 0 fail / 2092 expects.
+- `bun run typecheck` — clean.
+
 ## 0.4.34 — 2026-04-29 06:04 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), reconciling [ANKA-150](/ANKA/issues/ANKA-150) security follow-up with completed [ANKA-151](/ANKA/issues/ANKA-151) push-merge false-positive fix for [ANKA-137](/ANKA/issues/ANKA-137) / PR #7 — `infra:ci` GitHub PR/merge-path Paperclip footer guard.

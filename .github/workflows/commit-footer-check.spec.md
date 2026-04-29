@@ -66,5 +66,5 @@ author forgery rejection, the per-commit GitHub merge exception in both
 single-commit and normal push-merge ranges, pull-request and merge-group
 rejection for merge-looking commits, a one-parent spoofed GitHub
 merge-subject regression, the forged two-parent merge-looking commit from
-[ANKA-150](/ANKA/issues/ANKA-150), and a static checkout credential-hardening
-assertion.
+[ANKA-150](/ANKA/issues/ANKA-150), the same forged commit inside a
+multi-commit PR range, and a static checkout credential-hardening assertion.

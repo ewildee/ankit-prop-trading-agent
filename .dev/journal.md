@@ -2,6 +2,31 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 06:11 Europe/Amsterdam — v0.4.35 ([ANKA-150](/ANKA/issues/ANKA-150) — multi-commit forged merge regression)
+
+**What was done**
+
+- Followed the scoped Paperclip wake for [ANKA-150](/ANKA/issues/ANKA-150) and acknowledged the reviewer-convergence comment before broader repo work.
+- Verified `origin/anka-137-commit-footer-check` at `79e114c` already had the trusted `COMMIT_FOOTER_EVENT_NAME=push` merge exemption, but did not yet include CodeReviewer's requested multi-commit PR-range forged-merge regression.
+- Recreated `.paperclip/worktrees/ANKA-150` on branch `anka-150-forged-merge-footer-check`.
+- Added a shell regression where `base..head` contains one clean PR commit and one forged two-parent `Merge pull request #999...` commit without the Paperclip trailer; in `pull_request` context the checker fails closed and reports `<missing>` against the forged sha.
+- Updated the workflow spec, `T015`, root `ankit-prop-umbrella` to 0.4.35, and the CHANGELOG/progress audit trail.
+
+**Findings**
+
+- The completed ANKA-150 implementation fixed the core event-boundary bypass, but the latest comment's additional multi-commit coverage requirement was not present on the pushed branch.
+
+**Verification**
+
+- `bash .github/workflows/__tests__/commit-footer-check.sh` — 14 pass.
+- `bun run lint:fix` — exit 0 with existing warnings/no fixes.
+- `bun test` — initial fresh-worktree run failed because workspace/package links were missing; after `bun install`, 342 pass / 0 fail / 2092 expects.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- SecurityReviewer and CodeReviewer need to re-check the pushed PR branch for [ANKA-137](/ANKA/issues/ANKA-137).
+
 ## 2026-04-29 06:04 Europe/Amsterdam — v0.4.34 ([ANKA-150](/ANKA/issues/ANKA-150) / [ANKA-151](/ANKA/issues/ANKA-151) — event-gated merge exception)
 
 **What was done**

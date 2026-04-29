@@ -279,6 +279,24 @@ fails_forged_two_parent_merge_exception_without_trailer() {
   assert_contains "$output" '<missing>'
 }
 
+fails_forged_two_parent_merge_in_multi_commit_pr_range() {
+  local repo root base clean forged result status output
+
+  repo=$(new_repo)
+  root=$(commit_message "$repo" 'chore: root' "$REQUIRED_TRAILER")
+  base=$(commit_message "$repo" 'chore: base' "$REQUIRED_TRAILER")
+  clean=$(commit_message "$repo" 'docs: clean PR commit' "$REQUIRED_TRAILER")
+  forged=$(merge_commit_message "$repo" "$clean" "$root" 'Merge pull request #999 from attacker/no-footer')
+  git -C "$repo" update-ref refs/heads/main "$forged"
+  result=$(run_check "$repo" "$base..$forged" 'pull_request')
+  status=$(printf '%s\n' "$result" | sed -n '1p')
+  output=$(printf '%s\n' "$result" | sed '1d')
+
+  [ "$status" != "0" ] || return 1
+  assert_contains "$output" "$forged"
+  assert_contains "$output" '<missing>'
+}
+
 checkout_does_not_persist_credentials() {
   grep -Eq '^[[:space:]]+persist-credentials:[[:space:]]+false[[:space:]]*$' "$WORKFLOW_FILE"
 }
@@ -295,4 +313,5 @@ run_test 'fails pull_request merge-looking commits without Paperclip trailer' fa
 run_test 'fails merge_group merge-looking commits without Paperclip trailer' fails_merge_group_merge_looking_commit_without_trailer
 run_test 'fails spoofed GitHub merge subject without merge topology' fails_spoofed_github_merge_subject_without_merge_topology
 run_test 'fails forged two-parent GitHub merge exception without Paperclip trailer' fails_forged_two_parent_merge_exception_without_trailer
+run_test 'fails forged two-parent merge-looking commit in multi-commit PR range' fails_forged_two_parent_merge_in_multi_commit_pr_range
 run_test 'checkout does not persist credentials' checkout_does_not_persist_credentials
