@@ -20,6 +20,7 @@ import { type InstrumentSpec, MarketDataNotAvailable } from './types.ts';
 const FIVE_MIN_MS = 5 * 60_000;
 const FIFTEEN_MIN_MS = 15 * 60_000;
 const T0 = 1_700_000_000_000;
+const BOGUS_DISK_TS_END = T0 + 999 * FIVE_MIN_MS;
 const REAL_FIXTURE_ROOT = join(
   dirname(fileURLToPath(import.meta.url)),
   '..',
@@ -138,7 +139,10 @@ function buildFixture(root: string): {
   mkdirSync(join(root, 'bars', 'XAUUSD'), { recursive: true });
   mkdirSync(join(root, 'bars', 'NAS100'), { recursive: true });
   mkdirSync(join(root, 'symbols'), { recursive: true });
-  const xau5m = writeJsonl(join(root, 'bars', 'XAUUSD', '5m.jsonl.gz'), xauBars5m);
+  const xauBars5mOnDisk = xauBars5m.map((bar, i) =>
+    i === 0 ? { ...bar, tsEnd: BOGUS_DISK_TS_END } : bar,
+  );
+  const xau5m = writeJsonl(join(root, 'bars', 'XAUUSD', '5m.jsonl.gz'), xauBars5mOnDisk);
   const xau15m = writeJsonl(join(root, 'bars', 'XAUUSD', '15m.jsonl.gz'), xauBars15m);
   const nas5m = writeJsonl(join(root, 'bars', 'NAS100', '5m.jsonl.gz'), nasBars5m);
   writeFileSync(join(root, 'symbols', 'XAUUSD.meta.json'), JSON.stringify(XAUUSD_META));
@@ -254,6 +258,7 @@ describe('CachedFixtureProvider', () => {
     const nas = avail.find((a) => a.symbol === 'NAS100');
     expect([...(xau?.timeframes ?? [])].sort()).toEqual(['15m', '5m']);
     expect([...(nas?.timeframes ?? [])]).toEqual(['5m']);
+    expect(avail.find((a) => a.symbol === 'EURUSD')).toBeUndefined();
   });
 
   test('getBars returns the full fixture window in ascending order with derived tsEnd', async () => {
@@ -273,6 +278,7 @@ describe('CachedFixtureProvider', () => {
     expect(bars[0]?.symbol).toBe('XAUUSD');
     expect(bars[0]?.timeframe).toBe('5m');
     expect(bars[0]?.tsEnd).toBe((bars[0]?.tsStart ?? 0) + FIVE_MIN_MS);
+    expect(bars[0]?.tsEnd).not.toBe(BOGUS_DISK_TS_END);
     expect(bars[0]?.open).toBe(2350);
   });
 
@@ -531,6 +537,7 @@ describe('CachedFixtureProvider', () => {
     expect(xau?.providerSymbol).toBe('XAU/USD'); // identity still populated
     expect(xau?.pipSize).toBe(0); // broker spec absent → zeroed
     expect(xau?.contractSize).toBe(0);
+    expect(xau?.typicalSpreadPips).toBe(0);
   });
 
   test('validates shard integrity metadata before returning bars', async () => {
