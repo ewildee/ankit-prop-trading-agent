@@ -18,3 +18,4 @@ export {
   createCalendarFetcher,
   DEFAULT_FTMO_CALENDAR_URL,
 } from './calendar-fetcher.ts';
+export { CalendarItemMapError, mapCalendarItemToEvent } from './map-event.ts';

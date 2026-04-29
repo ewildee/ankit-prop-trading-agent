@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
+import { CalendarItem, type CalendarItem as CalendarItemType } from '@ankit-prop/contracts';
+
 import cassette from '../../test/cassettes/ftmo-2026-03-23-week.json';
 import {
   type CalendarEvent,
@@ -7,6 +9,7 @@ import {
   type CalendarFetcherLogger,
   createCalendarFetcher,
   DEFAULT_FTMO_CALENDAR_URL,
+  mapCalendarItemToEvent,
 } from './index.ts';
 
 const NOW = '2026-04-29T07:30:00.000Z';
@@ -48,7 +51,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-function minimalEvent(overrides: Partial<CalendarEvent> = {}): CalendarEvent {
+function minimalItem(overrides: Partial<CalendarItemType> = {}): CalendarItemType {
   return {
     title: 'Non-Farm Employment Change',
     impact: 'high',
@@ -107,6 +110,9 @@ describe('createCalendarFetcher.fetchOnce', () => {
     if (result.ok) {
       expect(result.fetchedAt).toBe(NOW);
       expect(result.events.length).toBeGreaterThan(100);
+      expect(result.events[0]).toEqual(
+        mapCalendarItemToEvent(CalendarItem.parse(cassette.items[0])),
+      );
     }
     expect(seenUrls).toHaveLength(1);
     expectPragueWindowUrl(seenUrls[0] ?? '');
@@ -133,7 +139,7 @@ describe('createCalendarFetcher.fetchOnce', () => {
         if (calls <= 2) {
           return jsonResponse({ error: 'temporary' }, 503);
         }
-        return jsonResponse({ items: [minimalEvent()] });
+        return jsonResponse({ items: [minimalItem()] });
       },
     });
 
@@ -239,7 +245,7 @@ describe('createCalendarFetcher.fetchOnce', () => {
       clock: { nowUtc: () => NOW },
       fetch() {
         return jsonResponse({
-          items: [minimalEvent({ impact: 'critical' as CalendarEvent['impact'] })],
+          items: [minimalItem({ impact: 'critical' as CalendarItemType['impact'] })],
         });
       },
     });
@@ -254,6 +260,33 @@ describe('createCalendarFetcher.fetchOnce', () => {
     expect(records).toContainEqual({
       event: 'fetcher.schema_mismatch',
       path: 'items.0.impact',
+      message: 'fetcher.schema_mismatch',
+    });
+  });
+
+  test('fails closed when a validated item cannot map to a persisted event', async () => {
+    const db = new InMemoryCalendarDb();
+    const { logger, records } = captureLogger();
+    const fetcher = createCalendarFetcher({
+      db,
+      logger,
+      clock: { nowUtc: () => NOW },
+      fetch() {
+        return jsonResponse({ items: [minimalItem({ date: 'not-a-date' })] });
+      },
+    });
+
+    const result = await fetcher.fetchOnce();
+
+    expect(result).toEqual({ ok: false, reason: 'schema_mismatch' });
+    expect(db.rows).toEqual([]);
+    expect(db.upserts).toEqual([]);
+    expect(db.meta.get('last_fetch_at')).toBeUndefined();
+    expect(db.meta.get('last_fetch_ok')).toBe('0');
+    expect(records).toContainEqual({
+      event: 'fetcher.schema_mismatch',
+      path: 'date',
+      reason: 'calendar item date: invalid date: not-a-date',
       message: 'fetcher.schema_mismatch',
     });
   });
@@ -290,7 +323,7 @@ describe('createCalendarFetcher.fetchOnce', () => {
       logger,
       clock: { nowUtc: () => NOW },
       fetch() {
-        return jsonResponse({ items: [minimalEvent()] });
+        return jsonResponse({ items: [minimalItem()] });
       },
     });
 
@@ -327,7 +360,9 @@ describe('createCalendarFetcher.fetchOnce', () => {
       name: 'Zod schema mismatch',
       reason: 'schema_mismatch',
       response: () =>
-        jsonResponse({ items: [minimalEvent({ impact: 'critical' as CalendarEvent['impact'] })] }),
+        jsonResponse({
+          items: [minimalItem({ impact: 'critical' as CalendarItemType['impact'] })],
+        }),
     },
   ];
 
