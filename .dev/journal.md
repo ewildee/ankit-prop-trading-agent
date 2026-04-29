@@ -2,6 +2,62 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 08:13 Europe/Amsterdam — @ankit-prop/ctrader-gateway v0.3.0 test follow-up ([ANKA-133](/ANKA/issues/ANKA-133) — CodeReviewer BLOCK coverage)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped comment wake after [FoundingEngineer](/ANKA/agents/foundingengineer) routed back the [ANKA-153](/ANKA/issues/ANKA-153) CodeReviewer BLOCK on PR #12.
+
+**What was done**
+
+- Re-fetched `https://bun.com/llms.txt` at 08:13 Europe/Amsterdam before editing Bun-runtime tests.
+- Added a live `startHealthServer({ port: 0 })` listener spec that asserts the assigned ephemeral port, fetches `/health`, parses `HealthSnapshot`, checks version/details/clock/status, awaits `server.stop(true)`, and confirms the stopped listener rejects a follow-up fetch.
+- Added `rails: () => 'pending'` and `rails: () => 'unhealthy'` snapshot branch tests.
+- Kept `@ankit-prop/ctrader-gateway` at `0.3.0`; this is test coverage only, no runtime behavior change.
+
+**Verification**
+
+- `bun test services/ctrader-gateway/src/health-server.spec.ts services/ctrader-gateway/src/health-snapshot.spec.ts services/ctrader-gateway/src/index.spec.ts` — 10 pass / 0 fail / 33 expects.
+- `bun test services/ctrader-gateway` — 113 pass / 0 fail / 626 expects.
+- `bun run lint:fix` — exit 0; only pre-existing warnings/infos remained.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- Push the follow-up commit to `origin/anka-133-gateway-health-elysia` so PR #12 updates, then hand back to [FoundingEngineer](/ANKA/agents/foundingengineer) for fresh CodeReviewer routing.
+
+## 2026-04-29 08:04 Europe/Amsterdam — @ankit-prop/ctrader-gateway v0.3.0 ([ANKA-133](/ANKA/issues/ANKA-133) — gateway health Elysia migration)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped unblock wake after [ANKA-131](/ANKA/issues/ANKA-131) resolved.
+
+**What was done**
+
+- Created `.paperclip/worktrees/ANKA-133` from fresh `origin/main` and fetched `https://bun.com/llms.txt` at 07:58 Europe/Amsterdam before Bun-runtime edits.
+- Split `buildHealthSnapshot` and health dependency types into `services/ctrader-gateway/src/health-snapshot.ts`.
+- Replaced the `Bun.serve` health router with an Elysia `buildHealthApp(deps)` while preserving `startHealthServer(opts)` for `start.ts`.
+- Added the gateway type-only Treaty `App` export and source-level `assertExportsTreaty` smoke.
+- Bumped `@ankit-prop/ctrader-gateway` `0.2.12` → `0.3.0`.
+
+**Findings**
+
+- [ANKA-131](/ANKA/issues/ANKA-131) is present on `main`; root already pins `elysia@1.4.28` and `@elysiajs/eden@1.4.9`.
+- Port `9201` was occupied by the old gateway process (`version: 0.2.12`), so the package-change smoke required a real restart before checking the new version.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean.
+- `bun run lint:fix` — exit 0; only pre-existing warnings/infos remained.
+- `bun test services/ctrader-gateway` — 110 pass / 0 fail / 611 expects.
+- `bun test` — 364 pass / 0 fail / 2132 expects.
+- `bun run typecheck` — clean.
+- Runtime smoke: `bun run services/ctrader-gateway/src/start.ts` served `http://127.0.0.1:9201/health` with `version: "0.3.0"`, `status: "degraded"`, and unchanged `details.transport` / `details.rails` values.
+
+**Unexpected behaviour**
+
+- Starting through an interactive command kept the service alive for the smoke; detached `nohup bun run ...` exited without leaving a listener in this adapter environment. The verified smoke result is recorded, and QA still owns the independent live curl check required by the issue.
+
+**Open endings**
+
+- Route the branch to [CodeReviewer](/ANKA/agents/codereviewer). After review approval, [QAEngineer](/ANKA/agents/qaengineer) should run the live `/health` curl check from the issue acceptance list.
+
 ## 2026-04-29 07:54 Europe/Amsterdam — [ANKA-131](/ANKA/issues/ANKA-131) record PR #11 merge + close
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped Paperclip wake after [CodeReviewer](/ANKA/agents/codereviewer) returned [ANKA-131](/ANKA/issues/ANKA-131) `in_review → APPROVE`.

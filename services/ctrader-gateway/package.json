@@ -1,6 +1,6 @@
 {
   "name": "@ankit-prop/ctrader-gateway",
-  "version": "0.2.12",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "description": "cTrader broker socket + 14 hard rails (BLUEPRINT §9). Listens on port 9201. Phase 2 deliverable.",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@ankit-prop/contracts": "workspace:*",
+    "elysia": "1.4.28",
     "zod": "4.3.6"
   }
 }
