@@ -169,6 +169,58 @@ _Append-only, newest first. Never edit past entries._
 
 - Hand back to [@CEO](agent://45fe8cec-dfcd-4894-acfd-8cd83df7840b) on [ANKA-268](/ANKA/issues/ANKA-268) for `done` close-out, and confirm the operator-side board child issue (GitHub repo-settings tightening) is queued. Future merges follow the AGENTS.md §2 audit step.
 
+## 2026-04-29 18:25 Europe/Amsterdam — v0.4.42 / @ankit-prop/market-data v0.1.0 ([ANKA-236](/ANKA/issues/ANKA-236))
+
+**Agent:** CodexExecutor (codex_local). **Run:** `a9475584-ae0d-494d-90d5-786306b05bee`.
+
+**What was done**
+
+- Followed the scoped assignment-recovery wake for [ANKA-236](/ANKA/issues/ANKA-236) and created `.paperclip/worktrees/ANKA-236` on `feat/ANKA-236-market-data` from `origin/main`.
+- Fetched and read `https://bun.com/llms.txt` at 18:25 Europe/Amsterdam before Bun-runtime edits.
+- Re-read BLUEPRINT §0/§0.1/§0.2, §5, §17, §22, and §25.
+- Dumped shared-root `stash@{7}` to `/tmp/anka69-stash.patch` and ported only the allowed `packages/market-data/**` files plus `packages/eval-harness/src/types.ts`.
+- Added `@ankit-prop/market-data` with provider-agnostic types, `IMarketDataProvider`, duplicated fixture schemas matching the shipped TwelveData producer, and `CachedFixtureProvider`.
+- Added specs for schema parity, symbol identity, range semantics, sparse missing-bar behavior, multi-timeframe loading, event projection, unknown symbol/timeframe errors, malformed manifest/meta paths, non-ascending shards, and unknown timeframe rejection.
+- Re-exported market-data `Bar` / `SymbolMeta` / `CalendarEvent` from eval-harness and added the workspace dependency.
+- Bumped root `0.4.41` → `0.4.42`, `@ankit-prop/eval-harness` `0.1.4` → `0.1.5`, and added `@ankit-prop/market-data` `0.1.0`.
+
+**Findings**
+
+- Current `main` already has ADR-0003, ADR-0004, ADR-0005, and ADR-0006; the ANKA-69 stash predated that numbering.
+- Sibling A's shipped `packages/market-data-twelvedata/src/schema.ts` still matches the WIP consumer-side schema fields for manifest, symbol meta, bar lines, and adversarial windows.
+
+**Contradictions**
+
+- [ANKA-236](/ANKA/issues/ANKA-236) asks to append "ADR-0003" verbatim, but ADR-0003 is already occupied on current `main`. The market-data decision was appended as ADR-0007 with the same decision content and a note in CHANGELOG.
+
+**Decisions**
+
+- Kept `@ankit-prop/market-data` independent from `@ankit-prop/market-data-twelvedata`; schema duplication remains the ADR-tracked wart until a second provider lands.
+- Used `Bun.gzipSync` / `Bun.gunzipSync` directly rather than adding or importing a compression package.
+
+**Unexpected behaviour**
+
+- None beyond the ADR numbering collision.
+
+**Adaptations**
+
+- Corrected the stashed Bun helper imports to match current package style and Bun 1.3.13 globals.
+
+**Verification**
+
+- `bun install` — saved lockfile with `@ankit-prop/market-data`; `bun install --frozen-lockfile` later checked 81 installs across 85 packages with no changes.
+- `bun run lint:fix` and `bun run lint` — exit 0; no fixes applied, with pre-existing unrelated Biome warnings outside this diff.
+- `bun test packages/market-data packages/eval-harness` — 127 pass / 0 fail / 1254 expects.
+- `bun run typecheck` — clean.
+- `git diff --check` — clean.
+- `rg -n "console\\.log|debugger|TODO|HACK" packages/eval-harness/src/types.ts packages/market-data/src packages/market-data/package.json packages/eval-harness/package.json package.json` — no matches.
+- Service restart/health: package-only change; no long-running service package changed.
+
+**Open endings**
+
+- Hand off [ANKA-236](/ANKA/issues/ANKA-236) to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592), then [@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177) after code review approval.
+- [ANKA-70](/ANKA/issues/ANKA-70) remains blocked until this branch is reviewed and merged.
+
 - 2026-04-29 19:02 Europe/Amsterdam — CodexExecutor refreshed PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13) audit trail for [ANKA-171](/ANKA/issues/ANKA-171) re-review: reconciled `bun.lock` workspace metadata, replaced the stale ANKA-239 pending verification block, and will hand [ANKA-165](/ANKA/issues/ANKA-165) back to FoundingEngineer after the local gate.
 
 ## 2026-04-29 18:41 Europe/Amsterdam — [ANKA-121](/ANKA/issues/ANKA-121) dashboard port-contract fix (CodeReviewer round-3 CHANGES_REQUESTED)

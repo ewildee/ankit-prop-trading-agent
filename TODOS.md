@@ -28,6 +28,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
 - [x] **T006** Bar-granularity simulator (decision G). _Closes ANKA-8 (with T007)._
 - [x] **T007** Walk-forward 12-fold runner (decision H). _Closes ANKA-8 (with T006)._
+- [x] **T019** Implement provider-agnostic `@ankit-prop/market-data` + `CachedFixtureProvider`, and re-export market-data primitives from `@ankit-prop/eval-harness` — _[ANKA-236](/ANKA/issues/ANKA-236), unblocks [ANKA-70](/ANKA/issues/ANKA-70)_.
 
 ## Phase 4 — `trader`
 

@@ -9,6 +9,16 @@ import type {
   WalkForwardFold,
   WalkForwardSummary,
 } from '@ankit-prop/contracts';
+// ANKA-69: Bar / SymbolMeta / CalendarEvent are owned by @ankit-prop/market-data
+// so providers (cached fixtures today, cTrader live feed tomorrow) and
+// consumers (this package, trader, autoresearch) all agree on the wire shape
+// without re-encoding. eval-harness keeps re-exporting them under the same
+// names so existing call-sites are unaffected.
+import type {
+  Bar as MdBar,
+  CalendarEvent as MdCalendarEvent,
+  SymbolMeta as MdSymbolMeta,
+} from '@ankit-prop/market-data';
 
 export type {
   CostBreakdown,
@@ -24,32 +34,11 @@ export type {
 
 export type Side = 'long' | 'short';
 
-export type Bar = {
-  symbol: string;
-  timeframe: string;
-  tsStart: number;
-  tsEnd: number;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-};
+export type Bar = MdBar;
 
-export type CalendarEvent = {
-  id: string;
-  timestamp: number;
-  symbols: string[];
-  impact: 'low' | 'medium' | 'high';
-  restricted: boolean;
-};
+export type CalendarEvent = MdCalendarEvent;
 
-export type SymbolMeta = {
-  symbol: string;
-  pipSize: number;
-  contractSize: number;
-  typicalSpreadPips: number;
-};
+export type SymbolMeta = MdSymbolMeta;
 
 export type OpenAction = {
   kind: 'open';
