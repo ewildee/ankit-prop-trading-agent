@@ -2,12 +2,11 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-30 00:29 Europe/Amsterdam — [ANKA-170](/ANKA/issues/ANKA-170) svc:news cassette replay / drift / DST / coverage gate
+## 2026-04-30 00:51 Europe/Amsterdam — [ANKA-75](/ANKA/issues/ANKA-75) svc:news v0.1 umbrella close-out
 
-- Scoped wake reason: `issue_blockers_resolved`; ANKA-169 was already merged and this issue was checked out by the harness.
-- Re-read BLUEPRINT §0 / §0.2 / §11 / §17 / §21 / §22 / §25 and fetched `https://bun.com/llms.txt` at 00:29 Europe/Amsterdam before finalizing Bun-runtime changes.
-- Added full svc:news cassette replay coverage through fetcher persistence and calendar routes, contract drift detector tests, and Prague spring/fall DST integration tests.
-- Added Bun-native coverage thresholds in `bunfig.toml`: 90% line/statement and 85% function coverage over `services/news/**` plus `packages/shared-contracts/src/news.ts`; documented the Bun branch-threshold limitation in `services/news/README.md`.
-- Bumped root `0.4.48` and `@ankit-prop/news` `0.5.3`; changelog, journal, TODO, and progress records updated.
-- Verification green: `bun run lint:fix`, `bun run typecheck`, `bun test` 552 pass / 0 fail / 2764 expects, `bun test --coverage` 552 pass with 99.24% funcs / 99.45% lines.
-- Restart/health: `PORT=19270 NEWS_CALENDAR_DB_PATH=/tmp/anka-170-news-calendar.db bun run --cwd services/news start`; `/health` returned 200 with `version:"0.5.3"` and `status:"healthy"`.
+- Scoped wake reason: `issue_children_completed`; all Wave-2 children terminal, last blocker [ANKA-170](/ANKA/issues/ANKA-170) merged at `9c7efd7`.
+- Rebased the per-issue worktree onto `origin/main`; clean fast-forward.
+- Verified umbrella deliverables on `main`: fetcher (§11), symbol-tag map (§22), `/calendar/restricted` + `/calendar/pre-news-2h` + `/health/details` (§19.2), Elysia router + start.ts + metrics + Treaty (§19.1, §19.4), cassette replay + contract drift + Prague DST + native Bun coverage gate (§17), fail-closed defaults (§11.7, §11.8).
+- Smallest local verification: `bun install` (worktree symlinks) → `bun test services/news` → 142 pass / 0 fail / 448 expects across 18 specs; workspace `bun run typecheck` clean.
+- Unblock chain: [ANKA-31](/ANKA/issues/ANKA-31) already `done`; [ANKA-7](/ANKA/issues/ANKA-7) still blocked on [ANKA-16](/ANKA/issues/ANKA-16) (independent of svc:news) — closing ANKA-75 is the umbrella close-out, not an unblock for ANKA-7.
+- Closing ANKA-75 `done` with journal entry + progress refresh; no source change → no version bump or CHANGELOG row.
