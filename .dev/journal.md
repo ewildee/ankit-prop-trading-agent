@@ -2,6 +2,34 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 12:33 Europe/Amsterdam — v0.4.37 / @ankit-prop/contracts v0.7.0 / @ankit-prop/news v0.3.0 ([ANKA-161](/ANKA/issues/ANKA-161) — PR #15 CodeReviewer follow-up)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped Paperclip resume after child reviews completed.
+
+**What was done**
+
+- Consumed [ANKA-173](/ANKA/issues/ANKA-173) CodeReviewer feedback on PR [#15](https://github.com/ewildee/ankit-prop-trading-agent/pull/15): initial DB shape normalized away canonical `CalendarItem.date` and raw multi-tag `instrument`, making it incompatible with the now-merged restricted-window evaluator on `main`.
+- Fetched and read `https://bun.com/llms.txt` at 12:33 Europe/Amsterdam before Bun-runtime edits.
+- Rebased `anka-161-news-calendar-db` onto `origin/main`, retaining the landed [ANKA-163](/ANKA/issues/ANKA-163) / [ANKA-207](/ANKA/issues/ANKA-207) restricted-window evaluator metadata and promoting this branch to root `0.4.37`, `@ankit-prop/contracts@0.7.0`, `@ankit-prop/news@0.3.0`.
+- Extended `CalendarEvent` to preserve canonical `date`, raw `instrument`, and parsed `instrumentTags`.
+- Extended `calendar_event` storage with `date`, `instrument`, and `instrument_tags` columns while keeping only the requested `(event_ts_utc)` and `(currency)` indices.
+- Changed `CalendarDb.selectEventsBetween` to return `CalendarItem[]` for the evaluator seam, and added `selectEventRecordsBetween` for typed record-level reads that include parsed tags.
+- Added regression coverage that the real multi-tag cassette row `USD + US Indices + XAUUSD + DXY` round-trips through the DB and still maps to `NAS100` / `XAUUSD`.
+
+**Verification**
+
+- `bun test packages/shared-contracts/src/news.spec.ts services/news/src/db/calendar-db.spec.ts services/news/src/evaluator/restricted-window.spec.ts` — 28 pass / 0 fail / 55 expects.
+- `bun install` — clean; checked 79 installs across 84 packages.
+- `bun run lint:fix` — exit 0; formatted the new DB spec and reported only pre-existing unrelated warnings/infos.
+- `bun test` — 387 pass / 0 fail / 2186 expects.
+- `bun run typecheck` — clean.
+- `bun test --coverage services/news/src/db/calendar-db.spec.ts` — 8 pass / 0 fail / 19 expects.
+- `rg -n "console\\.log|debugger|TODO|HACK" packages/shared-contracts/src/news.ts packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/index.ts services/news/src/db/init.sql services/news/src/db/calendar-db.ts services/news/src/db/calendar-db.spec.ts services/news/package.json packages/shared-contracts/package.json package.json` — no matches.
+
+**Open endings**
+
+- Still needs amend/force-push, PR update, and Paperclip review handoff update. No service restart expected because `services/news` still has only the placeholder `start` script and no `/health` runtime.
+
 ## 2026-04-29 10:16 Europe/Amsterdam — v0.4.36 / @ankit-prop/news v0.2.3 ([ANKA-207](/ANKA/issues/ANKA-207) PR #16 restricted-window QA gaps)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-207](/ANKA/issues/ANKA-207).

@@ -39,6 +39,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 - [ ] **T009** FTMO calendar fetcher with `timezone=Europe%2FPrague`; 2-h staleness blackout.
   - [x] **T009.b** `svc:news/symbol-tag-mapper` YAML loader + `instrument` multi-tag split for tracked symbols — _ANKA-79_.
   - [x] **T009.d** `svc:news/restricted-window-evaluator` pure ±5 min tier-1 evaluator — _[ANKA-163](/ANKA/issues/ANKA-163)_; QA gap coverage _[ANKA-207](/ANKA/issues/ANKA-207)_.
+  - [x] **T009.e** `svc:news/calendar-db` Bun SQLite store + `init.sql` — _ANKA-161_.
   - [ ] **T009.c** Lift `SymbolTagMap` schema into `@ankit-prop/contracts/config` once the config package surface exists.
 
 ## Phase 6 — `dashboard`

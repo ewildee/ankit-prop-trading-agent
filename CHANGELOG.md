@@ -2,6 +2,34 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.37 / @ankit-prop/contracts@0.7.0 / @ankit-prop/news@0.3.0 — 2026-04-29 12:33 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-161](/ANKA/issues/ANKA-161) — `svc:news/calendar-db` Bun SQLite store + PR [#15](https://github.com/ewildee/ankit-prop-trading-agent/pull/15) CodeReviewer follow-up.
+
+**Why:** Wave-2 N2 for [ANKA-75](/ANKA/issues/ANKA-75) needs a pure local SQLite calendar store before the fetcher/evaluator endpoints can consume FTMO economic-calendar data. CodeReviewer found the first PR head normalized away canonical `CalendarItem.date` and raw multi-tag `instrument`, which made the now-merged restricted-window evaluator impossible to wire without losing symbol mapping.
+
+**Added** — `@ankit-prop/contracts` v0.6.0 → v0.7.0
+
+- `packages/shared-contracts/src/news.ts` — `CalendarEvent` strict Zod schema for persisted rows keyed by FTMO event id, carrying UTC millisecond `eventTsUtc`, canonical `date`, raw `instrument`, parsed `instrumentTags`, and the existing calendar payload fields.
+- `packages/shared-contracts/src/news.spec.ts` — CalendarEvent parse and fail-closed timestamp coverage, including multi-tag preservation.
+
+**Added** — `@ankit-prop/news` v0.2.3 → v0.3.0
+
+- `services/news/src/db/init.sql` — forward-only schema for `calendar_event` plus `meta`, with only `(event_ts_utc)` and `(currency)` indices and `schema_version=1`.
+- `services/news/src/db/calendar-db.ts` — `bun:sqlite` wrapper with WAL + `synchronous=NORMAL`, idempotent `init`, transactional `upsertEvents`, evaluator-compatible `selectEventsBetween(...): CalendarItem[]`, record-level `selectEventRecordsBetween`, `setMeta`/`getMeta`, and typed `CalendarDbUnwriteableError`.
+- `services/news/src/db/calendar-db.spec.ts` — temp/`:memory:` SQLite tests for init idempotency, cassette replay idempotency, Zod rejection, inclusive range ordering, raw multi-tag round-trip + symbol mapping, metadata, and unwriteable path failure.
+- `services/news/package.json` / `bun.lock` — direct workspace dependency on `@ankit-prop/contracts`.
+
+**Verification**
+
+- `bun install` — clean; checked 79 installs across 84 packages.
+- `bun run lint:fix` — exit 0; formatted the new DB spec and reported only pre-existing unrelated warnings/infos.
+- `bun test packages/shared-contracts/src/news.spec.ts services/news/src/db/calendar-db.spec.ts services/news/src/evaluator/restricted-window.spec.ts` — 28 pass / 0 fail / 55 expects.
+- `bun test` — 387 pass / 0 fail / 2186 expects.
+- `bun run typecheck` — clean.
+- `bun test --coverage services/news/src/db/calendar-db.spec.ts` — 8 pass / 0 fail / 19 expects.
+- Debug grep over changed source/package files found no `console.log`, `debugger`, `TODO`, or `HACK`.
+
 ## 0.4.36 / @ankit-prop/news@0.2.3 — 2026-04-29 10:16 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-207](/ANKA/issues/ANKA-207) — close QA gaps on PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16).
