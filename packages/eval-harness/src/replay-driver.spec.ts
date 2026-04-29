@@ -1,7 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import { CachedFixtureProvider, MarketDataNotAvailable } from '@ankit-prop/market-data';
 import { snapshotFromEvalResult } from './replay-cli.ts';
-import { type ReplayInput, ReplaySymbolMetaMissing, replayWithProvider } from './replay-driver.ts';
+import {
+  type ReplayInput,
+  ReplaySymbolMetaInvalid,
+  ReplaySymbolMetaMissing,
+  replayWithProvider,
+} from './replay-driver.ts';
 import { OPEN_HOLD_CLOSE_V1 } from './replay-strategies.ts';
 import type { AccountConfig, Bar, BarStrategy, SymbolMeta } from './types.ts';
 
@@ -242,6 +247,101 @@ describe('replayWithProvider', () => {
     }
     expect(caught).toBeInstanceOf(ReplaySymbolMetaMissing);
     expect(caught?.missingSymbols).toEqual(['NAS100']);
+  });
+
+  test('rejects when CachedFixtureProvider returns zeroed broker fields (no instrumentSpecs)', async () => {
+    // Reproduces the CodeReviewer block on PR #34: a CachedFixtureProvider
+    // built without `instrumentSpecs` returns SymbolMeta entries with
+    // `pipSize: 0`, `contractSize: 0`, `typicalSpreadPips: 0`. Without this
+    // guard, OPEN_HOLD_CLOSE_V1 over XAUUSD produced a clean-looking
+    // `realizedPnl: 0`, `initialRisk: 0`, `breaches: 0` EvalResult — fail-open
+    // on a risk-adjacent surface.
+    const provider = new CachedFixtureProvider({ rootPath: FIXTURE_ROOT });
+    const metas = await symbolMetas(provider, ['XAUUSD']);
+    expect(metas[0]?.pipSize).toBe(0);
+    expect(metas[0]?.contractSize).toBe(0);
+    expect(metas[0]?.typicalSpreadPips).toBe(0);
+    let caught: ReplaySymbolMetaInvalid | undefined;
+    try {
+      await replayWithProvider({
+        strategyVersion: OPEN_HOLD_CLOSE_V1.name,
+        account: ACCOUNT,
+        provider,
+        symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+        window: SMOKE_WINDOW,
+        symbolMetas: metas,
+        strategy: OPEN_HOLD_CLOSE_V1,
+      });
+    } catch (e) {
+      caught = e as ReplaySymbolMetaInvalid;
+    }
+    expect(caught).toBeInstanceOf(ReplaySymbolMetaInvalid);
+    expect(caught?.findings.length).toBe(1);
+    expect(caught?.findings[0]?.symbol).toBe('XAUUSD');
+    expect(caught?.findings[0]?.invalidFields).toEqual([
+      'pipSize',
+      'contractSize',
+      'typicalSpreadPips',
+    ]);
+  });
+
+  test('rejects non-finite or non-positive broker fields on direct SymbolMeta input', async () => {
+    const provider = await fixtureProvider();
+    const cases: Array<{
+      label: string;
+      meta: SymbolMeta;
+      expected: ReadonlyArray<'pipSize' | 'contractSize' | 'typicalSpreadPips'>;
+    }> = [
+      {
+        label: 'NaN pipSize',
+        meta: {
+          symbol: 'XAUUSD',
+          pipSize: Number.NaN,
+          contractSize: 100,
+          typicalSpreadPips: 15,
+        },
+        expected: ['pipSize'],
+      },
+      {
+        label: 'Infinity contractSize',
+        meta: {
+          symbol: 'XAUUSD',
+          pipSize: 0.01,
+          contractSize: Number.POSITIVE_INFINITY,
+          typicalSpreadPips: 15,
+        },
+        expected: ['contractSize'],
+      },
+      {
+        label: 'negative typicalSpreadPips',
+        meta: {
+          symbol: 'XAUUSD',
+          pipSize: 0.01,
+          contractSize: 100,
+          typicalSpreadPips: -1,
+        },
+        expected: ['typicalSpreadPips'],
+      },
+    ];
+
+    for (const { label, meta, expected } of cases) {
+      let caught: ReplaySymbolMetaInvalid | undefined;
+      try {
+        await replayWithProvider({
+          strategyVersion: 'noop',
+          account: ACCOUNT,
+          provider,
+          symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+          window: SMOKE_WINDOW,
+          symbolMetas: [meta],
+          strategy: { name: 'noop', onBar: () => [] },
+        });
+      } catch (e) {
+        caught = e as ReplaySymbolMetaInvalid;
+      }
+      expect(caught, label).toBeInstanceOf(ReplaySymbolMetaInvalid);
+      expect(caught?.findings[0]?.invalidFields, label).toEqual(expected);
+    }
   });
 
   test('passes provider availability errors through', async () => {

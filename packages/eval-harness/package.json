@@ -1,6 +1,6 @@
 {
   "name": "@ankit-prop/eval-harness",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "private": true,
   "type": "module",
   "description": "FTMO-rule-canonical evaluator + bar-granularity simulator — Phase 3 deliverable. LIBRARY (not a service).",

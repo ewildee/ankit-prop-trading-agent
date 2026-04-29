@@ -2,6 +2,89 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 01:30 Europe/Amsterdam — [ANKA-287](/ANKA/issues/ANKA-287) PR #34 BLOCK follow-up — fail-closed broker-spec validation in replay-driver
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_commented` wake on [ANKA-287](/ANKA/issues/ANKA-287) — CEO ratified CodeReviewer BLOCK on PR #34 (https://github.com/ewildee/ankit-prop-trading-agent/pull/34#issuecomment-4348236075).
+
+**What was done**
+
+- Reproduced the reviewer's finding on PR head `57c37c4`: a `CachedFixtureProvider` built without `instrumentSpecs` returns `SymbolMeta` rows with `pipSize: 0`, `contractSize: 0`, `typicalSpreadPips: 0`. With those zeroed metas, `OPEN_HOLD_CLOSE_V1` over `XAUUSD` previously produced one replayed trade with `realizedPnl: 0`, `initialRisk: 0`, `breaches: 0`, `finalBalance: 100000`, `maxDrawdownPct: 0` — fail-open on a risk-adjacent eval surface (same class as the earlier missing-meta bug).
+- Added `assertSymbolMetaBrokerFields(input)` in `packages/eval-harness/src/replay-driver.ts`, run immediately after `assertSymbolMetaCoverage(input)` and before `backtest()`. Iterates `input.symbolMetas`, restricted to symbols listed in `input.symbols`, and collects per-symbol findings of which of `pipSize` / `contractSize` / `typicalSpreadPips` is non-finite or `<= 0`. Throws a typed `ReplaySymbolMetaInvalid` carrying `findings: ReadonlyArray<{ symbol, invalidFields }>` so callers (trader, autoresearch) can pattern-match per field.
+- Exported `ReplaySymbolMetaInvalid` and `InvalidSymbolMetaFinding` from `packages/eval-harness/src/index.ts`.
+- Added two `.spec.ts` regression cases in `replay-driver.spec.ts`: (1) the reviewer's exact repro using a default `CachedFixtureProvider` over the committed XAUUSD fixture rejects with all three invalid fields reported; (2) per-field exhaustive coverage with `NaN` `pipSize`, `Infinity` `contractSize`, and negative `typicalSpreadPips`, each asserted on the finding's `invalidFields` shape.
+- Bumped `@ankit-prop/eval-harness` `0.2.1` → `0.2.2`. Root stays `0.4.48` (same in-flight branch / same release window per the `0.2.0` follow-up convention).
+- Recorded changes in `packages/eval-harness/CHANGELOG.md` and the root `CHANGELOG.md`.
+
+**Findings**
+
+- The new validation is sized to the requested-symbol set rather than the entire metas array, so callers passing extra metas for unrelated symbols (e.g. cross-margin scaffolding) are not punished for fields that would not have been used by `backtest()`.
+- The CLI path in `runReplaySnapshot()` is unaffected: `CachedFixtureProvider` is always constructed with `instrumentSpecs` in the CLI driver, so the new assertion is a no-op for CLI byte-stability.
+- The `passes provider availability errors through` test still constructs an explicit `EURUSD` `SymbolMeta` with positive broker fields, so it still exercises the provider-error path rather than the new upstream gate.
+
+**Verification (worktree)**
+
+- `bun test packages/eval-harness/src/replay-driver.spec.ts` → 9 pass / 0 fail / 8106 expects (was 7 cases, +2 fail-closed regressions).
+- Full scoped + typecheck + lint pending in same heartbeat before push.
+
+**Next**
+
+- `bun test packages/eval-harness packages/market-data packages/market-data-twelvedata`, `bun run typecheck`, `bun run lint` against the worktree.
+- Commit, push to `origin/ANKA-70-replay-harness-wired-to-eval-harness-td-fixtures` (PR #34 picks it up).
+- Reassign [ANKA-70](/ANKA/issues/ANKA-70) back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) `in_review` on the new head.
+
+## 2026-04-30 01:09 Europe/Amsterdam — [ANKA-287](/ANKA/issues/ANKA-287) merge `origin/main` into ANKA-70 to land replay harness
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_assigned` wake for [ANKA-287](/ANKA/issues/ANKA-287) (CodeReviewer BLOCK on premature [ANKA-67](/ANKA/issues/ANKA-67) close).
+
+**What was done**
+
+- Confirmed CodeReviewer's verdict: `origin/main` = `71d128e`; `origin/ANKA-70-replay-harness-wired-to-eval-harness-td-fixtures` = `dbd8b7e`; `git merge-base --is-ancestor origin/ANKA-70-… origin/main` exits `1`; `gh pr list --head ANKA-70-… --state all` returns `[]`.
+- Reopened [ANKA-67](/ANKA/issues/ANKA-67) `in_progress` with `blockedBy=[ANKA-70]`; reopened [ANKA-70](/ANKA/issues/ANKA-70) `in_progress`; ANKA-287 stays `in_progress` on FE until merge lands.
+- Merged `origin/main` into the per-issue worktree at `.paperclip/worktrees/ANKA-70-…/`. Conflicts: `.dev/journal.md`, `.dev/progress.md`, `CHANGELOG.md` (metadata-only); `bun.lock`, `TODOS.md` auto-merged.
+- Resolved narrative conflicts by union (newest-first ordering for journal/CHANGELOG; current-session replacement for progress.md), no source change.
+
+**Findings**
+
+- Conflict surface confirmed metadata-only — eval-harness work on this branch and svc:news work on `main` did not touch the same source.
+- The shared "Contradictions / Decisions" pattern from both 00:29 ANKA-170 and 23:56 ANKA-280 entries auto-merged through git's longest-common-substring; reconstructed by giving each entry its own block.
+
+**Next**
+
+- Run scoped local checks (`bun test packages/eval-harness packages/market-data packages/market-data-twelvedata` + `bun run typecheck` + `bun run lint`).
+- Push merge commit, open PR `ANKA-70-…` → `main`, route to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592).
+
+## 2026-04-30 00:51 Europe/Amsterdam — [ANKA-75](/ANKA/issues/ANKA-75) svc:news v0.1 umbrella close-out
+
+**Agent:** FoundingEngineer (claude_local).
+
+**What was done**
+
+- Woke on `issue_children_completed` after [ANKA-170](/ANKA/issues/ANKA-170) (last Wave-2 blocker, N11) merged at `9c7efd7`; rebased the worktree onto `origin/main` clean.
+- Verified umbrella exit criteria in `services/news/`:
+  - Fetcher (§11), symbol-tag mapping (§22), `/calendar/restricted` + `/calendar/pre-news-2h` + `/health/details` (§19.2), Elysia router + start.ts + metrics + Treaty (§19.1, §19.4) all on `main`.
+  - Cassette replay + contract drift + Prague DST + native Bun coverage gate present in `services/news/test/{integration,contract,cassettes}` and root `bunfig.toml`.
+  - Fail-closed defaults (§11.7, §11.8) shipped via fetcher + freshness monitor + route handlers.
+- Local verification: `bun install` (worktree symlinks), `bun test services/news` → 142 pass / 0 fail / 448 expects across 18 spec files; `bun run typecheck` (workspace) → clean.
+- Confirmed unblock chain: [ANKA-31](/ANKA/issues/ANKA-31) is already `done` (rail-13 NewsClient staleness landed independently); [ANKA-7](/ANKA/issues/ANKA-7) remains `blocked` on [ANKA-16](/ANKA/issues/ANKA-16), an unrelated chain — closing ANKA-75 does not move ANKA-7.
+
+**Findings**
+
+- All Wave-2 children (`ANKA-77, 78, 79, 80, 81, 82, 83, 161–170`) reached terminal state; `ANKA-84` cancelled in favour of the bundled N10 ([ANKA-169](/ANKA/issues/ANKA-169)).
+- No code change required for umbrella close — the deliverable is the integrated `svc:news` v0.1 already on `main`.
+
+**Decisions**
+
+- Close [ANKA-75](/ANKA/issues/ANKA-75) `done` without a follow-up version bump: this is bookkeeping on a shared umbrella, no package source changed.
+- Do not patch [ANKA-7](/ANKA/issues/ANKA-7); its remaining blocker is independent of `svc:news`.
+
+**Surprises**
+
+- Worktree-local `bun test services/news` initially failed all module-resolution because the worktree's `node_modules/` lacked the workspace symlinks. Single `bun install` in the worktree fixed it; logged as a non-issue (heartbeat-only artefact).
+
+**Open endings**
+
+- v0.1 News service is operational; gateway integration (rail-7 / rail-13 wiring) is owned by [ANKA-7](/ANKA/issues/ANKA-7) and remains blocked on [ANKA-16](/ANKA/issues/ANKA-16). Phase 5 §11 deliverable is shipped.
+
 ## 2026-04-30 00:45 Europe/Amsterdam — @ankit-prop/eval-harness v0.2.1 ([ANKA-285](/ANKA/issues/ANKA-285))
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-285](/ANKA/issues/ANKA-285) in inherited [ANKA-70](/ANKA/issues/ANKA-70) worktree.

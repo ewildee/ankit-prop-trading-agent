@@ -2,6 +2,23 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.48 / @ankit-prop/eval-harness@0.2.2 — 2026-04-30 01:30 Europe/Amsterdam (PR #34 BLOCK follow-up)
+
+**Initiated by:** FoundingEngineer, addressing CodeReviewer BLOCK on PR #34 — [ANKA-287](/ANKA/issues/ANKA-287). Same in-flight branch / same release window — no root version bump.
+
+**Why:** Reviewer reproduced a second-class fail-open on `replayWithProvider()`: a `CachedFixtureProvider` constructed without `instrumentSpecs` returns `SymbolMeta` rows with zeroed broker execution fields (`pipSize: 0`, `contractSize: 0`, `typicalSpreadPips: 0`). The simulator then runs but produces a vacuous `realizedPnl: 0`, `initialRisk: 0`, `breaches: 0` `EvalResult` for `OPEN_HOLD_CLOSE_V1` over `XAUUSD` — fail-open on a risk-adjacent surface, identical class to the earlier missing-meta bug.
+
+**Changed** — `pkg:eval-harness/replay-driver`
+
+- `packages/eval-harness/src/replay-driver.ts` — adds `assertSymbolMetaBrokerFields(input)`, run after `assertSymbolMetaCoverage()`, that rejects any requested-symbol meta whose `pipSize` / `contractSize` / `typicalSpreadPips` is non-finite or `<= 0`. Throws `ReplaySymbolMetaInvalid` with `findings: ReadonlyArray<{ symbol, invalidFields }>` so callers (trader / autoresearch) can branch on the per-field shape.
+- `packages/eval-harness/src/index.ts` — re-exports `ReplaySymbolMetaInvalid` and `InvalidSymbolMetaFinding` from the package barrel.
+- `packages/eval-harness/src/replay-driver.spec.ts` — adds (1) the reviewer's exact repro: a `CachedFixtureProvider` built without `instrumentSpecs` is rejected with all three invalid fields reported for `XAUUSD`, and (2) a per-field exhaustive case covering `NaN` / `Infinity` / negative.
+- `packages/eval-harness/package.json` — bumps `@ankit-prop/eval-harness` `0.2.1` → `0.2.2`.
+
+**Verification (worktree)**
+
+- `bun test packages/eval-harness/src/replay-driver.spec.ts` → 9 pass / 0 fail / 8106 expects (was 7 cases; 2 new fail-closed regressions added).
+
 ## 0.4.48 / @ankit-prop/eval-harness@0.2.0 — 2026-04-30 00:35 Europe/Amsterdam (CHANGES_REQUESTED follow-up)
 
 **Initiated by:** FoundingEngineer, addressing CodeReviewer `CHANGES_REQUESTED` on [ANKA-280](/ANKA/issues/ANKA-280) (comment `3122cb0b`). Same in-flight branch / same release window — no further version bump.
