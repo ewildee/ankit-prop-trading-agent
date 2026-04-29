@@ -32,6 +32,15 @@ class FailingUpsertCalendarDb extends InMemoryCalendarDb {
   }
 }
 
+class FailingMarkFailedCalendarDb extends InMemoryCalendarDb {
+  override setMeta(key: 'last_fetch_at' | 'last_fetch_ok', value: string): void {
+    if (key === 'last_fetch_ok' && value === '0') {
+      throw new Error('meta store offline');
+    }
+    super.setMeta(key, value);
+  }
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -194,6 +203,33 @@ describe('createCalendarFetcher.fetchOnce', () => {
     expect(db.meta.get('last_fetch_ok')).toBe('0');
   });
 
+  test('treats an empty populated 14-day window as unhealthy', async () => {
+    const db = new InMemoryCalendarDb();
+    const { logger, records } = captureLogger();
+    const fetcher = createCalendarFetcher({
+      db,
+      logger,
+      clock: { nowUtc: () => NOW },
+      fetch() {
+        return jsonResponse({ items: [] });
+      },
+    });
+
+    const result = await fetcher.fetchOnce();
+
+    expect(result).toEqual({ ok: false, reason: 'empty_window' });
+    expect(db.upserts).toEqual([]);
+    expect(db.rows).toEqual([]);
+    expect(db.meta.get('last_fetch_at')).toBeUndefined();
+    expect(db.meta.get('last_fetch_ok')).toBe('0');
+    expect(records).toContainEqual({
+      event: 'fetcher.empty_window',
+      dateFrom: '2026-04-29T09:30:00+02:00',
+      dateTo: '2026-05-13T09:30:00+02:00',
+      message: 'fetcher.empty_window',
+    });
+  });
+
   test('fails closed on Zod mismatch without persisting partial events', async () => {
     const db = new InMemoryCalendarDb();
     const { logger, records } = captureLogger();
@@ -266,6 +302,57 @@ describe('createCalendarFetcher.fetchOnce', () => {
     expect(db.meta.get('last_fetch_ok')).toBe('0');
     expect(records.some((record) => record.event === 'fetcher.persist_error')).toBe(true);
   });
+
+  const failedMetaCases: readonly {
+    readonly name: string;
+    readonly reason: 'persistent_5xx' | 'http_4xx' | 'schema_mismatch';
+    readonly response: () => Response;
+  }[] = [
+    {
+      name: 'persistent 5xx',
+      reason: 'persistent_5xx',
+      response: () => jsonResponse({ error: 'down' }, 500),
+    },
+    {
+      name: 'HTTP 4xx',
+      reason: 'http_4xx',
+      response: () => jsonResponse({ error: 'bad request' }, 400),
+    },
+    {
+      name: 'JSON parse failure',
+      reason: 'schema_mismatch',
+      response: () => new Response('{not-json', { status: 200 }),
+    },
+    {
+      name: 'Zod schema mismatch',
+      reason: 'schema_mismatch',
+      response: () =>
+        jsonResponse({ items: [minimalEvent({ impact: 'critical' as CalendarEvent['impact'] })] }),
+    },
+  ];
+
+  for (const failureCase of failedMetaCases) {
+    test(`does not reject when mark-failed metadata write fails on ${failureCase.name}`, async () => {
+      const db = new FailingMarkFailedCalendarDb();
+      const { logger, records } = captureLogger();
+      const fetcher = createCalendarFetcher({
+        db,
+        logger,
+        clock: {
+          nowUtc: () => NOW,
+          sleep() {},
+        },
+        fetch() {
+          return failureCase.response();
+        },
+      });
+
+      const result = await fetcher.fetchOnce();
+
+      expect(result).toEqual({ ok: false, reason: failureCase.reason });
+      expect(records.some((record) => record.event === 'fetcher.mark_failed_error')).toBe(true);
+    });
+  }
 });
 
 describe('createCalendarFetcher.start/stop', () => {
