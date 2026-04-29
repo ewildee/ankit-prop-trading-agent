@@ -11,4 +11,4 @@ _Replace this section every session — keep ≤ 20 lines._
 - Bumped `@ankit-prop/news` to `0.3.5` and updated changelog/journal audit trail.
 - Verification: `bun install` clean; `bun run lint:fix` exit 0 with only pre-existing unrelated Biome warnings/infos; `bun test services/news/src/fetcher` 22 pass / 102 expects; `bun run typecheck` clean; debug grep clean.
 - Service restart/health: `bun run --cwd services/news start` only prints the placeholder `news: not yet implemented (Phase 5)`, so no `/health` endpoint exists yet.
-- Next: finish rebase, push `HEAD:codex/anka-162-calendar-fetcher`, then hand to QAEngineer.
+- Pushed PR branch `codex/anka-162-calendar-fetcher` to head `178463d`; next owner is QAEngineer for checklist item 7 re-check.
