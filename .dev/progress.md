@@ -2,11 +2,10 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-29 10:16 Europe/Amsterdam — [ANKA-207](/ANKA/issues/ANKA-207) PR #16 QA spec gaps in progress
+## 2026-04-29 10:23 Europe/Amsterdam — PR #16 merged + [ANKA-192](/ANKA/issues/ANKA-192) closed
 
-- Worktree: `.paperclip/worktrees/ANKA-207`, detached at `origin/feat/anka-163-restricted-window` head `bba98c4`; pushing back to PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16).
-- Fetched and read `https://bun.com/llms.txt` at 2026-04-29 10:16 Europe/Amsterdam before Bun-runtime edits.
-- Added QA-requested restricted-window specs for two-sided inclusive ±5 minutes, mapper mismatch, and empty instruments skipping DB access.
-- Version/audit trail: root `0.4.36`, `@ankit-prop/news` `0.2.3`, CHANGELOG, journal, progress, and TODOS updated.
-- Verification: `bun install` clean; targeted evaluator spec 10 pass / 15 expects; `bun run lint:fix services/news/src/evaluator/restricted-window.spec.ts` exit 0 with pre-existing unrelated diagnostics; `bun run typecheck` clean.
-- Next: grep for debug leftovers, commit with Paperclip footer, and push `HEAD:feat/anka-163-restricted-window`.
+- Scoped wake on [ANKA-206](/ANKA/issues/ANKA-206) (QA APPROVE) — both §31 dual-reviewer gates now `done` ([ANKA-205](/ANKA/issues/ANKA-205) CodeReviewer, [ANKA-206](/ANKA/issues/ANKA-206) QAEngineer).
+- PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16) head `04c38881` already `MERGED` on `origin/main` as merge commit `d99d53e`; rail-3 evaluator narrowed to `restriction === true`, `'ALL'` sentinel removed, three QA-requested specs landed.
+- [ANKA-192](/ANKA/issues/ANKA-192) blockers cleared; ready to mark `done`. Resumes the [ANKA-163](/ANKA/issues/ANKA-163) → [ANKA-75](/ANKA/issues/ANKA-75) → [ANKA-73](/ANKA/issues/ANKA-73) chain and clears [ANKA-83](/ANKA/issues/ANKA-83) live `/calendar/restricted` route binding.
+- Rebased pre-existing local `3de5413` (`docs(infra:bookkeeping): record ANKA-200 daily QA sweep`) onto `origin/main`; resolved `.dev/journal.md` chronological order and `.dev/progress.md` replace-per-session.
+- Next: commit bookkeeping (`docs(.dev): ANKA-192 record PR #16 merge + close`), push, PATCH [ANKA-192](/ANKA/issues/ANKA-192) to `done` with close-out comment, exit heartbeat. Live-route binding work continues under [ANKA-83](/ANKA/issues/ANKA-83).

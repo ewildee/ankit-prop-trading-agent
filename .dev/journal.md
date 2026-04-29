@@ -2,6 +2,15 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 10:23 Europe/Amsterdam — PR #16 merged + [ANKA-192](/ANKA/issues/ANKA-192) / [ANKA-205](/ANKA/issues/ANKA-205) / [ANKA-206](/ANKA/issues/ANKA-206) closed
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped wake on [ANKA-206](/ANKA/issues/ANKA-206) (QA APPROVE) — both §31 dual-reviewer gates green, parent [ANKA-192](/ANKA/issues/ANKA-192) auto-unblocked.
+
+- PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16) head `04c38881` already `MERGED` on `origin/main` as merge commit `d99d53e`. Rail-3 evaluator narrowed to `restriction === true` and `'ALL'` sentinel deleted; QA-gap specs (two-sided ±5m, mapper exclusion with `restriction: true`, empty-instruments DB skip) landed in `04c3888`.
+- Reviewer fan-out closed: [ANKA-205](/ANKA/issues/ANKA-205) (CodeReviewer) `done`; [ANKA-206](/ANKA/issues/ANKA-206) (QAEngineer) `done` per comment `931c5efc` ("APPROVE", 10 pass / 15 expects on `restricted-window.spec.ts`). FE close-out comment `22d9f705` posted on [ANKA-206](/ANKA/issues/ANKA-206).
+- [ANKA-192](/ANKA/issues/ANKA-192) cleared the `blockedByIssueIds=[ANKA-205, ANKA-206]` gate; ready to mark `done` and resume the [ANKA-163](/ANKA/issues/ANKA-163) → [ANKA-75](/ANKA/issues/ANKA-75) → [ANKA-73](/ANKA/issues/ANKA-73) chain plus [ANKA-83](/ANKA/issues/ANKA-83) live-route binding for `/calendar/restricted`.
+- Rebased the local 3de5413 (`docs(infra:bookkeeping): record ANKA-200 daily QA sweep`) onto `origin/main`; resolved `.dev/journal.md` and `.dev/progress.md` conflicts (chronological insertion + replace-per-session policy).
+
 ## 2026-04-29 10:16 Europe/Amsterdam — v0.4.36 / @ankit-prop/news v0.2.3 ([ANKA-207](/ANKA/issues/ANKA-207) PR #16 restricted-window QA gaps)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-207](/ANKA/issues/ANKA-207).
@@ -89,6 +98,53 @@ _Append-only, newest first. Never edit past entries._
 **Open endings**
 
 - Route [ANKA-163](/ANKA/issues/ANKA-163) to CodeReviewer and QAEngineer after the branch is published. No service restart was performed because `services/news` still has no live `start` implementation on `main`; this change is a library evaluator only.
+
+## 2026-04-29 10:05 Europe/Amsterdam — v0.4.33 audit-only ([ANKA-200](/ANKA/issues/ANKA-200) — daily test coverage & regression audit)
+
+**Agent:** QAEngineer (codex_local). **Run:** `367c5369-3c00-443e-b100-398d878852fe`.
+
+**What was done**
+
+- Resumed [ANKA-200](/ANKA/issues/ANKA-200) after the prior run failed before doing work because the adapter hit a usage limit.
+- Created isolated worktree `.paperclip/worktrees/ANKA-200` from `origin/main` per [ANKA-126](/ANKA/issues/ANKA-126).
+- Re-read BLUEPRINT §0, §0.1, §0.2, §17, §22, and §25; fetched and read `https://bun.com/llms.txt` at 10:02 Europe/Amsterdam before running Bun audit commands.
+- Inventoried the current spec surface: 59 `.spec.ts` files across packages/services. Since the prior QA sweep, notable new/changed coverage includes gateway Elysia `/health`, Treaty client helpers, Prague time helpers, config/codegen, symbol-tag mapper, and `@ankit-prop/market-data-twelvedata`.
+- Walked the gateway hard-rail matrix. `services/ctrader-gateway/src/hard-rails/matrix.spec.ts` still asserts 28 cases (14 rails × positive/negative) and focused fail-closed suites cover rail 7 malformed fill, rail 3/4 staleness, rail 9 idempotency side effects, rail 11 defensive SL math, rail 12 throttle stores, and rail 13 unknown schedule.
+- Audited FTMO property tests and eval fixtures. `ftmo-rules.props.spec.ts` covers daily loss, overall loss, min hold, news blackout, pre-news kill switch, and EA throttle invariants; the golden fixtures remain six CI-gated scenarios: flat, trivial, daily loss, news window, min hold, and weekend hold.
+- Filed child [ANKA-201](/ANKA/issues/ANKA-201) for source-of-truth drift: `@ankit-prop/market-data-twelvedata` exists, is tested, and is named in CHANGELOG as a package scope, but BLUEPRINT §17 and §25 do not catalog it.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean.
+- `bun test services/ctrader-gateway/src/hard-rails packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/ftmo-rules.props.spec.ts packages/eval-harness/src/golden.spec.ts packages/eval-harness/src/sim-engine.spec.ts` — 134 pass / 0 fail / 1563 expects.
+- `bun test` — 367 pass / 0 fail / 2147 expects.
+- `bun run typecheck` — clean.
+- `bun run lint` — exit 0; existing Biome warnings/infos remain, including `useLiteralKeys`, the old `ctrader-vendor` unused import warning, and `market-data-twelvedata` non-null assertions. No `test.only`, `describe.only`, `.skip`, or flake markers found; the only `flaky` hits are a proc-supervisor fixture name.
+
+**Findings**
+
+- No new hard-rail or FTMO simulator coverage defect was found in this sweep.
+- The only new gap worth filing is governance/documentation drift for the `pkg:market-data-twelvedata` package and issue-tagging scope.
+
+**Contradictions**
+
+- None in runtime behaviour. The catalog omission conflicts with CHANGELOG's existing `pkg:market-data-twelvedata` wording and with the package now present on `main`.
+
+**Decisions**
+
+- Filed the catalog drift as [ANKA-201](/ANKA/issues/ANKA-201) instead of editing BLUEPRINT inside the daily QA issue, keeping [ANKA-200](/ANKA/issues/ANKA-200) focused on audit/reporting.
+
+**Unexpected behaviour**
+
+- None. The prior heartbeat failure was an adapter usage-limit failure before repository work began.
+
+**Adaptations**
+
+- Installed dependencies inside the issue worktree because it did not have `node_modules`; used the frozen lockfile and left code untouched.
+
+**Open endings**
+
+- [ANKA-201](/ANKA/issues/ANKA-201) should catalog or explicitly time-box `@ankit-prop/market-data-twelvedata` in BLUEPRINT §17/§25.
 
 ## 2026-04-29 09:11 Europe/Amsterdam — PR #4 merged + [ANKA-158](/ANKA/issues/ANKA-158) / [ANKA-129](/ANKA/issues/ANKA-129) closed
 
