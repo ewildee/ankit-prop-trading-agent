@@ -2,6 +2,28 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.48 / @ankit-prop/eval-harness@0.2.0 — 2026-04-30 00:35 Europe/Amsterdam (CHANGES_REQUESTED follow-up)
+
+**Initiated by:** FoundingEngineer, addressing CodeReviewer `CHANGES_REQUESTED` on [ANKA-280](/ANKA/issues/ANKA-280) (comment `3122cb0b`). Same in-flight branch / same release window — no further version bump.
+
+**Why:** The reviewer reproduced a fail-open in the new public replay path: with `symbolMetas: []` (or any subset that omits a requested symbol), the simulator silently skips bars for the uncovered symbols and the call returns a clean `{tradeCount:0, breaches:0}` `EvalResult` instead of an error. The replay path now fails closed, and the baseline test no longer depends on cwd.
+
+**Changed** — `pkg:eval-harness/replay-driver`
+
+- `packages/eval-harness/src/replay-driver.ts` — adds `assertSymbolMetaCoverage(input)` run before `backtest()`. Builds a `Set` of supplied meta symbols, walks `input.symbols`, and throws `ReplaySymbolMetaMissing` listing every requested symbol with no matching `SymbolMeta`. Exports the new error class so callers (trader / autoresearch) can pattern-match.
+- `packages/eval-harness/src/index.ts` — re-exports `ReplaySymbolMetaMissing` from the package barrel.
+- `packages/eval-harness/src/replay-driver.spec.ts` — adds two coverage cases: (1) `symbolMetas: []` for a single requested symbol rejects with `ReplaySymbolMetaMissing`; (2) supplying metas for `XAUUSD` while requesting `[XAUUSD, NAS100]` rejects and reports `missingSymbols: ['NAS100']`. Updates the existing `passes provider availability errors through` test to supply a synthetic `EURUSD` meta so it still exercises the provider-error path now that the upstream coverage check fires earlier.
+- `packages/eval-harness/src/replay-baseline.spec.ts` — pins `FIXTURE_ROOT` and the baseline directory via `import.meta.dir` (`<repo>/data/market-data/...` and `<pkg>/baselines/`), so `bun test src/replay-baseline.spec.ts` from `packages/eval-harness/` no longer fails with `ENOENT ... packages/eval-harness/packages/eval-harness/baselines/...`.
+
+**Verification (repo root)**
+
+- `bun run lint` → exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing).
+- `bun run config:codegen --check && bun run packages/triplon-config/src/codegen/run.ts --check` → clean.
+- `bun run typecheck` → clean.
+- `bun test packages/eval-harness/src/replay-driver.spec.ts packages/eval-harness/src/replay-baseline.spec.ts packages/eval-harness/src/golden.spec.ts packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/backtest.spec.ts` → `28 pass / 0 fail / 8128 expects` (was 26/8125 — the two new cases account for the delta).
+- Reviewer's cwd-independent probe: `(cd packages/eval-harness && bun test src/replay-baseline.spec.ts)` → `2 pass / 0 fail`.
+- CLI byte-stability: `bun run packages/eval-harness/src/replay-cli.ts --fixture-root data/market-data/twelvedata/v1.0.0-2026-04-28 --smoke --strategy open_hold_close_v1 --symbol-set xauusd_5m --out /tmp/anka-280-byte-stability.json && cmp -s ...` → byte-identical (the new validation is a no-op for the CLI because `runReplaySnapshot` always supplies metas via `resolveSymbolMetas`).
+
 ## 0.4.48 / @ankit-prop/eval-harness@0.2.0 — 2026-04-29 23:56 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, implementing [ANKA-280](/ANKA/issues/ANKA-280) under parent [ANKA-70](/ANKA/issues/ANKA-70).

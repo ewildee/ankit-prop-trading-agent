@@ -56,7 +56,7 @@ export {
   summarizeFoldMetrics,
 } from './promotion-gate.ts';
 export type { ReplayInput } from './replay-driver.ts';
-export { replayWithProvider } from './replay-driver.ts';
+export { ReplaySymbolMetaMissing, replayWithProvider } from './replay-driver.ts';
 export { NOOP_V1, OPEN_HOLD_CLOSE_V1 } from './replay-strategies.ts';
 export type { SimEngineCfg, SimEngineRun } from './sim-engine.ts';
 export { pragueDayStartFromMs, runBarSimulation } from './sim-engine.ts';
