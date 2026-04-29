@@ -2,15 +2,6 @@
 
 _Append-only, newest first. Never edit past entries._
 
-## 2026-04-29 10:23 Europe/Amsterdam — PR #16 merged + [ANKA-192](/ANKA/issues/ANKA-192) / [ANKA-205](/ANKA/issues/ANKA-205) / [ANKA-206](/ANKA/issues/ANKA-206) closed
-
-**Agent:** FoundingEngineer (claude_local). **Run:** scoped wake on [ANKA-206](/ANKA/issues/ANKA-206) (QA APPROVE) — both §31 dual-reviewer gates green, parent [ANKA-192](/ANKA/issues/ANKA-192) auto-unblocked.
-
-- PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16) head `04c38881` already `MERGED` on `origin/main` as merge commit `d99d53e`. Rail-3 evaluator narrowed to `restriction === true` and `'ALL'` sentinel deleted; QA-gap specs (two-sided ±5m, mapper exclusion with `restriction: true`, empty-instruments DB skip) landed in `04c3888`.
-- Reviewer fan-out closed: [ANKA-205](/ANKA/issues/ANKA-205) (CodeReviewer) `done`; [ANKA-206](/ANKA/issues/ANKA-206) (QAEngineer) `done` per comment `931c5efc` ("APPROVE", 10 pass / 15 expects on `restricted-window.spec.ts`). FE close-out comment `22d9f705` posted on [ANKA-206](/ANKA/issues/ANKA-206).
-- [ANKA-192](/ANKA/issues/ANKA-192) cleared the `blockedByIssueIds=[ANKA-205, ANKA-206]` gate; ready to mark `done` and resume the [ANKA-163](/ANKA/issues/ANKA-163) → [ANKA-75](/ANKA/issues/ANKA-75) → [ANKA-73](/ANKA/issues/ANKA-73) chain plus [ANKA-83](/ANKA/issues/ANKA-83) live-route binding for `/calendar/restricted`.
-- Rebased the local 3de5413 (`docs(infra:bookkeeping): record ANKA-200 daily QA sweep`) onto `origin/main`; resolved `.dev/journal.md` and `.dev/progress.md` conflicts (chronological insertion + replace-per-session policy).
-
 ## 2026-04-29 10:16 Europe/Amsterdam — v0.4.36 / @ankit-prop/news v0.2.3 ([ANKA-207](/ANKA/issues/ANKA-207) PR #16 restricted-window QA gaps)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-207](/ANKA/issues/ANKA-207).
