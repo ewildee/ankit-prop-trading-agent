@@ -23,10 +23,10 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 - `bun install` — clean (workspace re-link only).
 - `bun test packages/shared-contracts/src/time.spec.ts packages/eval-harness/src/sim-engine.spec.ts packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/ftmo-rules.props.spec.ts` — 30 pass / 0 fail / 974 expects.
-- `bun test` — 342 pass / 0 fail / 2092 expects.
+- `bun test` (post-rebase, includes [ANKA-131](/ANKA/issues/ANKA-131) Treaty + [ANKA-133](/ANKA/issues/ANKA-133) gateway specs that landed on `main` after the original PR head) — 367 pass / 0 fail / 2147 expects.
 - `bun run typecheck` — clean.
 - `bun run lint` — exit 0; only pre-existing Biome warnings/infos remain.
-- Pre-rebase reviewer evidence: [ANKA-158](/ANKA/issues/ANKA-158) CodeReviewer APPROVE on PR head `ccecc67`.
+- Pre-rebase reviewer evidence: [ANKA-158](/ANKA/issues/ANKA-158) CodeReviewer APPROVE on PR head `ccecc67` (342 pass on the older base).
 
 ## @ankit-prop/ctrader-gateway@0.3.0 — 2026-04-29 08:04 Europe/Amsterdam
 

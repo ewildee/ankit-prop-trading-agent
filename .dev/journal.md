@@ -20,7 +20,7 @@ _Append-only, newest first. Never edit past entries._
 
 - `bun install` — clean re-link.
 - `bun test packages/shared-contracts/src/time.spec.ts packages/eval-harness/src/sim-engine.spec.ts packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/ftmo-rules.props.spec.ts` — 30 pass / 0 fail / 974 expects.
-- `bun test` — 342 pass / 0 fail / 2092 expects.
+- `bun test` (post-rebase) — 367 pass / 0 fail / 2147 expects (includes [ANKA-131](/ANKA/issues/ANKA-131) + [ANKA-133](/ANKA/issues/ANKA-133) suites that landed on `main` after the original PR head; reviewer's 342-pass figure was on the older base).
 - `bun run typecheck` — clean.
 - `bun run lint` — exit 0; only pre-existing Biome warnings/infos remain.
 
