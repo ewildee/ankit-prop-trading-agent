@@ -2,6 +2,21 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:28 Europe/Amsterdam — @triplon/config v0.1.1 ([ANKA-143](/ANKA/issues/ANKA-143) — [ANKA-140](/ANKA/issues/ANKA-140) BLOCK fix)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-143](/ANKA/issues/ANKA-143); no pending comments, so work proceeded from the issue description.
+- Recreated the per-issue worktree from `origin/anka-130-triplon-config` after catching the branch requirement before edits.
+- Fetched `https://bun.com/llms.txt` at 05:28 Europe/Amsterdam before Bun-runtime edits; no new dependencies needed.
+- Fixed `defineAppConfig().paths.project()` so project config now honors `config/<name>.config.yaml` instead of `<cwd>/<name>.config.yaml`.
+- Added regressions in both `@triplon/config` and `svc:news` proving `config/symbol-tag-map.config.yaml` wins over the bundled SymbolTagMap example.
+- Bumped `@triplon/config` 0.1.0 → 0.1.1 and updated changelogs/progress for reviewer handoff.
+
+**Open endings**
+
+- Verification, commit, push, and issue-thread handoff are next in this heartbeat.
+
 ## 2026-04-29 05:53 Europe/Amsterdam — v0.4.30 ([ANKA-130](/ANKA/issues/ANKA-130) — `@triplon/config` F2 scaffold rebase)
 
 **What was done**

@@ -106,7 +106,7 @@ export function defineAppConfig<S extends z.ZodType>(
   }
 
   function projectPath(): string {
-    return resolve(process.cwd(), `${opts.name}.config.yaml`);
+    return resolve(process.cwd(), 'config', `${opts.name}.config.yaml`);
   }
 
   function load(): z.infer<S> {

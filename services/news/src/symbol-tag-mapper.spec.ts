@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -93,6 +93,20 @@ describe('loadSymbolTagMap (via @triplon/config)', () => {
     await writeFile(file, 'mappings:\n  EUR:\n    affects: [DAX40]\n', 'utf8');
     const map = loadSymbolTagMap(file);
     expect(resolveAffectedSymbols('EUR', map)).toEqual(['DAX40']);
+  });
+
+  test('loads from project config before falling back to the bundled example', async () => {
+    const configDir = join(sandbox, 'config');
+    await mkdir(configDir, { recursive: true });
+    await writeFile(
+      join(configDir, 'symbol-tag-map.config.yaml'),
+      'mappings:\n  EUR:\n    affects: [DAX40]\n',
+      'utf8',
+    );
+
+    const map = loadSymbolTagMap();
+    expect(resolveAffectedSymbols('EUR', map)).toEqual(['DAX40']);
+    expect(resolveAffectedSymbols('USD', map)).toEqual([]);
   });
 
   test('throws ConfigError E_CONFIG_NOT_FOUND for missing override path', () => {
