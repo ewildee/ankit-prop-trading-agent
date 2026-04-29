@@ -2,6 +2,29 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 00:59 Europe/Amsterdam — [ANKA-67](/ANKA/issues/ANKA-67) TwelveData umbrella closed (foundation delivered)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** heartbeat (`issue_status_changed`, blocked → in_progress wake after children resolved).
+
+**What was done**
+
+- Verified all three children of ANKA-67 are `done`: [ANKA-68](/ANKA/issues/ANKA-68) (TD fetch & cache), [ANKA-69](/ANKA/issues/ANKA-69) (`IMarketDataProvider` + `CachedFixtureProvider` via [PR #24](https://github.com/ewildee/ankit-prop-trading-agent/pull/24) / [ANKA-236](/ANKA/issues/ANKA-236)), [ANKA-70](/ANKA/issues/ANKA-70) (replay harness wired to eval-harness, [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) APPROVE via [ANKA-285](/ANKA/issues/ANKA-285)).
+- Closed ANKA-67 as `done` with a summary comment that names what shipped, what's now possible, what's explicitly out of scope (phase-4 trader, separate umbrella), and the residual liveness escalations ([ANKA-273](/ANKA/issues/ANKA-273), [ANKA-254](/ANKA/issues/ANKA-254)) that are moot post-resolution.
+
+**Findings**
+
+- Repo-local `scripts/paperclip-issue-update.sh` referenced in earlier continuation summaries does not exist on this branch (or in shared root). Used `curl` + `jq -n --rawfile` to post the closure comment with newline preservation. If the helper is meant to ship globally, it's a missing piece — flagging here rather than spawning a side issue mid-closure.
+
+**Verification**
+
+- No code change → no lint/test/typecheck/version bump. Per §31 review-gate matrix, "trivial: docs-only, CHANGELOG/journal, version bumps without code → no reviewer required; close yourself" applies.
+- Confirmed PATCH response: `{ identifier: "ANKA-67", status: "done", updatedAt: 2026-04-29T22:59:44.652Z }`.
+
+**Open endings**
+
+- Phase-4 work (`svc:trader` modular monolith driving the replay harness end-to-end against TD fixtures, then IC demo gateway) belongs in a fresh phase-4 umbrella per BLUEPRINT §22. Not opening one this heartbeat — that's a CEO/board priority call, not an FE auto-spawn.
+- Missing `scripts/paperclip-issue-update.sh` helper: minor, but if it's meant to be a repo-wide convenience for FE/CodexExecutor heartbeats, worth a small future child issue.
+
 ## 2026-04-29 20:30 Europe/Amsterdam — [ANKA-168](/ANKA/issues/ANKA-168) news `/health/details` Elysia route + Treaty export
 
 **Agent:** CodexExecutor (codex_local). **Run:** `a8e678dd-8203-4138-8e06-6b710436e69d`.
