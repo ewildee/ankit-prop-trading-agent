@@ -291,6 +291,36 @@ describe('createCalendarFetcher.fetchOnce', () => {
     });
   });
 
+  test('fails closed on mixed batch (good, bad, good) without partial persistence', async () => {
+    const a = minimalItem({ title: 'Good A', date: '2026-04-03T14:30:00+02:00' });
+    const b = minimalItem({ title: 'Bad date', date: 'not-a-date' });
+    const c = minimalItem({ title: 'Good C', date: '2026-04-04T14:30:00+02:00' });
+    const db = new InMemoryCalendarDb();
+    const { logger, records } = captureLogger();
+    const fetcher = createCalendarFetcher({
+      db,
+      logger,
+      clock: { nowUtc: () => NOW },
+      fetch() {
+        return jsonResponse({ items: [a, b, c] });
+      },
+    });
+
+    const result = await fetcher.fetchOnce();
+
+    expect(result).toEqual({ ok: false, reason: 'schema_mismatch' });
+    expect(db.upserts).toEqual([]);
+    expect(db.rows).toEqual([]);
+    expect(db.meta.get('last_fetch_at')).toBeUndefined();
+    expect(db.meta.get('last_fetch_ok')).toBe('0');
+    expect(records).toContainEqual({
+      event: 'fetcher.schema_mismatch',
+      path: 'date',
+      reason: 'calendar item date: invalid date: not-a-date',
+      message: 'fetcher.schema_mismatch',
+    });
+  });
+
   test('marks rejected fetches unhealthy', async () => {
     const db = new InMemoryCalendarDb();
     const { logger, records } = captureLogger();
