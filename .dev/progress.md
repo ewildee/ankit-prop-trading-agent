@@ -2,12 +2,11 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-29 18:41 Europe/Amsterdam — [ANKA-121](/ANKA/issues/ANKA-121) port-contract fix
+## 2026-04-29 18:24 Europe/Amsterdam — [ANKA-239](/ANKA/issues/ANKA-239) round 3 — FE rebase of PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13)
 
-- Wake reason: `issue_continuation_needed` after CodeReviewer round-3 CHANGES_REQUESTED — `DEFAULT_PORT 9601` violates BLUEPRINT §17.2/§19.5 + supervisor + service-registry (canonical `9204`).
-- Working in `.paperclip/worktrees/ANKA-121` on `anka-121-dashboard-review-fixes`. Squash-rebased the 3 prior review-iteration commits onto current `origin/main` (`9c63f16`); the branch is now a single fresh commit on top of main.
-- Replaced the `9601` literal in `services/dashboard/src/server.ts` with `SERVICES.dashboard.port` and rewrote `DEFAULT_VERSION_TARGET_SPECS` in `services/dashboard/src/version-matrix.ts` to derive every default health URL from `@ankit-prop/contracts#SERVICES`.
-- Added the regression CodeReviewer requested in `services/dashboard/src/version-matrix.spec.ts`: full-map equality with `SERVICES`, dashboard self-target == `:9204`, plus a `loadVersionTargets` override-vs-default test.
-- Bumped `@ankit-prop/dashboard` `0.1.1` → `0.1.2`, root `0.4.41` → `0.4.42`. TODOS.md T010 in-progress with T010.a recorded.
-- Verification: `bun install` clean; `bun test services/dashboard/src` 12 pass / 0 fail / 21 expects; `bun run typecheck` clean; `bun run lint:fix` exit 0 (pre-existing unrelated warnings only).
-- Next: force-push the rebased single commit, set [ANKA-121](/ANKA/issues/ANKA-121) to `in_review`, reassign to [CodeReviewer](/ANKA/agents/codereviewer) with the §0.2 verification block.
+- Wake reason: heartbeat timer; board override comment on [ANKA-239](/ANKA/issues/ANKA-239) at 15:28 Europe/Amsterdam routed the rebase back to FoundingEngineer after CodexExecutor stalled mid-rebase.
+- Working in `.paperclip/worktrees/ANKA-165` on `codex/anka-165-symbol-tag-map-config`. Rebase resumed in-progress on `9c63f16` with `pick 69b5f40` already applied and bookkeeping conflicts pending.
+- Read BLUEPRINT §0/§0.1/§0.2 in shared root before resuming; this rebase is bookkeeping-only and adds no Bun-runtime code, so the §0.2 `bun.com/llms.txt` fetch step is N/A.
+- Resolved remaining conflicts: `.dev/journal.md` (kept main; new round-3 entry on top; preserved 09:22 ANKA-165 entry as-rebased), `.dev/progress.md` (this block), `TODOS.md` (kept T009.g/T009.h, replaced open T009.c with closed-by-ANKA-165 line). `services/news/package.json` (0.4.2) and `CHANGELOG.md` (round-3 entry) were already conflict-resolved by Codex.
+- Reslotted `@ankit-prop/news` `0.4.1` → `0.4.2`; root `package.json` stays `0.4.41` (service-only change).
+- Next: `bun install --frozen-lockfile`, `bun run lint`, `bun run typecheck`, `bun run config:codegen --check`, `bun test packages/triplon-config services/news`. Continue rebase, force-push with `--force-with-lease`, confirm PR #13 `MERGEABLE` / `CLEAN`, comment on [ANKA-239](/ANKA/issues/ANKA-239), close as `done`, and route [ANKA-171](/ANKA/issues/ANKA-171) back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592).

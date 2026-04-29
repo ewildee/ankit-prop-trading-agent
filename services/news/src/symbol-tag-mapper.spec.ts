@@ -80,7 +80,7 @@ describe('loadSymbolTagMap (via @triplon/config)', () => {
     await rm(sandbox, { recursive: true, force: true });
   });
 
-  test('falls back to the bundled example when neither user nor project file exists', () => {
+  test('falls back to the service-local default when neither user nor project file exists', () => {
     const map = loadSymbolTagMap();
     expect(resolveAffectedSymbols('USD + US Indices + XAUUSD + DXY', map)).toEqual([
       'NAS100',
@@ -140,6 +140,19 @@ describe('loadSymbolTagMap (via @triplon/config)', () => {
     let caught: unknown;
     try {
       loadSymbolTagMap(bad);
+    } catch (err) {
+      caught = err;
+    }
+    expect(caught).toBeInstanceOf(ConfigError);
+    expect((caught as ConfigError).code).toBe('E_CONFIG_INVALID');
+  });
+
+  test('throws ConfigError E_CONFIG_INVALID when YAML drifts from the generated schema', async () => {
+    const drifted = join(sandbox, 'schema-drift.config.yaml');
+    await writeFile(drifted, 'mappings:\n  USD:\n    affects: NAS100\n', 'utf8');
+    let caught: unknown;
+    try {
+      loadSymbolTagMap(drifted);
     } catch (err) {
       caught = err;
     }
