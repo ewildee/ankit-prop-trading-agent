@@ -50,7 +50,8 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
 ## Phase 6 — `dashboard`
 
-- [ ] **T010** React 19 + Tailwind 4 cockpit; version matrix, control panel, hard-rail logs.
+- [~] **T010** React 19 + Tailwind 4 cockpit; version matrix, control panel, hard-rail logs.
+  - [x] **T010.a** Bun-served React 19 + Tailwind 4 shell with version-matrix banner, dashboard `/health` on the registry-canonical port `9204`, and a regression spec pinning `DEFAULT_VERSION_TARGET_SPECS` to `@ankit-prop/contracts#SERVICES` — _[ANKA-121](/ANKA/issues/ANKA-121)_.
 
 ## Phase 6.5 — Burn-in
 

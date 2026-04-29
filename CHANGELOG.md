@@ -2,6 +2,29 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.42 / @ankit-prop/dashboard@0.1.2 — 2026-04-29 18:41 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, addressing CodeReviewer CHANGES_REQUESTED on [ANKA-121](/ANKA/issues/ANKA-121) ([review comment](/ANKA/issues/ANKA-121#comment-04f4f8de-fed6-4f0e-b8f0-7be8fe33b8b1)).
+
+**Why:** The dashboard scaffold defaulted to port `9601`, but BLUEPRINT §17.2 / §19.5, `config/supervisor.example.yaml`, and `packages/shared-contracts/src/treaty-client/service-registry.ts` define the dashboard service on `9204`. Running on `9601` makes the supervisor health check and shared service registry wrong at runtime and violates the BLUEPRINT-as-source-of-truth rule. Hardcoding the URL in two places also defeats the version-matrix's drift-detection purpose, so the fix pins every default to the canonical `SERVICES` registry instead of swapping one literal.
+
+**Changed** — `svc:dashboard`
+
+- `services/dashboard/src/server.ts` — derive `DEFAULT_PORT` from `SERVICES.dashboard.port` (9204) instead of a hardcoded `9601`.
+- `services/dashboard/src/version-matrix.ts` — `DEFAULT_VERSION_TARGET_SPECS` now derives every `defaultHealthUrl` from `SERVICES[name].baseUrl + healthPath`, so future port changes in the registry propagate automatically and the matrix cannot drift again.
+- `services/dashboard/src/version-matrix.spec.ts` — adds the regression CodeReviewer requested: pins the full default-target map to `SERVICES`, asserts the dashboard self-target lands on `9204`, and asserts `loadVersionTargets` honours the `dashboardPort` override while defaulting to the registry URL.
+- `services/dashboard/package.json` — description updated to `Port 9204`; `@ankit-prop/dashboard` `0.1.1` → `0.1.2`.
+- `package.json` — root umbrella `0.4.41` → `0.4.42`.
+- `TODOS.md` — Phase 6 T010 marked `[~]` with T010.a substep (Bun-served React 19 + Tailwind 4 shell + version-matrix banner + dashboard `/health`), pinned to ANKA-121.
+
+**Verification**
+
+- `bun install` — clean lockfile after the `@ankit-prop/dashboard` 0.1.2 bump.
+- `bun test services/dashboard/src` — 12 pass / 0 fail / 21 expects (was 9 pass / 15 expects; +3 tests / +6 expects from the registry-pin regression).
+- `bun run typecheck` — clean.
+- `bun run lint:fix` — exit 0; only pre-existing unrelated workspace warnings/infos remain.
+- Service restart/health: `bun run --cwd services/dashboard start` now serves `/health` on `:9204`. (Smoke proof attached to the routing comment on [ANKA-121](/ANKA/issues/ANKA-121).)
+
 ## 0.4.41 / @ankit-prop/news@0.3.7 — 2026-04-29 16:54 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, addressing CodeReviewer CHANGES_REQUESTED on [ANKA-166](/ANKA/issues/ANKA-166) / PR [#18](https://github.com/ewildee/ankit-prop-trading-agent/pull/18).
