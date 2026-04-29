@@ -2,6 +2,46 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 13:12 Europe/Amsterdam — @ankit-prop/news v0.3.5 ([ANKA-222](/ANKA/issues/ANKA-222) PR #20 per-rail QA)
+
+**Agent:** QAEngineer (codex_local). **Run:** scoped assignment wake for [ANKA-222](/ANKA/issues/ANKA-222).
+
+**What was done**
+
+- Acknowledged the scoped wake: checkout was already claimed by the harness, so no duplicate checkout call was made.
+- Fetched and read `https://bun.com/llms.txt` at 13:10 Europe/Amsterdam before Bun-runtime spec edits.
+- Re-read BLUEPRINT §0.2, §9, §11.3, §13, §13.5, §17.3, §22, and §25 for the PR #20 news-blackout QA scope.
+- Reviewed PR [#20](https://github.com/ewildee/ankit-prop-trading-agent/pull/20) at `c281b24` in `.paperclip/worktrees/ANKA-214`.
+- Confirmed `pre-news.spec.ts` includes the required unmapped `ALL`, mapped `ALL`, malformed `atUtc`, and malformed event-date `stale_calendar` assertions, with no `.skip` / `.todo`.
+- Added the missing mapped `ALL` parity test to `restricted-window.spec.ts`.
+- Bumped `@ankit-prop/news` `0.3.4` → `0.3.5`.
+- Verified focused specs with `--rerun-each=3`, ran a deliberate mapped-`ALL` regression check that failed the new test, restored it, then reran focused specs and typecheck clean.
+- Ran the `services/news` start script; it is still the Phase 5 placeholder and exposes no `/health` endpoint yet.
+
+**Findings**
+
+- The PR removed the production `ALL` global sentinel from `pre-news.ts`; the remaining QA gap was restricted-window spec parity for configured `ALL`.
+
+**Contradictions**
+
+- The issue brief expected restricted-window mapped-`ALL` parity, but the branch only had the unmapped non-global-sentinel restricted-window case.
+
+**Decisions**
+
+- Added test-only coverage rather than production changes because the evaluator already routes through its mapper seam.
+
+**Unexpected behaviour**
+
+- `bun run lint:fix` still reports pre-existing unrelated diagnostics outside this diff, matching the branch's existing lint state.
+
+**Adaptations**
+
+- Expanded the QA patch from review-only evidence to one focused spec addition because the mandatory parity check was not satisfied.
+
+**Open endings**
+
+- Commit, push, and hand [ANKA-222](/ANKA/issues/ANKA-222) back to FoundingEngineer.
+
 ## 2026-04-29 13:05 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-214](/ANKA/issues/ANKA-214) pre-news ALL mapper routing)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_blockers_resolved` wake after [ANKA-213](/ANKA/issues/ANKA-213) completed.

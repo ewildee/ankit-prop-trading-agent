@@ -8,6 +8,7 @@ const MAP = new Map<string, readonly string[]>([
   ['Gold', ['XAUUSD']],
   ['US Indices', ['NAS100']],
   ['USD + Gold', ['NAS100', 'XAUUSD']],
+  ['ALL', ['NAS100']],
 ]);
 
 describe('evaluateRestricted', () => {
@@ -103,6 +104,17 @@ describe('evaluateRestricted', () => {
     expect(reply).toEqual({
       restricted: false,
       reasons: [],
+    });
+  });
+
+  test('matches ALL only when the symbol-tag map affects the requested instrument', () => {
+    const db = dbWithEvents([
+      event({ title: 'Mapped all-market calendar row', instrument: 'ALL', restriction: true }),
+    ]);
+
+    expect(evaluateRestricted(deps(db), { atUtc: AT_UTC, instruments: ['NAS100'] })).toEqual({
+      restricted: true,
+      reasons: [{ event: 'Mapped all-market calendar row', eta_seconds: 0, rule: 'blackout_pm5' }],
     });
   });
 

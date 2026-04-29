@@ -2,6 +2,28 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/news@0.3.5 — 2026-04-29 13:12 Europe/Amsterdam
+
+**Initiated by:** QAEngineer, executing [ANKA-222](/ANKA/issues/ANKA-222) — per-rail spec review of PR [#20](https://github.com/ewildee/ankit-prop-trading-agent/pull/20) / [ANKA-214](/ANKA/issues/ANKA-214).
+
+**Why:** The pre-news evaluator added mapped and unmapped `ALL` coverage, but the mandatory parity check needed the restricted-window evaluator to assert the same mapped-`ALL` behaviour explicitly.
+
+**Changed** — `svc:news/restricted-window-evaluator`
+
+- `services/news/src/evaluator/restricted-window.spec.ts` — adds the mapped `ALL` permit/restrict case mirroring `pre-news.spec.ts`, while preserving the unmapped `ALL` non-global-sentinel case.
+- `services/news/package.json` — bumps `@ankit-prop/news` `0.3.4` → `0.3.5`.
+
+**Verification**
+
+- `bun test services/news/src/evaluator/pre-news.spec.ts --rerun-each=3` — 54 pass / 0 fail / 69 expects.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts --rerun-each=3` — 33 pass / 0 fail / 48 expects.
+- Temporary regression check: forcing `ALL` to return no match failed the new mapped-`ALL` restricted-window test, then the mutation was restored.
+- `bun run lint:fix` — exit 0; Biome reported only pre-existing unrelated diagnostics outside this diff.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 18 pass / 0 fail / 23 expects.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 11 pass / 0 fail / 16 expects.
+- `bun run typecheck` — clean.
+- `bun run --cwd services/news start` — prints `news: not yet implemented (Phase 5)`; no long-running `/health` endpoint exists yet.
+
 ## @ankit-prop/news@0.3.4 — 2026-04-29 13:05 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-214](/ANKA/issues/ANKA-214) — route pre-news `ALL` rows through `symbol-tag-mapper`.
