@@ -103,6 +103,7 @@ export function backtest(input: BacktestInput): EvalResult {
       strategyName: input.strategy.name,
       finalBalance: run.finalBalance,
       tradeCount: run.trades.length,
+      replayedTrades: run.trades,
     },
   };
 }

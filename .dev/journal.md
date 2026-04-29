@@ -2,55 +2,27 @@
 
 _Append-only, newest first. Never edit past entries._
 
-## 2026-04-30 00:51 Europe/Amsterdam — [ANKA-75](/ANKA/issues/ANKA-75) svc:news v0.1 umbrella close-out
+## 2026-04-29 23:56 Europe/Amsterdam — v0.4.48 / @ankit-prop/eval-harness v0.2.0 ([ANKA-280](/ANKA/issues/ANKA-280))
 
-**Agent:** FoundingEngineer (claude_local).
-
-**What was done**
-
-- Woke on `issue_children_completed` after [ANKA-170](/ANKA/issues/ANKA-170) (last Wave-2 blocker, N11) merged at `9c7efd7`; rebased the worktree onto `origin/main` clean.
-- Verified umbrella exit criteria in `services/news/`:
-  - Fetcher (§11), symbol-tag mapping (§22), `/calendar/restricted` + `/calendar/pre-news-2h` + `/health/details` (§19.2), Elysia router + start.ts + metrics + Treaty (§19.1, §19.4) all on `main`.
-  - Cassette replay + contract drift + Prague DST + native Bun coverage gate present in `services/news/test/{integration,contract,cassettes}` and root `bunfig.toml`.
-  - Fail-closed defaults (§11.7, §11.8) shipped via fetcher + freshness monitor + route handlers.
-- Local verification: `bun install` (worktree symlinks), `bun test services/news` → 142 pass / 0 fail / 448 expects across 18 spec files; `bun run typecheck` (workspace) → clean.
-- Confirmed unblock chain: [ANKA-31](/ANKA/issues/ANKA-31) is already `done` (rail-13 NewsClient staleness landed independently); [ANKA-7](/ANKA/issues/ANKA-7) remains `blocked` on [ANKA-16](/ANKA/issues/ANKA-16), an unrelated chain — closing ANKA-75 does not move ANKA-7.
-
-**Findings**
-
-- All Wave-2 children (`ANKA-77, 78, 79, 80, 81, 82, 83, 161–170`) reached terminal state; `ANKA-84` cancelled in favour of the bundled N10 ([ANKA-169](/ANKA/issues/ANKA-169)).
-- No code change required for umbrella close — the deliverable is the integrated `svc:news` v0.1 already on `main`.
-
-**Decisions**
-
-- Close [ANKA-75](/ANKA/issues/ANKA-75) `done` without a follow-up version bump: this is bookkeeping on a shared umbrella, no package source changed.
-- Do not patch [ANKA-7](/ANKA/issues/ANKA-7); its remaining blocker is independent of `svc:news`.
-
-**Surprises**
-
-- Worktree-local `bun test services/news` initially failed all module-resolution because the worktree's `node_modules/` lacked the workspace symlinks. Single `bun install` in the worktree fixed it; logged as a non-issue (heartbeat-only artefact).
-
-**Open endings**
-
-- v0.1 News service is operational; gateway integration (rail-7 / rail-13 wiring) is owned by [ANKA-7](/ANKA/issues/ANKA-7) and remains blocked on [ANKA-16](/ANKA/issues/ANKA-16). Phase 5 §11 deliverable is shipped.
-
-## 2026-04-30 00:29 Europe/Amsterdam — [ANKA-170](/ANKA/issues/ANKA-170) svc:news cassette replay / contract drift / Prague DST / coverage gate
-
-**Agent:** CodexExecutor (codex_local). **Run:** `14700dc4-e185-4bd5-b880-f886e779c716`.
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-280](/ANKA/issues/ANKA-280) in inherited [ANKA-70](/ANKA/issues/ANKA-70) worktree.
 
 **What was done**
 
-- Picked up the `issue_blockers_resolved` wake after [ANKA-169](/ANKA/issues/ANKA-169) unblocked the full `svc:news` Elysia app; the harness had already checked out [ANKA-170](/ANKA/issues/ANKA-170).
-- Re-read BLUEPRINT §0 / §0.2 / §11 / §17 / §21 / §22 / §25 and fetched `https://bun.com/llms.txt` at 00:29 Europe/Amsterdam before finalizing Bun-runtime changes.
-- Added cassette replay integration coverage that exercises `createCalendarFetcher`, in-memory SQLite persistence, freshness metadata, `buildNewsApp`, and all calendar route shapes against `services/news/test/cassettes/ftmo-2026-03-23-week.json`.
-- Added strict contract-drift tests comparing cassette item keys to `CalendarItem.shape` with actionable error messages for upstream additions, local schema removals, and required cassette-key disappearance.
-- Added Prague DST integration tests for explicit-offset spring-forward and fall-back FTMO timestamps, including the two distinct `2026-10-25T02:30` local instants.
-- Added native Bun coverage thresholds in `bunfig.toml`, documented the Bun no-branch-threshold limitation in `services/news/README.md`, and bumped root `0.4.48` plus `@ankit-prop/news` `0.5.3`.
+- Fetched and read `https://bun.com/llms.txt` at 23:56 Europe/Amsterdam before Bun-runtime edits.
+- Added `replayWithProvider(input: ReplayInput)` in `packages/eval-harness/src/replay-driver.ts`, wired to `@ankit-prop/market-data`'s `IMarketDataProvider`.
+- Added `packages/eval-harness/src/replay-cli.ts` with Bun-native flag parsing, `CachedFixtureProvider` construction, smoke/full window selection, canonical JSON snapshots, and sha256 trade/breach hashes.
+- Added deterministic regression strategies in `packages/eval-harness/src/replay-strategies.ts`: `NOOP_V1` and replay-prepared `OPEN_HOLD_CLOSE_V1`.
+- Added replay-driver and baseline specs, and committed smoke baselines for `noop_v1` and `open_hold_close_v1` against `data/market-data/twelvedata/v1.0.0-2026-04-28`.
+- Added `diagnostics.replayedTrades` to `backtest()` so replay snapshots can hash closed trades without adding a new public result type.
+- Bumped root `0.4.47` → `0.4.48` and `@ankit-prop/eval-harness` `0.1.5` → `0.2.0`; aligned `bun.lock` manually because `bun install` left the workspace version slot stale.
+- Added a narrow `biome.json` ignore for `packages/eval-harness/baselines/*.json` so the committed baselines stay byte-identical to the canonical JSON emitted by the replay CLI.
+- Updated `TODOS.md` Phase 3 with `T019.c` for [ANKA-280](/ANKA/issues/ANKA-280).
 
 **Findings**
 
-- Bun 1.3 coverage thresholds expose line, statement, and function keys; no separate branch threshold key is documented/exposed, so ANKA-170's 85% branch intent is represented by the closest native executable-decision gate, `functions = 0.85`.
-- The coverage threshold is effectively per included file, not just aggregate, which required focused tests for the default app clock, default freshness clock, and calendar-fetcher start/stop/error paths.
+- `CachedFixtureProvider` already exposes `getManifest()` and optional `getEvents()`, but the replay path only depends on the provider interface plus manifest loading in the CLI.
+- NAS100 intraday shards are sparse in the committed fixture root, so the CLI keeps `xauusd_5m` as the default and comments the NAS100 sparsity.
+- `EvalResult.diagnostics` is the existing flexible extension point; no contract-schema change was needed for `replayedTrades`.
 
 **Contradictions**
 
@@ -58,72 +30,32 @@ _Append-only, newest first. Never edit past entries._
 
 **Decisions**
 
-- Kept the coverage gate in the root `bunfig.toml` so `bun test --coverage` fails locally without requiring public CI.
-- Scoped coverage accounting to `services/news/**` plus `packages/shared-contracts/src/news.ts` by ignoring unrelated packages, because ANKA-170 is a Phase 5 news gate and unrelated low-coverage packages should not block this issue.
+- Kept the replay surface free of `ftmoMargins`, `internalMargins`, slippage, cooldown, HFT, and consistency knobs. The type-level spec uses `@ts-expect-error` against `ReplayInput` to keep this visible at compile time.
+- Exported snapshot helpers from `replay-cli.ts` for in-process baseline tests so the spec exercises the same canonicalization path as the CLI without shelling out.
 
 **Unexpected behaviour**
 
-- `bun run lint:fix` still exits 0 while printing pre-existing unsafe Biome suggestions in unrelated packages (`ctrader-vendor`, `eval-harness`, `market-data-twelvedata`).
+- The inherited worktree had workspace packages but no `node_modules/@ankit-prop` links until `bun install` was run.
+- `CHANGELOG.md` contained a committed stray `<<<<<<< HEAD` marker at the top; the changelog update removes only that marker while preserving both existing top entries.
+- Biome reformatted the baseline JSON files after the CLI generated canonical compact JSON. The baseline specs still passed by parsed equality, but the issue's byte-identical CLI rerun requirement failed until the baseline path was excluded from formatter coverage and regenerated.
 
 **Adaptations**
 
-- Added narrow test-only type guards/parsing after `bun run typecheck` caught unsafe `unknown` JSON and optional fixture item access in the new tests.
-
-**Open endings**
-
-- Commit with the Paperclip footer, push the branch, then hand [ANKA-170](/ANKA/issues/ANKA-170) to QA/code review before merge.
+- `OPEN_HOLD_CLOSE_V1` is replay-prepared: the driver lets strategies with an optional `prepareReplay(bars)` return a fresh stateful strategy so this regression strategy can close on the last bar of its opened symbol without changing the `BarStrategy` interface.
 
 **Verification**
 
-- `bun run lint:fix` — exit 0; unrelated pre-existing Biome warnings/infos remain.
+- `bun run lint:fix` — exit 0; pre-existing unrelated Biome warnings/infos remain, no fixes applied after the baseline ignore.
+- `bun test packages/eval-harness/src/replay-driver.spec.ts packages/eval-harness/src/replay-baseline.spec.ts packages/eval-harness/src/golden.spec.ts packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/backtest.spec.ts` — 26 pass / 0 fail / 8125 expects.
+- CLI byte-stability check for `open_hold_close_v1` smoke baseline — `cmp open_hold_close baseline: byte-identical`.
 - `bun run typecheck` — clean.
-- `bun test` — 552 pass / 0 fail / 2764 expects.
-- `bun test --coverage` — 552 pass / 0 fail / 2764 expects; aggregate covered surface 99.24% functions / 99.45% lines, with `calendar-fetcher.ts` 90.48% functions / 98.36% lines and `routes/calendar.ts` 94.29% functions / 95.19% lines.
-- `PORT=19270 NEWS_CALENDAR_DB_PATH=/tmp/anka-170-news-calendar.db NODE_ENV=production bun run --cwd services/news start`; `GET /health` returned HTTP 200 with `version:"0.5.3"` and `status:"healthy"`.
-
-## 2026-04-29 22:28 Europe/Amsterdam — [ANKA-279](/ANKA/issues/ANKA-279) PR #29 merge-conflict resolution for [ANKA-169](/ANKA/issues/ANKA-169)
-
-**Agent:** CodexExecutor (codex_local). **Run:** `e79adf77-6465-48d6-a7da-cff8cdd367c5`.
-
-**What was done**
-
-- Picked up [ANKA-279](/ANKA/issues/ANKA-279) from the scoped wake; the harness had already checked out the ANKA-169 PR #29 worktree.
-- Re-read BLUEPRINT §0 / §0.2 / §17 / §22 / §25 and fetched `https://bun.com/llms.txt` at 22:28 Europe/Amsterdam before touching branch files.
-- Ran `git fetch origin && git merge origin/main`; first conflicts were exactly the three expected narrative files: `.dev/journal.md`, `.dev/progress.md`, and `CHANGELOG.md`.
-- After push, `origin/main` advanced again; merged the new tip and resolved the second conflict set in `.dev/journal.md` and `.dev/progress.md`.
-- Resolved the narrative conflicts by keeping all lineages in newest-first order: main's 22:05 [ANKA-121](/ANKA/issues/ANKA-121) entry, 21:55 [ANKA-201](/ANKA/issues/ANKA-201) / 20:38 [ANKA-270](/ANKA/issues/ANKA-270) entries, and the PR-side `@ankit-prop/news@0.5.2`, `0.5.1`, and `0.5.0` entries.
-
-**Findings**
-
-- The first `git merge origin/main` auto-merged main's docs-governance files (`BLUEPRINT.md`, `.dev/decisions.md`, `DOC-BUG-FIXES.md`, root `package.json`) without conflicts; no unexpected service-source conflicts appeared.
-- After push, `origin/main` advanced again to `1885b6c`; the second merge produced only `.dev/journal.md` and `.dev/progress.md` conflicts, while `CHANGELOG.md`, root `package.json`, dashboard package metadata, and dashboard CSS auto-merged from main.
-
-**Contradictions**
-
-- None.
-
-**Decisions**
-
-- Did not introduce a new package version or changelog release entry for [ANKA-279](/ANKA/issues/ANKA-279); this child only reconciles already-released branch/main narrative and version metadata.
-
-**Unexpected behaviour**
-
-- `bun run lint` still reports unrelated pre-existing Biome warnings/infos in `packages/ctrader-vendor`, `packages/eval-harness`, and `packages/market-data-twelvedata`, while exiting 0.
-
-**Adaptations**
-
-- Refreshed `.dev/progress.md` to the current [ANKA-279](/ANKA/issues/ANKA-279) merge-resolution state rather than preserving either stale current-session block from the conflict.
+- `bun test` — 517 pass / 0 fail / 10649 expects.
+- `git diff --check` — clean.
+- `rg -n "console\\.log|debugger|TODO|HACK"` over modified eval-harness source files — no matches.
 
 **Open endings**
 
-- Commit the merge with the Paperclip footer, push PR #29's branch, confirm GitHub reports `CLEAN` / `MERGEABLE`, and hand [ANKA-279](/ANKA/issues/ANKA-279) back to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80).
-
-**Verification**
-
-- `bun run lint` — exit 0; pre-existing unrelated Biome warnings/infos remain.
-- `bun run typecheck` — clean.
-- `bun test services/news/src/routes/calendar.spec.ts services/news/src/app.spec.ts services/news/src/metrics.spec.ts services/news/src/start.spec.ts services/news/src/db/calendar-db.spec.ts services/news/src/health/health-route.spec.ts packages/shared-contracts/src/treaty-client/create-treaty-client.spec.ts` — 45 pass / 0 fail / 105 expects.
-- Service restart skipped: no service package source or version changed in this child issue; the merge only reconciles metadata/log files and main's already-shipped docs changes.
+- Commit, push, and issue handoff to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80) remain before [ANKA-280](/ANKA/issues/ANKA-280) can enter review.
 
 ## 2026-04-29 22:05 Europe/Amsterdam — [ANKA-121](/ANKA/issues/ANKA-121) dashboard banner — Designer CHANGES_REQUESTED resolved (CSS-only)
 

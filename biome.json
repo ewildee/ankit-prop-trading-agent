@@ -13,6 +13,7 @@
       "!**/dist",
       "!**/build",
       "!**/.dev/journal.md",
+      "!packages/eval-harness/baselines/*.json",
       "!services/news/test/cassettes/ftmo-*.json"
     ]
   },
