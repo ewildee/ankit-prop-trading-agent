@@ -2,6 +2,32 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 09:03 Europe/Amsterdam — v0.4.33 / @ankit-prop/contracts v0.6.0 / @ankit-prop/eval-harness v0.1.4 ([ANKA-158](/ANKA/issues/ANKA-158) — rebase + merge of [ANKA-129](/ANKA/issues/ANKA-129) Prague helper extraction)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped Paperclip wake on [ANKA-158](/ANKA/issues/ANKA-158); CodeReviewer APPROVE (verdict comment `904eccd5`) returned PR [#4](https://github.com/ewildee/anka-prop-trading-agent/pull/4) head `ccecc67` to FoundingEngineer for merge.
+
+**What was done**
+
+- Created worktree `.paperclip/worktrees/ANKA-158` on branch `anka-129-contracts-time` per [ANKA-126](/ANKA/issues/ANKA-126); shared root checkout untouched.
+- Rebased `anka-129-contracts-time` onto `origin/main` (`4e3cd76`). Conflicts in `package.json`, `packages/shared-contracts/src/index.ts`, `CHANGELOG.md`, `.dev/journal.md`, `.dev/progress.md`, and `TODOS.md`.
+- Resolved version-slot collision: `@ankit-prop/contracts@0.5.0` was already taken by [ANKA-131](/ANKA/issues/ANKA-131) on `main`. Promoted contracts to `0.6.0` (additive minor on top of the now-shipped Treaty client surface). Promoted root to `0.4.33`. Eval-harness stays at `0.1.4` (no slot collision).
+- Merged the contracts re-export block: kept Treaty client surface from [ANKA-131](/ANKA/issues/ANKA-131) and appended `pragueDayBucket` / `pragueParts` / `PragueParts` from [ANKA-129](/ANKA/issues/ANKA-129).
+- Replaced the obsolete `0.4.28` PR-side CHANGELOG entry with a fresh `0.4.33 / @ankit-prop/contracts@0.6.0 / @ankit-prop/eval-harness@0.1.4` entry recording the rebase shape; main's existing `0.4.28` audit-trail entry retained verbatim.
+- Refreshed `.dev/progress.md` for this session block.
+- Renumbered the PR-side TODOS line `T015 Extract Prague day-bucket helpers` to `T018` (T015–T017 are taken on `main`).
+
+**Verification**
+
+- `bun install` — clean re-link.
+- `bun test packages/shared-contracts/src/time.spec.ts packages/eval-harness/src/sim-engine.spec.ts packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/ftmo-rules.props.spec.ts` — 30 pass / 0 fail / 974 expects.
+- `bun test` — 342 pass / 0 fail / 2092 expects.
+- `bun run typecheck` — clean.
+- `bun run lint` — exit 0; only pre-existing Biome warnings/infos remain.
+
+**Open endings**
+
+- Push rebased branch (force-with-lease on `anka-129-contracts-time`), mark PR ready, merge with `gh pr merge 4 --rebase --match-head-commit <new-sha>` per [ANKA-132](/ANKA/issues/ANKA-132) protocol, fast-forward `main`, close [ANKA-129](/ANKA/issues/ANKA-129) and [ANKA-158](/ANKA/issues/ANKA-158), and assess whether [ANKA-85](/ANKA/issues/ANKA-85) F1 is now the last open F1-level deliverable.
+
 ## 2026-04-29 08:25 Europe/Amsterdam — PR #12 merged + [ANKA-133](/ANKA/issues/ANKA-133) closed (gateway `/health` Elysia migration)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped wake on [ANKA-156](/ANKA/issues/ANKA-156) PASS, consuming the dual-gate verdicts on PR #12.
@@ -307,6 +333,31 @@ _Append-only, newest first. Never edit past entries._
 - Push branch + open PR for this audit-trail fix; merge to `main` (FF) and close [ANKA-132](/ANKA/issues/ANKA-132). Then route [ANKA-127](/ANKA/issues/ANKA-127) back to CodeReviewer with the citation chain.
 - Wait on Codex for [ANKA-137](/ANKA/issues/ANKA-137); FE writes the [ANKA-138](/ANKA/issues/ANKA-138) ADR next heartbeat.
 - This is a §0.2 audit-trail correction, not a code revert. `ci.yml.disabled` from `70ceb6c` stays disabled until [ANKA-138](/ANKA/issues/ANKA-138) ships its replacement.
+
+## 2026-04-29 05:07 Europe/Amsterdam — v0.4.28 ([ANKA-129](/ANKA/issues/ANKA-129) — `pkg:contracts/time` Prague day-bucket extraction)
+
+> Note (2026-04-29 09:03 — [ANKA-158](/ANKA/issues/ANKA-158) rebase): the version slot recorded below was superseded during rebase onto `main`. See the 09:03 entry at the top of this file for the final shipped versions (root `0.4.33`, contracts `0.6.0`, eval-harness `0.1.4`). Original entry preserved verbatim for the audit trail.
+
+**What was done.** Extracted the Europe/Prague day-bucket helpers from `pkg:eval-harness` into `pkg:contracts`, so all packages can share the FTMO server-day semantics without depending on eval-harness.
+
+- `packages/shared-contracts/src/time.ts` — new canonical `PragueParts`, `pragueParts(tsMs)`, and `pragueDayBucket(tsMs)` helpers, using built-in `Intl.DateTimeFormat` with `timeZone: 'Europe/Prague'`.
+- `packages/shared-contracts/src/time.spec.ts` — moved the ANKA-41 CET / CEST / DST regression matrix to the contracts package.
+- `packages/shared-contracts/src/index.ts` — re-exports the time helper surface from `@ankit-prop/contracts`.
+- `packages/eval-harness/src/ftmo-rules.ts` and `packages/eval-harness/src/sim-engine.ts` — import `pragueDayBucket` from `@ankit-prop/contracts`.
+- Removed the old eval-harness-local `prague-day.ts` and `prague-day.spec.ts`.
+
+**Findings.** The shared root checkout was on unrelated `anka-121-dashboard-shell` state, so [ANKA-129](/ANKA/issues/ANKA-129) used `.paperclip/worktrees/ANKA-129` off `origin/main`. The fresh worktree needed `bun install` before eval-harness could resolve the `@ankit-prop/contracts` workspace import; the first targeted test run showed only that missing link, while the moved contracts spec already passed.
+
+**Contradictions.** None.
+
+**Decisions.** Added the time helper to the root contracts barrel rather than adding a `package.json#exports` map in this issue; `@ankit-prop/contracts` consumers in the current tree already import from the package root, and adding an exports map would be a broader packaging change.
+
+**Unexpected behaviour.** `bun install` rewrote the lockfile only after the package version bumps, as expected for a fresh worktree. No new npm package was needed; `https://bun.com/llms.txt` was fetched and read at 05:07 Europe/Amsterdam before code edits.
+
+**Adaptations.** Moved the existing Prague regression spec wholesale into contracts instead of duplicating it in both packages, then covered eval-harness through its simulator specs.
+
+**Open endings.** None for this issue after final lint/test/typecheck/commit/push complete.
+
 ## 2026-04-28 23:50 Europe/Amsterdam — v0.4.27 ([ANKA-126](/ANKA/issues/ANKA-126) — worktree-first defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) lands)
 
 **What was done.** Added the in-repo defensive guard for the per-issue worktree convention while we wait for the Paperclip `claude_local` per-issue-worktree platform fix from [ANKA-98](/ANKA/issues/ANKA-98).
