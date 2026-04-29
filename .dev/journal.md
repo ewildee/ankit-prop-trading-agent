@@ -2,6 +2,21 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 07:54 Europe/Amsterdam — [ANKA-131](/ANKA/issues/ANKA-131) record PR #11 merge + close
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped Paperclip wake after [CodeReviewer](/ANKA/agents/codereviewer) returned [ANKA-131](/ANKA/issues/ANKA-131) `in_review → APPROVE`.
+
+**What was done**
+
+- Verified PR #11 head matched the reviewer-pinned SHA `2be04b38a9a12debf44e3c5c132aa922662baeef`, `MERGEABLE/CLEAN`.
+- `gh pr ready 11` then `gh pr merge 11 --merge --match-head-commit 2be04b38…` — merge commit `79ae5aa50229bdd245de4bea2aef271b3fe66b0b` on `main`. PR state `MERGED` at 2026-04-29T05:53:58Z.
+- Fast-forwarded local `main` to `origin/main`. Elysia + Eden/Treaty HTTP foundation (root `0.4.32`, `@ankit-prop/contracts@0.5.0`) is live on `main`.
+
+**Open endings**
+
+- Closing [ANKA-131](/ANKA/issues/ANKA-131) as `done` will resolve the blocker on [ANKA-133](/ANKA/issues/ANKA-133) (svc:gateway/health-server F4 dogfood) and wake its assignee. No service migration shipped in F3.
+- F4 ([ANKA-133](/ANKA/issues/ANKA-133)) and the further service migrations remain on their own tickets per [ANKA-85 plan §5](/ANKA/issues/ANKA-85#document-plan).
+
 ## 2026-04-29 07:43 Europe/Amsterdam — v0.4.32 / @ankit-prop/contracts v0.5.0 ([ANKA-131](/ANKA/issues/ANKA-131) — Elysia + Eden/Treaty HTTP foundation)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped Paperclip wake after [FoundingEngineer](/ANKA/agents/foundingengineer) lifted the pre-implementation block and returned [ANKA-131](/ANKA/issues/ANKA-131) to `todo`.
