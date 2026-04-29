@@ -2,6 +2,16 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @triplon/config@0.1.1 — 2026-04-29 05:28 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-143](/ANKA/issues/ANKA-143) — [ANKA-140](/ANKA/issues/ANKA-140) BLOCK fix for project config lookup.
+
+**Fixed** — `infra:config`
+
+- `packages/triplon-config/src/app-config.ts` — `defineAppConfig().paths.project()` now resolves `config/<name>.config.yaml`, matching BLUEPRINT §17 and the checked-in `config/*.example.yaml` layout.
+- `packages/triplon-config/src/define-config.spec.ts` — regression coverage proves a cwd-local `config/symbol-tag-map.config.yaml` is loaded through `defineAppConfig` when the user layer is empty.
+- `services/news/src/symbol-tag-mapper.spec.ts` — operator-facing regression proves `loadSymbolTagMap()` reads the project file before falling back to the bundled example.
+
 ## 0.4.30 — 2026-04-29 05:53 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-130](/ANKA/issues/ANKA-130) — `infra:config` scaffold for `@triplon/config`, rebased above [ANKA-138](/ANKA/issues/ANKA-138)'s v0.4.29 mainline.
