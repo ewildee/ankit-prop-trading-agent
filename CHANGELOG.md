@@ -8,7 +8,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 **Changed** — `svc:news/calendar-fetcher`
 
-- `services/news/src/fetcher/calendar-fetcher.spec.ts` — add mixed-batch (good/bad/good) no-partial-persistence regression spec ([ANKA-225](/ANKA/issues/ANKA-225), closes QA gap from [ANKA-224](/ANKA/issues/ANKA-224)).
+- `services/news/src/fetcher/calendar-fetcher.spec.ts` — add mixed-batch (good/bad/good) no-partial-persistence regression spec ([ANKA-229](/ANKA/issues/ANKA-229), closes QA gap from [ANKA-224](/ANKA/issues/ANKA-224)).
 - `services/news/package.json` — `@ankit-prop/news` `0.3.4` → `0.3.5`.
 
 **Verification**
