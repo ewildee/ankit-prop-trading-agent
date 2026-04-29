@@ -26,6 +26,12 @@ class InMemoryCalendarDb implements CalendarFetcherDb {
   }
 }
 
+class FailingUpsertCalendarDb extends InMemoryCalendarDb {
+  override upsertEvents(): void {
+    throw new Error('sqlite locked');
+  }
+}
+
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
     status,
@@ -65,6 +71,14 @@ function captureLogger(): { logger: CalendarFetcherLogger; records: Record<strin
   };
 }
 
+function expectPragueWindowUrl(rawUrl: string): void {
+  const url = new URL(rawUrl);
+  expect(`${url.origin}${url.pathname}`).toBe(DEFAULT_FTMO_CALENDAR_URL);
+  expect(url.searchParams.get('dateFrom')).toBe('2026-04-29T09:30:00+02:00');
+  expect(url.searchParams.get('dateTo')).toBe('2026-05-13T09:30:00+02:00');
+  expect(url.searchParams.get('timezone')).toBe('Europe/Prague');
+}
+
 describe('createCalendarFetcher.fetchOnce', () => {
   test('persists valid FTMO cassette JSON and marks the fetch healthy', async () => {
     const db = new InMemoryCalendarDb();
@@ -85,7 +99,8 @@ describe('createCalendarFetcher.fetchOnce', () => {
       expect(result.fetchedAt).toBe(NOW);
       expect(result.events.length).toBeGreaterThan(100);
     }
-    expect(seenUrls).toEqual([DEFAULT_FTMO_CALENDAR_URL]);
+    expect(seenUrls).toHaveLength(1);
+    expectPragueWindowUrl(seenUrls[0] ?? '');
     expect(db.upserts).toHaveLength(1);
     expect(db.rows.length).toBeGreaterThan(100);
     expect(db.meta.get('last_fetch_at')).toBe(NOW);
@@ -205,6 +220,51 @@ describe('createCalendarFetcher.fetchOnce', () => {
       path: 'items.0.impact',
       message: 'fetcher.schema_mismatch',
     });
+  });
+
+  test('marks rejected fetches unhealthy', async () => {
+    const db = new InMemoryCalendarDb();
+    const { logger, records } = captureLogger();
+    let calls = 0;
+    const fetcher = createCalendarFetcher({
+      db,
+      logger,
+      clock: { nowUtc: () => NOW },
+      fetch() {
+        calls += 1;
+        throw new Error('dns failure');
+      },
+    });
+
+    const result = await fetcher.fetchOnce();
+
+    expect(result).toEqual({ ok: false, reason: 'fetch_error' });
+    expect(calls).toBe(1);
+    expect(db.rows).toEqual([]);
+    expect(db.meta.get('last_fetch_at')).toBeUndefined();
+    expect(db.meta.get('last_fetch_ok')).toBe('0');
+    expect(records.some((record) => record.event === 'fetcher.fetch_error')).toBe(true);
+  });
+
+  test('marks persistence failures unhealthy instead of leaving the previous healthy state', async () => {
+    const db = new FailingUpsertCalendarDb();
+    const { logger, records } = captureLogger();
+    const fetcher = createCalendarFetcher({
+      db,
+      logger,
+      clock: { nowUtc: () => NOW },
+      fetch() {
+        return jsonResponse({ items: [minimalEvent()] });
+      },
+    });
+
+    const result = await fetcher.fetchOnce();
+
+    expect(result).toEqual({ ok: false, reason: 'persist_error' });
+    expect(db.rows).toEqual([]);
+    expect(db.meta.get('last_fetch_at')).toBeUndefined();
+    expect(db.meta.get('last_fetch_ok')).toBe('0');
+    expect(records.some((record) => record.event === 'fetcher.persist_error')).toBe(true);
   });
 });
 
