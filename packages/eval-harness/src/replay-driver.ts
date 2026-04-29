@@ -25,12 +25,35 @@ export class ReplaySymbolMetaMissing extends Error {
   }
 }
 
+// Thrown when a requested symbol has a SymbolMeta whose broker execution
+// fields are missing/zero/non-finite. CachedFixtureProvider returns
+// `pipSize: 0`, `contractSize: 0`, `typicalSpreadPips: 0` when constructed
+// without `instrumentSpecs`; backtest() then runs but produces a vacuous
+// `realizedPnl: 0`, `initialRisk: 0`, no breaches result regardless of bars.
+// Replay must fail closed on that path too.
+export type InvalidSymbolMetaFinding = {
+  readonly symbol: string;
+  readonly invalidFields: ReadonlyArray<'pipSize' | 'contractSize' | 'typicalSpreadPips'>;
+};
+export class ReplaySymbolMetaInvalid extends Error {
+  readonly findings: ReadonlyArray<InvalidSymbolMetaFinding>;
+  constructor(findings: ReadonlyArray<InvalidSymbolMetaFinding>) {
+    const summary = findings.map((f) => `${f.symbol}=[${f.invalidFields.join(', ')}]`).join('; ');
+    super(
+      `replay-driver: SymbolMeta has invalid broker execution fields (must be finite > 0): ${summary}`,
+    );
+    this.name = 'ReplaySymbolMetaInvalid';
+    this.findings = findings;
+  }
+}
+
 type ReplayPreparedStrategy = BarStrategy & {
   prepareReplay?: (bars: ReadonlyArray<Bar>) => BarStrategy;
 };
 
 export async function replayWithProvider(input: ReplayInput): Promise<EvalResult> {
   assertSymbolMetaCoverage(input);
+  assertSymbolMetaBrokerFields(input);
 
   const barSets = await Promise.all(
     input.symbols.map(async (s) => ({
@@ -71,6 +94,24 @@ function assertSymbolMetaCoverage(input: ReplayInput): void {
     if (!metas.has(s.symbol)) missing.push(s.symbol);
   }
   if (missing.length > 0) throw new ReplaySymbolMetaMissing(missing);
+}
+
+function assertSymbolMetaBrokerFields(input: ReplayInput): void {
+  const requested = new Set(input.symbols.map((s) => s.symbol));
+  const findings: InvalidSymbolMetaFinding[] = [];
+  for (const meta of input.symbolMetas) {
+    if (!requested.has(meta.symbol)) continue;
+    const invalidFields: Array<'pipSize' | 'contractSize' | 'typicalSpreadPips'> = [];
+    if (!isFinitePositive(meta.pipSize)) invalidFields.push('pipSize');
+    if (!isFinitePositive(meta.contractSize)) invalidFields.push('contractSize');
+    if (!isFinitePositive(meta.typicalSpreadPips)) invalidFields.push('typicalSpreadPips');
+    if (invalidFields.length > 0) findings.push({ symbol: meta.symbol, invalidFields });
+  }
+  if (findings.length > 0) throw new ReplaySymbolMetaInvalid(findings);
+}
+
+function isFinitePositive(value: number): boolean {
+  return Number.isFinite(value) && value > 0;
 }
 
 function mergeBars(
