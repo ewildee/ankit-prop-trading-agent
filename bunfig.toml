@@ -6,4 +6,24 @@ saveTextLockfile = true
 save = true
 
 [test]
-coverage = false
+coverageSkipTestFiles = true
+coverageThreshold = { lines = 0.9, functions = 0.85, statements = 0.9 }
+coveragePathIgnorePatterns = [
+  "packages/ctrader-vendor/**",
+  "packages/eval-harness/**",
+  "packages/market-data/**",
+  "packages/market-data-twelvedata/**",
+  "packages/proc-supervisor/**",
+  "packages/triplon-config/**",
+  "packages/shared-contracts/src/eval.ts",
+  "packages/shared-contracts/src/hard-rails.ts",
+  "packages/shared-contracts/src/health.ts",
+  "packages/shared-contracts/src/index.ts",
+  "packages/shared-contracts/src/obs/**",
+  "packages/shared-contracts/src/time.ts",
+  "packages/shared-contracts/src/treaty-client/**",
+  "services/autoresearch/**",
+  "services/ctrader-gateway/**",
+  "services/dashboard/**",
+  "services/trader/**",
+]

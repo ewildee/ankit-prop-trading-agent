@@ -2,11 +2,12 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-29 22:28 Europe/Amsterdam — [ANKA-279](/ANKA/issues/ANKA-279) PR #29 merge-conflict resolution
+## 2026-04-30 00:29 Europe/Amsterdam — [ANKA-170](/ANKA/issues/ANKA-170) svc:news cassette replay / drift / DST / coverage gate
 
-- Scoped wake reason: `issue_assigned`; harness already checked out the ANKA-169 PR #29 worktree.
-- Re-read BLUEPRINT §0 / §0.2 / §17 / §22 / §25 and fetched `https://bun.com/llms.txt` at 22:28 Europe/Amsterdam before touching Bun-runtime branch files.
-- Merged `origin/main` into `ANKA-169-feat-svc-news-elysia-router-start-ts-metrics-treaty`; first conflict set was `.dev/journal.md`, `.dev/progress.md`, `CHANGELOG.md`, then `main` advanced again and added `.dev/journal.md` / `.dev/progress.md` conflicts only.
-- Resolution keeps all lineages newest-first: main 22:05 dashboard, 21:55/20:38 docs-governance entries plus PR-side `@ankit-prop/news@0.5.2`, `0.5.1`, and `0.5.0` entries.
-- Verification: `bun run lint` exit 0 (pre-existing warnings/infos), `bun run typecheck` clean, focused news/contracts tests 45 pass / 0 fail / 105 expects.
-- No service source files were edited in this child issue; next is merge commit, push, PR #29 mergeability check, and FoundingEngineer handoff.
+- Scoped wake reason: `issue_blockers_resolved`; ANKA-169 was already merged and this issue was checked out by the harness.
+- Re-read BLUEPRINT §0 / §0.2 / §11 / §17 / §21 / §22 / §25 and fetched `https://bun.com/llms.txt` at 00:29 Europe/Amsterdam before finalizing Bun-runtime changes.
+- Added full svc:news cassette replay coverage through fetcher persistence and calendar routes, contract drift detector tests, and Prague spring/fall DST integration tests.
+- Added Bun-native coverage thresholds in `bunfig.toml`: 90% line/statement and 85% function coverage over `services/news/**` plus `packages/shared-contracts/src/news.ts`; documented the Bun branch-threshold limitation in `services/news/README.md`.
+- Bumped root `0.4.48` and `@ankit-prop/news` `0.5.3`; changelog, journal, TODO, and progress records updated.
+- Verification green: `bun run lint:fix`, `bun run typecheck`, `bun test` 552 pass / 0 fail / 2764 expects, `bun test --coverage` 552 pass with 99.24% funcs / 99.45% lines.
+- Restart/health: `PORT=19270 NEWS_CALENDAR_DB_PATH=/tmp/anka-170-news-calendar.db bun run --cwd services/news start`; `/health` returned 200 with `version:"0.5.3"` and `status:"healthy"`.

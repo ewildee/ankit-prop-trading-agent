@@ -2,6 +2,53 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 00:29 Europe/Amsterdam — [ANKA-170](/ANKA/issues/ANKA-170) svc:news cassette replay / contract drift / Prague DST / coverage gate
+
+**Agent:** CodexExecutor (codex_local). **Run:** `14700dc4-e185-4bd5-b880-f886e779c716`.
+
+**What was done**
+
+- Picked up the `issue_blockers_resolved` wake after [ANKA-169](/ANKA/issues/ANKA-169) unblocked the full `svc:news` Elysia app; the harness had already checked out [ANKA-170](/ANKA/issues/ANKA-170).
+- Re-read BLUEPRINT §0 / §0.2 / §11 / §17 / §21 / §22 / §25 and fetched `https://bun.com/llms.txt` at 00:29 Europe/Amsterdam before finalizing Bun-runtime changes.
+- Added cassette replay integration coverage that exercises `createCalendarFetcher`, in-memory SQLite persistence, freshness metadata, `buildNewsApp`, and all calendar route shapes against `services/news/test/cassettes/ftmo-2026-03-23-week.json`.
+- Added strict contract-drift tests comparing cassette item keys to `CalendarItem.shape` with actionable error messages for upstream additions, local schema removals, and required cassette-key disappearance.
+- Added Prague DST integration tests for explicit-offset spring-forward and fall-back FTMO timestamps, including the two distinct `2026-10-25T02:30` local instants.
+- Added native Bun coverage thresholds in `bunfig.toml`, documented the Bun no-branch-threshold limitation in `services/news/README.md`, and bumped root `0.4.48` plus `@ankit-prop/news` `0.5.3`.
+
+**Findings**
+
+- Bun 1.3 coverage thresholds expose line, statement, and function keys; no separate branch threshold key is documented/exposed, so ANKA-170's 85% branch intent is represented by the closest native executable-decision gate, `functions = 0.85`.
+- The coverage threshold is effectively per included file, not just aggregate, which required focused tests for the default app clock, default freshness clock, and calendar-fetcher start/stop/error paths.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Kept the coverage gate in the root `bunfig.toml` so `bun test --coverage` fails locally without requiring public CI.
+- Scoped coverage accounting to `services/news/**` plus `packages/shared-contracts/src/news.ts` by ignoring unrelated packages, because ANKA-170 is a Phase 5 news gate and unrelated low-coverage packages should not block this issue.
+
+**Unexpected behaviour**
+
+- `bun run lint:fix` still exits 0 while printing pre-existing unsafe Biome suggestions in unrelated packages (`ctrader-vendor`, `eval-harness`, `market-data-twelvedata`).
+
+**Adaptations**
+
+- Added narrow test-only type guards/parsing after `bun run typecheck` caught unsafe `unknown` JSON and optional fixture item access in the new tests.
+
+**Open endings**
+
+- Commit with the Paperclip footer, push the branch, then hand [ANKA-170](/ANKA/issues/ANKA-170) to QA/code review before merge.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; unrelated pre-existing Biome warnings/infos remain.
+- `bun run typecheck` — clean.
+- `bun test` — 552 pass / 0 fail / 2764 expects.
+- `bun test --coverage` — 552 pass / 0 fail / 2764 expects; aggregate covered surface 99.24% functions / 99.45% lines, with `calendar-fetcher.ts` 90.48% functions / 98.36% lines and `routes/calendar.ts` 94.29% functions / 95.19% lines.
+- `PORT=19270 NEWS_CALENDAR_DB_PATH=/tmp/anka-170-news-calendar.db NODE_ENV=production bun run --cwd services/news start`; `GET /health` returned HTTP 200 with `version:"0.5.3"` and `status:"healthy"`.
+
 ## 2026-04-29 22:28 Europe/Amsterdam — [ANKA-279](/ANKA/issues/ANKA-279) PR #29 merge-conflict resolution for [ANKA-169](/ANKA/issues/ANKA-169)
 
 **Agent:** CodexExecutor (codex_local). **Run:** `e79adf77-6465-48d6-a7da-cff8cdd367c5`.

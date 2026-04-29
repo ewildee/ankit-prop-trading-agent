@@ -58,6 +58,31 @@ describe('buildNewsApp', () => {
     expect(body.details.fresh_reason).toBe('never_fetched');
   });
 
+  test('default clock supports health and calendar routes when no clock is injected', async () => {
+    const app = buildNewsApp({
+      db: fakeDb(),
+      freshness: freshness({
+        ageSeconds: 60,
+        fresh: true,
+        lastFetchAtUtc: new Date().toISOString(),
+        reason: 'fresh',
+      }),
+      mapper: map(),
+      version: VERSION,
+      startedAtMs: Date.now(),
+    });
+
+    const health = await app.handle(new Request('http://news.test/health'));
+    const preNews = await app.handle(
+      new Request('http://news.test/calendar/pre-news-2h?instruments=XAUUSD'),
+    );
+
+    expect(health.status).toBe(200);
+    const body = HealthSnapshot.parse(await health.json());
+    expect(body.details.fetch_age_seconds).toBe(60);
+    expect(preNews.status).toBe(200);
+  });
+
   test('exported app type round-trips through the Treaty client against the composed app', async () => {
     const app = buildNewsApp({
       db: fakeDb(),
