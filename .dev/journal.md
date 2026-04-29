@@ -2,6 +2,35 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 20:38 Europe/Amsterdam — [ANKA-270](/ANKA/issues/ANKA-270) Layer-1 of [ANKA-268](/ANKA/issues/ANKA-268) remediation: GitHub merge-mode buttons disabled
+
+**Agent:** CEO (claude_local). **Run:** heartbeat (issue_reopened_via_comment wake on ANKA-270).
+
+**What was done**
+
+- Operator (Étienne) executed `gh api -X PATCH repos/ewildee/ankit-prop-trading-agent -f allow_squash_merge=false -f allow_merge_commit=false -f allow_rebase_merge=true` after accepting the `request_confirmation` posted on [ANKA-270](/ANKA/issues/ANKA-270). Verify output (`gh api repos/ewildee/ankit-prop-trading-agent | jq '{allow_squash_merge, allow_merge_commit, allow_rebase_merge}'`) pasted into the issue thread: `{ "allow_squash_merge": false, "allow_merge_commit": false, "allow_rebase_merge": true }`.
+- Updated **ADR-0007** §Consequences paragraph 3 in `.dev/decisions.md` to record the shipped flip (with the verify output inline) and to drop the now-stale "Until that ships, the GitHub UI ... buttons remain *visible*" wording. The Layer-1 step of the ANKA-268 remediation plan is now factually closed in the ADR.
+- Bumped root `package.json` `0.4.43` → `0.4.44` (governance / docs change, no package code touched). Logged the change in `CHANGELOG.md` (top entry, `0.4.44`).
+
+**Findings**
+
+- Independent verify (`gh api ...` from this agent's environment, after the operator paste) returned the same `{false, false, true}` map. Both acceptance criteria 1 and 2 of ANKA-270 are satisfied without any agent-side admin action.
+- ADR-0007 had no literal `[ ]` checkbox; the "Layer-1 checkbox" wording in the ANKA-270 spec was figurative shorthand for the §Consequences paragraph that tracked the operator-side guard. That paragraph is the right place to record the closure, so this commit edits prose instead of toggling a checkbox.
+
+**Decisions**
+
+- Did not modify AGENTS.md PR merge protocol §1's "confirmed against this repo's current settings" wording in the same commit. The §1 prose still correctly describes the *failure modes* the protocol forbids; rewriting it to past tense is scope-creep against the smallest-diff principle for this PR. If the next merge-protocol audit wants that line refreshed, it can ride a separate docs PR.
+- Did not touch CHANGELOG entry style for `0.4.44` beyond mirroring the `0.4.43` template (governance entry, "Changed — `docs` / `infra:tooling`", "Verification: docs-only, no `bun test` / typecheck / lint re-run").
+
+**Verification**
+
+- Smallest verification per BLUEPRINT §0.2: docs-only edits in `.dev/decisions.md`, `.dev/journal.md`, `CHANGELOG.md`, `package.json` version bump. No source files touched, so `bun test` / `bun run typecheck` / `bun run lint` were not re-run — none could be affected.
+- Independent `gh api` re-verify of the merge-mode flip returned the expected `{false, false, true}` map.
+
+**Open endings**
+
+- PR for this commit opens against `main` and must be merged via `gh pr merge <N> --rebase --match-head-commit <sha>` (now the only path GitHub will offer). On merge, the CEO heartbeat closes ANKA-270 and updates the ANKA-270 thread with the post-merge audit output.
+
 ## 2026-04-29 20:30 Europe/Amsterdam — [ANKA-168](/ANKA/issues/ANKA-168) news `/health/details` Elysia route + Treaty export
 
 **Agent:** CodexExecutor (codex_local). **Run:** `a8e678dd-8203-4138-8e06-6b710436e69d`.

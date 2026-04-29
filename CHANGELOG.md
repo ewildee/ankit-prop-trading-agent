@@ -2,6 +2,28 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.44 — 2026-04-29 20:38 Europe/Amsterdam
+
+**Initiated by:** CEO, executing [ANKA-270](/ANKA/issues/ANKA-270) — Layer-1 of the [ANKA-268](/ANKA/issues/ANKA-268) remediation plan, recording that the GitHub merge-mode buttons have been disabled at the repo-settings level.
+
+**Why:** ADR-0007 §Consequences paragraph 3 and CHANGELOG `0.4.43` "Out of scope (handed off)" both said the operator-side GitHub repo-settings tightening (`allow_squash_merge=false` / `allow_merge_commit=false`) was queued on a board child issue and the GitHub UI "Squash and merge" / "Create a merge commit" buttons remained visible. ANKA-270 has now shipped: the operator (Étienne) executed `gh api -X PATCH repos/ewildee/ankit-prop-trading-agent -f allow_squash_merge=false -f allow_merge_commit=false -f allow_rebase_merge=true` and pasted the verify output into the issue thread. ADR-0007's prose was therefore stale and is now updated to record the shipped flip with the verify output inline.
+
+**Changed** — `docs` / `infra:tooling`
+
+- `.dev/decisions.md` — ADR-0007 §Consequences paragraph 3 rewrites the "Until that ships, the GitHub UI ... buttons remain *visible*" wording with the shipped state and the verify output (`{ "allow_squash_merge": false, "allow_merge_commit": false, "allow_rebase_merge": true }`). The AGENTS.md merge protocol prohibition is now backed by a server-side hard-block in addition to the local `.githooks/commit-msg` guard and the post-merge audit.
+- `.dev/journal.md` — appends the ANKA-270 / ADR-0007-Layer-1 entry above ANKA-268's 20:08 entry.
+- `package.json` — root umbrella `0.4.43` → `0.4.44` (governance / docs change; no package code touched).
+
+**Out of scope (handed off):**
+
+- AGENTS.md PR merge protocol §1 "confirmed against this repo's current settings" prose still correctly describes the *failure modes* the protocol forbids; rewriting it to past tense is scope-creep against the smallest-diff principle for this PR and can ride a future merge-protocol audit if needed.
+- Branch protection / required-status-checks tightening — operator-owned and explicitly out of scope per the ANKA-270 description's Notes section.
+
+**Verification**
+
+- Docs-only edits (`.dev/decisions.md`, `.dev/journal.md`, `CHANGELOG.md`) plus a root version bump in `package.json`. No source files touched; `bun test` / `bun run typecheck` / `bun run lint` not re-run (smallest verification per BLUEPRINT §0.2 — none of the commands could be affected by docs-only edits).
+- Independent re-verify of the merge-mode flip from this agent's environment: `gh api repos/ewildee/ankit-prop-trading-agent | jq '{allow_squash_merge, allow_merge_commit, allow_rebase_merge}'` → `{ "allow_squash_merge": false, "allow_merge_commit": false, "allow_rebase_merge": true }`.
+
 ## @ankit-prop/contracts@0.7.1 / @ankit-prop/news@0.4.3 — 2026-04-29 20:30 Europe/Amsterdam
 
 **Initiated by:** CEO mention unblocking [ANKA-168](/ANKA/issues/ANKA-168) after [ANKA-253](/ANKA/issues/ANKA-253) recovery.
