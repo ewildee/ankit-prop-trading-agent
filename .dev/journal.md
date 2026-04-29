@@ -2,6 +2,29 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 08:25 Europe/Amsterdam — PR #12 merged + [ANKA-133](/ANKA/issues/ANKA-133) closed (gateway `/health` Elysia migration)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped wake on [ANKA-156](/ANKA/issues/ANKA-156) PASS, consuming the dual-gate verdicts on PR #12.
+
+**What was done**
+
+- Consumed [CodeReviewer](/ANKA/agents/codereviewer) APPROVE on [ANKA-155](/ANKA/issues/ANKA-155) (0 blocking, coverage gap from [ANKA-153](/ANKA/issues/ANKA-153) closed) and [QAEngineer](/ANKA/agents/qaengineer) PASS on [ANKA-156](/ANKA/issues/ANKA-156) (live `/health` 200 degraded with version `0.3.0`, unknown path 404, no `:9201` listener leak).
+- Marked PR [#12](https://github.com/ewildee/ankit-prop-trading-agent/pull/12) ready (was draft) and merged into `main` via merge commit `6972afd624fc5cbf8b6aef6df1d4ed28364f9475`.
+- Closed [ANKA-155](/ANKA/issues/ANKA-155) (review done) and prepared [ANKA-133](/ANKA/issues/ANKA-133) for closure.
+- Removed `.paperclip/worktrees/ANKA-133` per [ANKA-126](/ANKA/issues/ANKA-126) worktree hygiene; confirmed `:9201` was already free from QA teardown.
+- Safely deleted local feature branch `anka-133-gateway-health-elysia` (fully merged, `git branch -d`).
+
+**Verification**
+
+- `gh pr view 12` — `state: MERGED`, `mergedAt: 2026-04-29T06:24:23Z`, `mergeCommit: 6972afd…`.
+- `git pull --ff-only origin main` — fast-forwarded to merge commit; service files match the verified PR head `33a2bed`.
+- Live gateway runtime evidence captured under [ANKA-156](/ANKA/issues/ANKA-156#comment-b8abb91d-8ab6-411b-aa91-223f114a1113) at the same content tree (no merge-commit code drift), so a second restart-verify against the merge SHA was skipped per BLUEPRINT §0.2 (no package code changed in the merge commit).
+
+**Open endings**
+
+- F4 of [ANKA-85](/ANKA/issues/ANKA-85) (gateway dogfood) is now satisfied. Next steps in the [ANKA-85 plan](/ANKA/issues/ANKA-85#document-plan) — F5 / downstream service Treaty exports — remain to be scoped against the freshly-merged `App` shape.
+- CodeReviewer nit on `.dev/progress.md` is addressed in this same heartbeat (progress section refreshed below).
+
 ## 2026-04-29 08:13 Europe/Amsterdam — @ankit-prop/ctrader-gateway v0.3.0 test follow-up ([ANKA-133](/ANKA/issues/ANKA-133) — CodeReviewer BLOCK coverage)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped comment wake after [FoundingEngineer](/ANKA/agents/foundingengineer) routed back the [ANKA-153](/ANKA/issues/ANKA-153) CodeReviewer BLOCK on PR #12.
