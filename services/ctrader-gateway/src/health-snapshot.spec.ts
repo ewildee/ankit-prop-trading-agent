@@ -41,4 +41,30 @@ describe('buildHealthSnapshot', () => {
     expect(snap.status).toBe('unhealthy');
     expect(() => HealthSnapshot.parse(snap)).not.toThrow();
   });
+
+  test('reports degraded when rails are pending', () => {
+    const snap = buildHealthSnapshot({
+      version: '0.1.0',
+      startedAtMs: FROZEN_START,
+      now: () => FROZEN_NOW,
+      transport: () => 'connected',
+      rails: () => 'pending',
+    });
+    expect(snap.status).toBe('degraded');
+    expect(snap.details.rails).toBe('pending');
+    expect(() => HealthSnapshot.parse(snap)).not.toThrow();
+  });
+
+  test('reports unhealthy when rails are unhealthy', () => {
+    const snap = buildHealthSnapshot({
+      version: '0.1.0',
+      startedAtMs: FROZEN_START,
+      now: () => FROZEN_NOW,
+      transport: () => 'connected',
+      rails: () => 'unhealthy',
+    });
+    expect(snap.status).toBe('unhealthy');
+    expect(snap.details.rails).toBe('unhealthy');
+    expect(() => HealthSnapshot.parse(snap)).not.toThrow();
+  });
 });

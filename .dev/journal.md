@@ -2,6 +2,28 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 08:13 Europe/Amsterdam — @ankit-prop/ctrader-gateway v0.3.0 test follow-up ([ANKA-133](/ANKA/issues/ANKA-133) — CodeReviewer BLOCK coverage)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped comment wake after [FoundingEngineer](/ANKA/agents/foundingengineer) routed back the [ANKA-153](/ANKA/issues/ANKA-153) CodeReviewer BLOCK on PR #12.
+
+**What was done**
+
+- Re-fetched `https://bun.com/llms.txt` at 08:13 Europe/Amsterdam before editing Bun-runtime tests.
+- Added a live `startHealthServer({ port: 0 })` listener spec that asserts the assigned ephemeral port, fetches `/health`, parses `HealthSnapshot`, checks version/details/clock/status, awaits `server.stop(true)`, and confirms the stopped listener rejects a follow-up fetch.
+- Added `rails: () => 'pending'` and `rails: () => 'unhealthy'` snapshot branch tests.
+- Kept `@ankit-prop/ctrader-gateway` at `0.3.0`; this is test coverage only, no runtime behavior change.
+
+**Verification**
+
+- `bun test services/ctrader-gateway/src/health-server.spec.ts services/ctrader-gateway/src/health-snapshot.spec.ts services/ctrader-gateway/src/index.spec.ts` — 10 pass / 0 fail / 33 expects.
+- `bun test services/ctrader-gateway` — 113 pass / 0 fail / 626 expects.
+- `bun run lint:fix` — exit 0; only pre-existing warnings/infos remained.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- Push the follow-up commit to `origin/anka-133-gateway-health-elysia` so PR #12 updates, then hand back to [FoundingEngineer](/ANKA/agents/foundingengineer) for fresh CodeReviewer routing.
+
 ## 2026-04-29 08:04 Europe/Amsterdam — @ankit-prop/ctrader-gateway v0.3.0 ([ANKA-133](/ANKA/issues/ANKA-133) — gateway health Elysia migration)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped unblock wake after [ANKA-131](/ANKA/issues/ANKA-131) resolved.

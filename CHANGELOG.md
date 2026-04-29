@@ -20,12 +20,13 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `services/ctrader-gateway/src/health-snapshot.spec.ts` — pure snapshot tests for degraded default, connected healthy state, and explicit unhealthy dependency state.
 - `services/ctrader-gateway/src/health-server.spec.ts` — Elysia `app.handle(new Request(...))` round-trips for `GET /health` 200, unhealthy → 503, and unknown path 404.
 - `services/ctrader-gateway/src/index.spec.ts` — `assertExportsTreaty` source smoke for the type-only `App` export.
+- Follow-up after CodeReviewer BLOCK: added live `startHealthServer({ port: 0 })` listener coverage and `rails: pending|unhealthy` snapshot branch tests.
 
 **Verification**
 
 - `bun install --frozen-lockfile` — clean.
 - `bun run lint:fix` — exit 0; Biome reported pre-existing warnings/infos in unrelated files and made no final changes.
-- `bun test services/ctrader-gateway` — 110 pass / 0 fail / 611 expects.
+- `bun test services/ctrader-gateway` — 113 pass / 0 fail / 626 expects after the follow-up coverage commit.
 - `bun test` — 364 pass / 0 fail / 2132 expects.
 - `bun run typecheck` — clean.
 - Runtime smoke: restarted the old gateway process on `:9201`; `curl http://127.0.0.1:9201/health` returned `version: "0.3.0"` from the Elysia server.
