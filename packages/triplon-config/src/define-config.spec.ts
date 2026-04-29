@@ -100,4 +100,30 @@ describe('defineAppConfig', () => {
     expect(handle.getConfig().mappings.EUR?.affects).toEqual(['DAX40']);
     expect(handle.getConfig().mappings.USD).toBeUndefined();
   });
+
+  test('layers user config over project config', async () => {
+    const projectConfigDir = join(sandbox, 'config');
+    const userConfigDir = join(sandbox, 'xdg', 'ankit-prop');
+    await mkdir(projectConfigDir, { recursive: true });
+    await mkdir(userConfigDir, { recursive: true });
+    await writeFile(
+      join(projectConfigDir, 'symbol-tag-map.config.yaml'),
+      'mappings:\n  EUR:\n    affects: [DAX40]\n',
+      'utf8',
+    );
+    await writeFile(
+      join(userConfigDir, 'symbol-tag-map.config.yaml'),
+      'mappings:\n  EUR:\n    affects: [DAX40, GER40.cash]\n',
+      'utf8',
+    );
+
+    const handle = defineAppConfig({
+      scope: 'ankit-prop',
+      name: 'symbol-tag-map',
+      schema: SymbolTagMapSchema,
+      envOverrides: false,
+    });
+
+    expect(handle.getConfig().mappings.EUR?.affects).toEqual(['DAX40', 'GER40.cash']);
+  });
 });

@@ -121,8 +121,9 @@ export function defineAppConfig<S extends z.ZodType>(
       }
       fileLayer = loadYamlMapping(overridePath) ?? {};
     } else {
-      fileLayer = mergeMapping(fileLayer, loadYamlMapping(userPath()) ?? {});
+      // BLUEPRINT §17.1: user config is canonical, so it layers after project config.
       fileLayer = mergeMapping(fileLayer, loadYamlMapping(projectPath()) ?? {});
+      fileLayer = mergeMapping(fileLayer, loadYamlMapping(userPath()) ?? {});
     }
 
     const parsed = opts.schema.safeParse(fileLayer);

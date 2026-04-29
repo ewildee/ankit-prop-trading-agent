@@ -2,6 +2,14 @@
 
 All notable changes to `@triplon/config`. Newest first.
 
+## 0.1.2 — 2026-04-29 05:49 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-149](/ANKA/issues/ANKA-149) after [ANKA-140](/ANKA/issues/ANKA-140) review feedback.
+
+**Fixed**
+
+- `defineAppConfig` honours user > project precedence (BLUEPRINT §17.1).
+
 ## 0.1.1 — 2026-04-29 05:28 Europe/Amsterdam
 
 **Fixed**

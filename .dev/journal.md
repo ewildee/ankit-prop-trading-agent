@@ -2,6 +2,27 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:49 Europe/Amsterdam — @triplon/config v0.1.2 ([ANKA-149](/ANKA/issues/ANKA-149) — [ANKA-140](/ANKA/issues/ANKA-140) BLOCK fix)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-149](/ANKA/issues/ANKA-149); no pending comments, so work proceeded from the issue description.
+- Created `.paperclip/worktrees/ANKA-149` from `origin/anka-130-triplon-config` as a detached worktree because the PR branch is already checked out by `.paperclip/worktrees/ANKA-130`.
+- Fetched `https://bun.com/llms.txt` at 05:47 Europe/Amsterdam before Bun-runtime edits; no new dependencies needed.
+- Reversed `defineAppConfig()` file layering so project config loads first and user config wins last-write merge per BLUEPRINT §17.1.
+- Added a regression where both project and user `symbol-tag-map.config.yaml` define `EUR`, proving the user value wins.
+- Removed the stale multi-source precedence TODO from the single-source `defineConfig()` loader.
+- Bumped `@triplon/config` 0.1.1 → 0.1.2 and updated package changelog/progress/TODOS for handoff.
+- Verified with `bun install --frozen-lockfile`, targeted config/news tests (21 pass), `bun run lint:fix`, `bun run typecheck`, `bun run config:codegen --check`, `git diff --check`, and debug grep.
+
+**Findings**
+
+- `mergeMapping` already implements the desired last-write-wins replacement for array-shaped values, so no merge helper change was needed.
+
+**Open endings**
+
+- Commit, push, PR mergeability check, and issue-thread handoff are next in this heartbeat.
+
 ## 2026-04-29 05:28 Europe/Amsterdam — @triplon/config v0.1.1 ([ANKA-143](/ANKA/issues/ANKA-143) — [ANKA-140](/ANKA/issues/ANKA-140) BLOCK fix)
 
 **What was done**

@@ -22,7 +22,6 @@ function formatValidationError(err: z.ZodError): string {
 }
 
 export function defineConfig<S extends z.ZodType>(opts: DefineConfigOptions<S>): z.infer<S> {
-  // TODO BLUEPRINT §17 multi-source precedence: env > file > defaults.
   const sourceFile = resolve(process.cwd(), opts.sourceFile);
   if (!existsSync(sourceFile)) {
     throw new ConfigLoadError(`Config file not found: ${sourceFile}`, { sourceFile });

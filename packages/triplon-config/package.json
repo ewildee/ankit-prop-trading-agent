@@ -1,6 +1,6 @@
 {
   "name": "@triplon/config",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "Bun-native YAML config loading, env-name derivation, and schema artifacts for Ankit Prop Trader.",
