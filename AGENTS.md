@@ -104,6 +104,80 @@ Never skip pre-commit hooks (`--no-verify`) without explicit operator
 permission. Never commit secrets or `*.config.yaml` files containing
 credentials.
 
+## PR merge protocol ([ANKA-132](/ANKA/issues/ANKA-132))
+
+Repo: `ewildee/ankit-prop-trading-agent`. Two failure modes are known
+on the GitHub merge path. Until both are addressed at the platform
+level (App permissions widened, server-side footer validation in CI
+under [ANKA-137](/ANKA/issues/ANKA-137) / [ANKA-138](/ANKA/issues/ANKA-138)),
+the repo-local convention is mandatory.
+
+### 1. Strategy: rebase only — no `--squash`, no `--merge`, no UI buttons
+
+The canonical Paperclip footer is exactly
+`Co-Authored-By: Paperclip <noreply@paperclip.ing>` (the local
+`.githooks/commit-msg` hook only accepts this casing). The local
+hook does **not** fire on any GitHub-side synthetic commit, so any
+strategy that asks GitHub to author a new commit body server-side
+will land on `main` undetected.
+
+Two server-side failure modes are confirmed against this repo's
+current settings (`gh api repos/ewildee/ankit-prop-trading-agent`):
+
+- **Squash** (`merge_commit` analogue: `squash_merge_commit_message`
+  = `COMMIT_MESSAGES`, `squash_merge_commit_title` =
+  `COMMIT_OR_PR_TITLE`). GitHub's squash-merge synthesises the merge
+  commit body server-side and auto-injects co-author lines as
+  `Co-authored-by:` (lowercase). Commit `31012ff` (merge of PR #2,
+  [ANKA-126](/ANKA/issues/ANKA-126)) is the recorded incident.
+- **Merge commit** (`merge_commit_title` = `MERGE_MESSAGE`,
+  `merge_commit_message` = `PR_TITLE`). The synthetic merge commit's
+  body is **just the PR title** — the PR description is not even
+  included, so the canonical footer cannot ride along regardless of
+  what is in the PR body. (`PR_BODY` is a separate option that this
+  repo does not currently set; even with `PR_BODY` the footer would
+  depend on PR-body discipline rather than commit-msg-hook
+  enforcement.) Documented at
+  <https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/configuring-commit-merging-for-pull-requests>.
+
+The only safe strategy on this repo is therefore:
+
+- `gh pr merge <N> --rebase --match-head-commit <sha>` — fast-forwards
+  or replays the PR's per-commit messages exactly, including the
+  canonical footer that the local `commit-msg` hook already enforced
+  at author time. No GitHub-side commit body is synthesised.
+
+Forbidden until [ANKA-137](/ANKA/issues/ANKA-137) lands a server-side
+CI footer guard:
+
+- `gh pr merge --squash` and the GitHub UI "Squash and merge" button.
+- `gh pr merge --merge` and the GitHub UI "Create a merge commit"
+  button.
+
+If the PR's stated strategy in its description is `--squash` or
+`--merge`, override it to `--rebase` and note the override in the
+issue thread. Both `--squash` and `--merge` become available again
+only after [ANKA-137](/ANKA/issues/ANKA-137) ships and is operator-
+promoted to a required check on `main`.
+
+### 2. Fallback: `gh` CLI when the GitHub App returns 403
+
+The default agent merge path (MCP `_merge_pull_request` / GitHub App)
+returns `403 Resource not accessible by integration` because the App
+installation lacks `Pull requests: write` on this repo.
+
+Until the App permissions are widened, use `gh` (authed as the
+operator with admin) as the canonical merge path:
+
+1. Verify the head: `gh pr view <N> --json headRefOid,mergeable,mergeStateStatus,state`.
+2. Confirm it matches the QA-reviewed SHA recorded on the issue.
+3. Merge with the allowed strategy above (`--rebase --match-head-commit <sha>` only — never `--squash` or `--merge` until [ANKA-137](/ANKA/issues/ANKA-137) ships).
+4. Record the merge commit SHA on the corresponding Paperclip issue.
+
+Do not retry the MCP merge tool on 403 — fall through to `gh`
+immediately. If `gh` is also unavailable in the agent's environment,
+escalate to the board via comment.
+
 ## Build phases (BLUEPRINT §22)
 
 Move strictly in order. Phases 1→2→3 are sequential; phase 4 may
