@@ -69,26 +69,6 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bun run lint:fix` — exit 0; only pre-existing unrelated diagnostics outside this diff.
 - Service restart/health: `services/news` still has only the placeholder `start` script and no long-running `/health` endpoint to verify (Phase 5 deliverable).
 
-## @ankit-prop/news@0.3.4 — 2026-04-29 13:08 Europe/Amsterdam
-
-**Initiated by:** CodexExecutor, executing [ANKA-220](/ANKA/issues/ANKA-220) — PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17) CodeReviewer blocking follow-up.
-
-**Fixed** — `svc:news/calendar-fetcher`
-
-- `services/news/src/fetcher/map-event.ts` — adds `mapCalendarItemToEvent` to convert validated FTMO `CalendarItem` rows into persisted `CalendarEvent` records with UTC `eventTsUtc`, parsed instrument tags, `restricted`, currency, and deterministic `ftmo-` SHA-256 ids via `Bun.CryptoHasher`.
-- `services/news/src/fetcher/calendar-fetcher.ts` — persists mapped `CalendarEvent[]` instead of raw `CalendarItem[]`; mapper failures now fail closed as `schema_mismatch`, mark `last_fetch_ok=0`, and skip partial persistence.
-- `services/news/src/fetcher/map-event.spec.ts` / `calendar-fetcher.integration.spec.ts` / `calendar-fetcher.spec.ts` — add mapper unit coverage, real `openCalendarDb` integration persistence/idempotency coverage, and a fetcher regression for validated items that cannot map.
-- `services/news/package.json` / `bun.lock` — `@ankit-prop/news` `0.3.3` → `0.3.4`.
-
-**Verification**
-
-- `bun install` — clean; saved lockfile, checked 79 installs across 84 packages.
-- `bun run lint:fix` — exit 0; formatted touched files and reported only pre-existing unrelated Biome warnings/infos.
-- `bun test services/news/src/fetcher` — 21 pass / 0 fail / 96 expects.
-- `bun test services/news/src/db/calendar-db.spec.ts` — 8 pass / 0 fail / 19 expects.
-- `bun run typecheck` — clean.
-- Debug grep over changed fetcher/package files found no `console.log`, `debugger`, `TODO`, or `HACK`.
-
 ## 0.4.38 — 2026-04-29 13:04 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-219](/ANKA/issues/ANKA-219) — companion to [ANKA-215](/ANKA/issues/ANKA-215).

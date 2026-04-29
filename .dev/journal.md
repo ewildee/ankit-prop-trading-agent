@@ -2,6 +2,51 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 13:32 Europe/Amsterdam — @ankit-prop/news v0.3.5 ([ANKA-230](/ANKA/issues/ANKA-230) — PR #17 version collision reslot)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `6e3588c3-0194-4d88-aff4-bf5113d9e2cc`.
+
+**What was done**
+
+- Resumed from the scoped [ANKA-230](/ANKA/issues/ANKA-230) wake and created `.paperclip/worktrees/ANKA-230` from the PR branch. The branch had advanced to `5ec3286` via [ANKA-229](/ANKA/issues/ANKA-229), and `origin/main` then advanced to `f370335`, so this work was rebased on top of current `origin/main` instead of the stale `089e10e` issue snapshot.
+- Re-read BLUEPRINT §0/§0.1/§0.2, §5, §17, §22, and §25; fetched `https://bun.com/llms.txt` at 13:32 Europe/Amsterdam before Bun CLI work.
+- Confirmed [ANKA-229](/ANKA/issues/ANKA-229) had already moved `services/news/package.json` and the top changelog block to `@ankit-prop/news@0.3.5`, then aligned `bun.lock` to the same workspace version so the PR branch no longer collides with [ANKA-214](/ANKA/issues/ANKA-214).
+- Left `services/news/src/fetcher/**` untouched in this heartbeat.
+
+**Findings**
+
+- The live PR branch had fresher QA follow-up commits than the wake payload snapshot; dropping them would have lost the mixed-batch regression from [ANKA-229](/ANKA/issues/ANKA-229).
+
+**Contradictions**
+
+- [ANKA-227](/ANKA/issues/ANKA-227) said to keep `0.3.4`, but `origin/main` already owned `@ankit-prop/news@0.3.4` from [ANKA-214](/ANKA/issues/ANKA-214), so [ANKA-230](/ANKA/issues/ANKA-230) supersedes that instruction.
+
+**Decisions**
+
+- Preserved [ANKA-229](/ANKA/issues/ANKA-229)'s existing `@ankit-prop/news@0.3.5` changelog entry instead of adding a second `0.3.5` block.
+
+**Unexpected behaviour**
+
+- Bun 1.3.13 did not update the text lockfile's workspace version line during normal `bun install`; a full lockfile regeneration produced unrelated workspace dependency churn, so the final diff keeps only the news version line.
+
+**Adaptations**
+
+- Rebased the PR branch onto `origin/main` `f370335` and reduced the ANKA-230 commit to lockfile/audit updates on top of the already-bumped package/changelog state.
+
+**Verification**
+
+- `bun install` — clean; checked 79 installs across 84 packages with no changes.
+- `bun run lint:fix` — exit 0; no fixes applied, only pre-existing unrelated Biome warnings/infos.
+- `bun test services/news/src/fetcher` — 22 pass / 0 fail / 102 expects.
+- `bun test services/news/src/db/calendar-db.spec.ts` — 8 pass / 0 fail / 19 expects.
+- `bun run typecheck` — clean.
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/fetcher/*.ts services/news/package.json` — no matches.
+- `bun run --cwd services/news start` — prints `news: not yet implemented (Phase 5)`, so there is no long-running `/health` endpoint to verify yet.
+
+**Open endings**
+
+- Force-push with lease, confirm PR #17 is clean/mergeable, and hand back to FoundingEngineer with the post-bump PR head SHA.
+
 ## 2026-04-29 13:30 Europe/Amsterdam — @ankit-prop/news v0.3.5 ([ANKA-229](/ANKA/issues/ANKA-229) — PR #17 mixed-batch fetcher regression)
 
 **Agent:** CodexExecutor (codex_local). **Run:** `e4687c49-f54a-4176-bf84-c74cdd659693`.
