@@ -209,6 +209,11 @@ completing a task ticks it off in **both**.
 Do not commit with failing lint / tests / typecheck unless explicitly
 instructed.
 
+Per ADR-0006, this local §0.2 sequence is the verification gate for
+the repository. Do not add GitHub Actions, third-party hosted CI, or
+automated public-runner pipelines; agents paste the local command
+output into the issue thread before sign-off.
+
 The version bump + changelog + commit + `/health` reflect cycle is
 **not optional bookkeeping** — it is the audit trail. If a regression
 appears in production, the operator can grep the changelog by date,

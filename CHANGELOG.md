@@ -2,6 +2,34 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.39 — 2026-04-29 13:18 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-217](/ANKA/issues/ANKA-217) after CEO / FoundingEngineer unblocked the ADR numbering conflict.
+
+**Why:** CEO directive `4d83598b` on [ANKA-147](/ANKA/issues/ANKA-147) retired public CI for this repo: the Triplon npm registries are internal-only, public runners are not a sustainable dependency, and packages are not planned for public publication. The existing disabled GitHub Actions file and ADR-0004 re-enable path implied public CI remained a dormant option. ADR-0006 makes the policy explicit and preserves ADR-0005 for the unrelated Elysia/Eden decision.
+
+**Changed** — `docs`, `infra:ci`
+
+- `.dev/decisions.md` — appends ADR-0006 — *No public CI* — and marks ADR-0004 as superseded by ADR-0006 while leaving ADR-0005 (Elysia + Eden/Treaty) accepted and unchanged.
+- `BLUEPRINT.md` — adds the §0.2 cross-link that makes local `bun run lint`, `bun run typecheck`, and `bun test` evidence the repository verification gate and forbids GitHub Actions / public-runner pipelines.
+- `AGENTS.md` — removes stale [ANKA-137](/ANKA/issues/ANKA-137) / [ANKA-138](/ANKA/issues/ANKA-138) CI-footer-guard assumptions from the PR merge protocol while keeping the rebase-only merge rule.
+- `.github/workflows/ci.yml.disabled` — deleted; the empty `.github/workflows/` directory is no longer tracked.
+- `TODOS.md` — updates the historical scaffold line from "CI gate" to "local gates" so durable task state matches ADR-0006.
+- `.dev/progress.md` and `.dev/journal.md` — record the current no-public-CI cleanup heartbeat and Bun `llms.txt` fetch.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.38 → 0.4.39.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; no files changed, Biome reported only pre-existing warnings/infos.
+- `bun run lint` — exit 0; same pre-existing warnings/infos.
+- `bun install --frozen-lockfile` — clean; installed fresh worktree dependencies without touching `bun.lock`.
+- `bun run typecheck` — clean after install.
+- `bun test` — 403 pass / 0 fail / 2207 expects.
+- Service restart/health: not applicable; docs/root metadata only, no service package changed.
+
 ## @ankit-prop/news@0.3.4 — 2026-04-29 13:18 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, merging [ANKA-214](/ANKA/issues/ANKA-214) (PR [#20](https://github.com/ewildee/ankit-prop-trading-agent/pull/20)) onto `main` after [ANKA-221](/ANKA/issues/ANKA-221) CodeReviewer APPROVE and [ANKA-222](/ANKA/issues/ANKA-222) QAEngineer PASS.
