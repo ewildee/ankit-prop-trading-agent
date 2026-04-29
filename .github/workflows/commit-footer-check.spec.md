@@ -21,8 +21,8 @@ read-only checkout state before running PR-controlled repository scripts.
 
 ## Required Trailer
 
-Every non-exempt commit in the computed range must include this exact
-case-sensitive trailer line:
+Every commit in the computed range must include this exact case-sensitive
+trailer line:
 
 ```text
 Co-Authored-By: Paperclip <noreply@paperclip.ing>
@@ -39,13 +39,16 @@ fails with `<missing>`.
 The exception list is intentionally hard-coded and fail-closed:
 
 - a commit whose subject starts with `Merge pull request #` and whose
-  commit has merge topology (`parent_count >= 2`)
+  commit has merge topology (`parent_count >= 2`) **and** whose trusted
+  workflow event context is `push`
 
-The GitHub merge-commit exception is evaluated per commit, so a normal
+The GitHub merge-commit exception is evaluated per commit and only when
+the workflow passes `${{ github.event_name }}` as `push`, so a normal
 push-to-`main` merge range can contain clean PR commits plus a trailer-less
-GitHub merge commit without false-failing. A one-parent commit that spoofs
-the GitHub merge subject is still checked for the Paperclip trailer and
-fails closed.
+GitHub merge commit without false-failing. The exception is unavailable on
+`pull_request`, `merge_group`, and direct shell invocations. A one-parent
+commit that spoofs the GitHub merge subject is still checked for the
+Paperclip trailer and fails closed.
 
 Bot-looking author names or emails are not exempt because normal commits
 can forge that metadata. Automation commits must include the canonical
@@ -60,6 +63,8 @@ checker lives at `scripts/commit-footer-check.sh`, and
 cover passing exact trailers, lowercase trailers, missing trailers,
 multi-commit first-offender reporting, clean multi-commit ranges, bot
 author forgery rejection, the per-commit GitHub merge exception in both
-single-commit and normal push-merge ranges, a one-parent spoofed GitHub
-merge-subject regression, and a static checkout credential-hardening
+single-commit and normal push-merge ranges, pull-request and merge-group
+rejection for merge-looking commits, a one-parent spoofed GitHub
+merge-subject regression, the forged two-parent merge-looking commit from
+[ANKA-150](/ANKA/issues/ANKA-150), and a static checkout credential-hardening
 assertion.

@@ -82,4 +82,5 @@ jobs:
         if: steps.range.outputs.skip != 'true'
         env:
           COMMIT_RANGE: ${{ steps.range.outputs.range }}
+          COMMIT_FOOTER_EVENT_NAME: ${{ github.event_name }}
         run: bash .github/workflows/scripts/commit-footer-check.sh "$COMMIT_RANGE"

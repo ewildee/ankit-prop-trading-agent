@@ -2,21 +2,19 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
-## 0.4.34 — 2026-04-29 05:57 Europe/Amsterdam
+## 0.4.34 — 2026-04-29 06:04 Europe/Amsterdam
 
-**Initiated by:** CodexExecutor (agent), executing [ANKA-151](/ANKA/issues/ANKA-151) review follow-up for [ANKA-137](/ANKA/issues/ANKA-137) / [ANKA-144](/ANKA/issues/ANKA-144) — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
+**Initiated by:** CodexExecutor (agent), reconciling [ANKA-150](/ANKA/issues/ANKA-150) security follow-up with completed [ANKA-151](/ANKA/issues/ANKA-151) push-merge false-positive fix for [ANKA-137](/ANKA/issues/ANKA-137) / PR #7 — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
 
-**Why:** CodeReviewer found that the previous single-commit GitHub merge exemption still false-failed the normal GitHub "Create a merge commit" push to `main`, where the `before..sha` range contains clean PR commits plus a trailer-less GitHub-generated merge commit.
+**Why:** SecurityReviewer found the remaining GitHub merge-commit exception was still forgeable on PR / merge-queue ranges, while [ANKA-151](/ANKA/issues/ANKA-151) established that normal server-side `push` merge ranges must not false-fail on GitHub-generated merge commits. The compatible fix is ANKA-150's fallback path: allow the exception only with trusted workflow event context for `push`.
 
 **Changed** — `infra:ci/commit-footer-check`
 
-- `.github/workflows/scripts/commit-footer-check.sh` — applies the topology-checked GitHub merge exemption per commit instead of only when the entire range has one commit.
-- `.github/workflows/commit-footer-check.spec.md` — documents that normal push-merge ranges may contain clean PR commits plus a trailer-less GitHub merge commit, while one-parent spoofed merge subjects still fail closed.
-- `.dev/progress.md` / `.dev/journal.md` — records the ANKA-151 heartbeat and fresh Bun docs fetch.
-
-**Added**
-
-- `.github/workflows/__tests__/commit-footer-check.sh` — adds a push-merge regression covering clean PR commits followed by a trailer-less real GitHub merge commit in the same checked range.
+- `.github/workflows/scripts/commit-footer-check.sh` — keeps the topology-checked GitHub merge exemption, but only when `COMMIT_FOOTER_EVENT_NAME=push`; direct shell runs, `pull_request`, and `merge_group` check the merge-looking commit for the canonical trailer and fail closed.
+- `.github/workflows/commit-footer-check.yml` — passes the trusted `${{ github.event_name }}` context into the checker.
+- `.github/workflows/__tests__/commit-footer-check.sh` — adds the exact forged two-parent merge-looking regression from [ANKA-150](/ANKA/issues/ANKA-150), plus explicit `pull_request` and `merge_group` rejection coverage while retaining the normal push-merge pass regression from [ANKA-151](/ANKA/issues/ANKA-151).
+- `.github/workflows/commit-footer-check.spec.md` — documents the trusted-event-gated exception policy.
+- `TODOS.md` / `.dev/progress.md` / `.dev/journal.md` — record the security respin and remaining review/smoke handoff.
 
 **Bumped**
 
@@ -24,9 +22,10 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 **Verification**
 
-- `bash .github/workflows/__tests__/commit-footer-check.sh` — 10 pass.
+- Old `e1f8d70` checker reproduction — `old_status=0`, proving the forged two-parent bypass existed before this fix.
+- `bash .github/workflows/__tests__/commit-footer-check.sh` — 13 pass.
 - `bun run lint:fix` — exit 0 with existing warnings/no fixes.
-- `bun test` — 342 pass / 0 fail / 2092 expects.
+- `bun test` — 342 pass / 0 fail / 2092 expects after `bun install` populated the new worktree dependencies.
 - `bun run typecheck` — clean.
 
 ## 0.4.32 — 2026-04-29 05:38 Europe/Amsterdam

@@ -17,6 +17,14 @@ is_github_merge_commit() {
   [ "$parent_count" -ge 2 ]
 }
 
+can_skip_github_merge_commit() {
+  local sha=$1
+  local subject=$2
+
+  [ "${COMMIT_FOOTER_EVENT_NAME:-}" = "push" ] || return 1
+  is_github_merge_commit "$sha" "$subject"
+}
+
 print_footer_error() {
   local sha=$1
   local observed=$2
@@ -53,8 +61,8 @@ check_commit_footer_range() {
 
     subject=$(git log -1 --format=%s "$sha")
 
-    if is_github_merge_commit "$sha" "$subject"; then
-      printf 'Skipping GitHub merge commit %s (%s).\n' "$sha" "$subject"
+    if can_skip_github_merge_commit "$sha" "$subject"; then
+      printf 'Skipping trusted push GitHub merge commit %s (%s).\n' "$sha" "$subject"
       continue
     fi
 

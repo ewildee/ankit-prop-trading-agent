@@ -62,11 +62,12 @@ commit_message() {
 run_check() {
   local repo=$1
   local range=$2
+  local event_name=${3:-}
   local output
   local status
 
   set +e
-  output=$(cd "$repo" && "$CHECK_SCRIPT" "$range" 2>&1)
+  output=$(cd "$repo" && COMMIT_FOOTER_EVENT_NAME="$event_name" "$CHECK_SCRIPT" "$range" 2>&1)
   status=$?
   set -e
 
@@ -189,7 +190,7 @@ skips_single_github_merge_commit() {
   merged_base=$(git -C "$repo" rev-parse HEAD)
   head=$(merge_commit_message "$repo" "$merged_base" "$side" 'Merge pull request #123 from ewildee/example')
   git -C "$repo" update-ref refs/heads/main "$head"
-  result=$(run_check "$repo" "$merged_base..$head")
+  result=$(run_check "$repo" "$merged_base..$head" 'push')
   status=$(printf '%s\n' "$result" | sed -n '1p')
 
   [ "$status" = "0" ]
@@ -206,10 +207,44 @@ passes_normal_push_merge_range() {
   git -C "$repo" switch -q "$initial_branch"
   head=$(merge_commit_message "$repo" "$base" "$feature" 'Merge pull request #123 from ewildee/example')
   git -C "$repo" update-ref refs/heads/main "$head"
-  result=$(run_check "$repo" "$base..$head")
+  result=$(run_check "$repo" "$base..$head" 'push')
   status=$(printf '%s\n' "$result" | sed -n '1p')
 
   [ "$status" = "0" ]
+}
+
+fails_pull_request_merge_looking_commit_without_trailer() {
+  local repo root base head result status output
+
+  repo=$(new_repo)
+  root=$(commit_message "$repo" 'chore: root' "$REQUIRED_TRAILER")
+  base=$(commit_message "$repo" 'chore: base' "$REQUIRED_TRAILER")
+  head=$(merge_commit_message "$repo" "$base" "$root" 'Merge pull request #999 from attacker/no-footer')
+  git -C "$repo" update-ref refs/heads/main "$head"
+  result=$(run_check "$repo" "$base..$head" 'pull_request')
+  status=$(printf '%s\n' "$result" | sed -n '1p')
+  output=$(printf '%s\n' "$result" | sed '1d')
+
+  [ "$status" != "0" ] || return 1
+  assert_contains "$output" "$head"
+  assert_contains "$output" '<missing>'
+}
+
+fails_merge_group_merge_looking_commit_without_trailer() {
+  local repo root base head result status output
+
+  repo=$(new_repo)
+  root=$(commit_message "$repo" 'chore: root' "$REQUIRED_TRAILER")
+  base=$(commit_message "$repo" 'chore: base' "$REQUIRED_TRAILER")
+  head=$(merge_commit_message "$repo" "$base" "$root" 'Merge pull request #999 from attacker/no-footer')
+  git -C "$repo" update-ref refs/heads/main "$head"
+  result=$(run_check "$repo" "$base..$head" 'merge_group')
+  status=$(printf '%s\n' "$result" | sed -n '1p')
+  output=$(printf '%s\n' "$result" | sed '1d')
+
+  [ "$status" != "0" ] || return 1
+  assert_contains "$output" "$head"
+  assert_contains "$output" '<missing>'
 }
 
 fails_spoofed_github_merge_subject_without_merge_topology() {
@@ -218,6 +253,23 @@ fails_spoofed_github_merge_subject_without_merge_topology() {
   repo=$(new_repo)
   base=$(commit_message "$repo" 'chore: base' "$REQUIRED_TRAILER")
   head=$(commit_message "$repo" 'Merge pull request #999 from attacker/no-footer')
+  result=$(run_check "$repo" "$base..$head")
+  status=$(printf '%s\n' "$result" | sed -n '1p')
+  output=$(printf '%s\n' "$result" | sed '1d')
+
+  [ "$status" != "0" ] || return 1
+  assert_contains "$output" "$head"
+  assert_contains "$output" '<missing>'
+}
+
+fails_forged_two_parent_merge_exception_without_trailer() {
+  local repo root base head result status output
+
+  repo=$(new_repo)
+  root=$(commit_message "$repo" 'chore: root' "$REQUIRED_TRAILER")
+  base=$(commit_message "$repo" 'chore: base' "$REQUIRED_TRAILER")
+  head=$(merge_commit_message "$repo" "$base" "$root" 'Merge pull request #999 from attacker/no-footer')
+  git -C "$repo" update-ref refs/heads/main "$head"
   result=$(run_check "$repo" "$base..$head")
   status=$(printf '%s\n' "$result" | sed -n '1p')
   output=$(printf '%s\n' "$result" | sed '1d')
@@ -239,5 +291,8 @@ run_test 'passes a clean multi-commit range' passes_clean_multi_commit_range
 run_test 'fails forged bot-authored commits without Paperclip trailer' fails_forged_bot_author_without_trailer
 run_test 'skips a single real GitHub merge commit' skips_single_github_merge_commit
 run_test 'passes a normal push-merge range with clean PR commits and a trailer-less GitHub merge commit' passes_normal_push_merge_range
+run_test 'fails pull_request merge-looking commits without Paperclip trailer' fails_pull_request_merge_looking_commit_without_trailer
+run_test 'fails merge_group merge-looking commits without Paperclip trailer' fails_merge_group_merge_looking_commit_without_trailer
 run_test 'fails spoofed GitHub merge subject without merge topology' fails_spoofed_github_merge_subject_without_merge_topology
+run_test 'fails forged two-parent GitHub merge exception without Paperclip trailer' fails_forged_two_parent_merge_exception_without_trailer
 run_test 'checkout does not persist credentials' checkout_does_not_persist_credentials

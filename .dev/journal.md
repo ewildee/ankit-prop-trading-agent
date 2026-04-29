@@ -2,36 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
-## 2026-04-29 05:57 Europe/Amsterdam — v0.4.34 ([ANKA-151](/ANKA/issues/ANKA-151) — [ANKA-137](/ANKA/issues/ANKA-137) push-merge false-fail fix)
+## 2026-04-29 06:04 Europe/Amsterdam — v0.4.34 ([ANKA-150](/ANKA/issues/ANKA-150) / [ANKA-151](/ANKA/issues/ANKA-151) — event-gated merge exception)
 
 **What was done**
 
-- Followed the scoped Paperclip wake for [ANKA-151](/ANKA/issues/ANKA-151), using the inline issue payload because no fallback fetch was requested and no new comments were pending.
-- Kept work in `.paperclip/worktrees/ANKA-137` on branch `anka-137-commit-footer-check`, per the child issue's exact instruction to update the existing [ANKA-137](/ANKA/issues/ANKA-137) PR branch.
-- Fetched and read `https://bun.com/llms.txt` at 05:53 Europe/Amsterdam; no Bun-runtime code or new dependencies were added.
-- Restored the topology-checked GitHub merge exemption and moved it to the per-commit loop so normal push-to-`main` merge ranges do not false-fail.
-- Added the push-merge regression: clean PR commit with the canonical trailer plus trailer-less real GitHub merge commit in the same `before..merge` range.
-- Updated `commit-footer-check.spec.md`, bumped root `ankit-prop-umbrella` to 0.4.34, and updated the 0.4.34 CHANGELOG/progress audit trail.
+- Followed the scoped Paperclip wake for [ANKA-150](/ANKA/issues/ANKA-150); there were no pending comments to acknowledge.
+- Created `.paperclip/worktrees/ANKA-150` on branch `anka-150-forged-merge-footer-check`, based on `origin/anka-137-commit-footer-check` after confirming `origin/main` did not contain the ANKA-137 workflow files.
+- Fetched and read `https://bun.com/llms.txt` at 05:51 Europe/Amsterdam before touching repo code.
+- Reconciled [ANKA-150](/ANKA/issues/ANKA-150)'s forged merge bypass with completed [ANKA-151](/ANKA/issues/ANKA-151)'s normal push-merge false-positive: the GitHub merge exception now requires trusted `COMMIT_FOOTER_EVENT_NAME=push`.
+- Passed `${{ github.event_name }}` from the workflow into `.github/workflows/scripts/commit-footer-check.sh`; direct shell invocations, `pull_request`, and `merge_group` fail closed.
+- Added the exact forged two-parent `Merge pull request #999...` regression requested by [ANKA-150](/ANKA/issues/ANKA-150), plus `pull_request` and `merge_group` rejection coverage; kept the normal push-merge pass regression.
+- Updated the workflow spec, `T015`, root `ankit-prop-umbrella` to 0.4.34, and the CHANGELOG/progress audit trail.
 
 **Findings**
 
-- The branch already included the [ANKA-150](/ANKA/issues/ANKA-150) "no exceptions" commit at version 0.4.33. [ANKA-151](/ANKA/issues/ANKA-151) superseded that state with explicit instructions to keep the existing topology check and apply it per commit, so this follow-up bumps to 0.4.34.
+- The old `e1f8d70` checker returns `old_status=0` on the forged two-parent reproduction, confirming the SecurityReviewer finding.
+- A blanket per-commit merge exemption fixes [ANKA-151](/ANKA/issues/ANKA-151) but reopens [ANKA-150](/ANKA/issues/ANKA-150); gating on trusted workflow event context is the narrow compatible fix already allowed by [ANKA-150](/ANKA/issues/ANKA-150)'s issue body.
 
 **Contradictions**
 
-- The issue description expected 0.4.32 → 0.4.33, but origin already carried 0.4.33 from [ANKA-150](/ANKA/issues/ANKA-150); this heartbeat preserves version monotonicity with 0.4.34.
+- The completed [ANKA-151](/ANKA/issues/ANKA-151) branch state conflicted with [ANKA-150](/ANKA/issues/ANKA-150)'s security requirement. Resolved by using the ANKA-150 fallback design instead of the preferred no-exception design.
 
 **Decisions**
 
-- No new design decision; followed the CTO-scoped ANKA-151 file list and kept the exemption narrow: `Merge pull request #...` subject plus at least two parents.
+- Chose the event-gated remediation because [ANKA-151](/ANKA/issues/ANKA-151) established that the normal server-side push merge path must keep working.
 
 **Unexpected behaviour**
 
-- None.
+- The first reproduction command used `status`, which is a readonly zsh variable. Reran with `check_status`; no code changes were affected.
+- The first `bun test` run in the fresh worktree failed on missing installed dependencies. `bun install` populated `node_modules` without changing `bun.lock`; the rerun passed 342/342.
 
 **Open endings**
 
-- [ANKA-144](/ANKA/issues/ANKA-144) needs CodeReviewer re-review after this commit lands on PR #7. GitHub red/green smoke is still pending before [ANKA-137](/ANKA/issues/ANKA-137) can close.
+- [ANKA-145](/ANKA/issues/ANKA-145) needs SecurityReviewer re-review after this branch is pushed. GitHub red/green smoke remains pending before [ANKA-137](/ANKA/issues/ANKA-137) can close.
 
 ## 2026-04-29 05:38 Europe/Amsterdam — v0.4.32 ([ANKA-146](/ANKA/issues/ANKA-146) — [ANKA-137](/ANKA/issues/ANKA-137) security hardening)
 
