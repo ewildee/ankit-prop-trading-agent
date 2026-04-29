@@ -31,6 +31,7 @@ export interface CalendarDb {
     toUtc: string,
     options?: CalendarDbRangeOptions,
   ): CalendarEventType[];
+  selectEventsForPragueDay(day: string): CalendarItemType[];
   setMeta(key: string, value: string): void;
   getMeta(key: string): string | null;
   close(): void;
@@ -225,6 +226,37 @@ class BunSqliteCalendarDb implements CalendarDb {
     return rows.map(rowToCalendarEvent);
   }
 
+  selectEventsForPragueDay(day: string): CalendarItemType[] {
+    const parsedDay = parsePragueDay(day);
+    const rows = this.#db
+      .prepare(
+        `
+          SELECT
+            id,
+            event_ts_utc,
+            currency,
+            date,
+            title,
+            impact,
+            instrument,
+            instrument_tags,
+            restricted,
+            event_type,
+            forecast,
+            previous,
+            actual,
+            youtube_link,
+            article_link
+          FROM calendar_event
+          WHERE date >= ? AND date < ?
+          ORDER BY event_ts_utc ASC, id ASC
+        `,
+      )
+      .all(`${parsedDay}T00:00:00`, `${nextUtcDay(parsedDay)}T00:00:00`) as CalendarEventRow[];
+
+    return rows.map(rowToCalendarEvent).map(calendarEventToItem);
+  }
+
   setMeta(key: string, value: string): void {
     this.#db
       .prepare(
@@ -283,4 +315,19 @@ function calendarEventToItem(event: CalendarEventType): CalendarItemType {
     youtubeLink: event.youtubeLink,
     articleLink: event.articleLink,
   });
+}
+
+function parsePragueDay(day: string): string {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) {
+    throw new Error(`invalid Prague day: ${day}`);
+  }
+  return day;
+}
+
+function nextUtcDay(day: string): string {
+  const ts = Date.parse(`${day}T00:00:00.000Z`);
+  if (!Number.isFinite(ts)) {
+    throw new Error(`invalid Prague day: ${day}`);
+  }
+  return new Date(ts + 24 * 60 * 60 * 1_000).toISOString().slice(0, 10);
 }
