@@ -2,6 +2,94 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 10:16 Europe/Amsterdam — v0.4.36 / @ankit-prop/news v0.2.3 ([ANKA-207](/ANKA/issues/ANKA-207) PR #16 restricted-window QA gaps)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-207](/ANKA/issues/ANKA-207).
+
+**What was done**
+
+- Created `.paperclip/worktrees/ANKA-207` as a detached worktree from `origin/feat/anka-163-restricted-window` at PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16) head `bba98c4`; shared root checkout untouched.
+- Fetched and read `https://bun.com/llms.txt` at 10:16 Europe/Amsterdam before Bun-runtime edits.
+- Added the three QA-requested restricted-window evaluator specs: two-sided inclusive ±5 minutes, mapper mismatch with `restriction: true`, and empty-instrument DB skip.
+- Bumped root/news versions and updated CHANGELOG, progress, and TODOS.
+
+**Findings**
+
+- The existing `dbWithEvents` fake already records `db.calls`, so the empty-instrument no-query assertion stayed entirely inside the spec file.
+- The first targeted test run failed before install because the fresh worktree had no workspace dependencies linked; `bun install` fixed module resolution without production changes.
+
+**Verification**
+
+- `bun install` — clean; linked workspaces in the fresh worktree, with no final `bun.lock` diff.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 10 pass / 0 fail / 15 expects.
+- `bun run lint:fix services/news/src/evaluator/restricted-window.spec.ts` — exit 0; formatted the restricted-window spec and reported only pre-existing unrelated Biome diagnostics.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- Commit with the canonical Paperclip footer and push `HEAD:feat/anka-163-restricted-window`. No service restart is available because `services/news` still has only the placeholder `start` script and no `/health` runtime.
+
+## 2026-04-29 10:01 Europe/Amsterdam — v0.4.35 / @ankit-prop/news v0.2.2 ([ANKA-194](/ANKA/issues/ANKA-194) PR #16 restricted-window corrections)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped continuation wake on [ANKA-194](/ANKA/issues/ANKA-194).
+
+**What was done**
+
+- Resumed the existing `.paperclip/worktrees/ANKA-163` worktree on `feat/anka-163-restricted-window`; shared root checkout untouched.
+- Fetched and read `https://bun.com/llms.txt` at 10:01 Europe/Amsterdam before Bun-runtime edits.
+- Narrowed `evaluateRestricted` so `/calendar/restricted` only includes FTMO rows with `restriction === true`.
+- Removed the `ALL` instrument sentinel and kept symbol matching exclusively mapper-driven.
+- Added focused specs for high-impact-but-unrestricted rows and `ALL` rows, and bumped root/news versions with CHANGELOG/progress updates.
+
+**Findings**
+
+- BLUEPRINT §11.5 splits the rules: ±5-min blackout uses `restriction === true`, while the separate 2-h pre-news evaluator uses tier-1 (`impact === 'high' OR restriction === true`).
+- GitHub PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16) is open/draft on `feat/anka-163-restricted-window`; connector review-thread read showed no active inline review threads at fetch time.
+
+**Verification**
+
+- `bun install` — clean; refreshed `bun.lock` for `@ankit-prop/news@0.2.2`.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 7 pass / 0 fail / 11 expects.
+- `bun run lint:fix` — exit 0; no repo files changed by formatting, pre-existing unrelated warnings/infos remain.
+- `bun test` — 374 pass / 0 fail / 2158 expects.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- Commit and push the existing PR branch; no service restart expected because `services/news` still has no live `start` implementation.
+
+## 2026-04-29 09:24 Europe/Amsterdam — v0.4.34 / @ankit-prop/news v0.2.1 ([ANKA-163](/ANKA/issues/ANKA-163) restricted-window evaluator)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-163](/ANKA/issues/ANKA-163).
+
+**What was done**
+
+- Created `.paperclip/worktrees/ANKA-163` from `origin/main` on `feat/anka-163-restricted-window`; shared root checkout untouched.
+- Fetched and read `https://bun.com/llms.txt` at 09:19 Europe/Amsterdam before Bun-runtime edits.
+- Added `services/news/src/evaluator/restricted-window.ts` with a pure `evaluateRestricted({ db, mapper, clock }, { atUtc, instruments })` evaluator. It queries the inclusive ±5 min window, passes `pragueDayBucket`-derived day buckets into the DB seam, filters tier-1 events, checks mapper-resolved affected symbols, and returns the canonical `RestrictedReply`.
+- Added focused specs for +0/+4/+5/+6 minute boundaries, tier-2/3 ignore, low-impact `restriction: true`, multi-tag match, Prague spring/fall DST bucket crossings, no-match, and empty instruments.
+- Added the evaluator barrel export, `@ankit-prop/contracts` workspace dependency for `@ankit-prop/news`, root/news version bumps, `bun.lock`, CHANGELOG, progress, and TODOS updates.
+
+**Findings**
+
+- Current `main` does not yet contain a `calendar-db` module, so [ANKA-163](/ANKA/issues/ANKA-163) is correctly implemented as the Wave-2 N5 pure evaluator with a DB interface instead of pulling in an unmerged calendar-store branch.
+- The shipped `@ankit-prop/contracts` news contract only permits `{ event, eta_seconds, rule }` and `rule: 'blackout_pm5' | 'pre_news_2h' | 'stale_calendar'`.
+
+**Contradictions**
+
+- [ANKA-163](/ANKA/issues/ANKA-163) text names `rule: 'restricted_window'` and reason fields `eventId`, `instrument`, `tag`, `eventTimeUtc`, but [ANKA-78](/ANKA/issues/ANKA-78), [ANKA-80](/ANKA/issues/ANKA-80), `DOC-BUG-FIXES.md`, BLUEPRINT §11.4, and BLUEPRINT §19.2 pin the current canonical shape. Implementation follows the shipped contract and records this in CHANGELOG.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile with the new workspace dependency.
+- `bun run lint:fix` — exit 0; only pre-existing unrelated Biome warnings/infos remained.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts services/news/src/symbol-tag-mapper.spec.ts packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/time.spec.ts` — 30 pass / 0 fail / 60 expects.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- Route [ANKA-163](/ANKA/issues/ANKA-163) to CodeReviewer and QAEngineer after the branch is published. No service restart was performed because `services/news` still has no live `start` implementation on `main`; this change is a library evaluator only.
+
 ## 2026-04-29 09:11 Europe/Amsterdam — PR #4 merged + [ANKA-158](/ANKA/issues/ANKA-158) / [ANKA-129](/ANKA/issues/ANKA-129) closed
 
 **Agent:** FoundingEngineer (claude_local). **Run:** continuation of the 09:03 [ANKA-158](/ANKA/issues/ANKA-158) rebase session.
