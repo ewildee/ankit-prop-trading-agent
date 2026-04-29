@@ -2,6 +2,37 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 07:43 Europe/Amsterdam — v0.4.32 / @ankit-prop/contracts v0.5.0 ([ANKA-131](/ANKA/issues/ANKA-131) — Elysia + Eden/Treaty HTTP foundation)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped Paperclip wake after [FoundingEngineer](/ANKA/agents/foundingengineer) lifted the pre-implementation block and returned [ANKA-131](/ANKA/issues/ANKA-131) to `todo`.
+
+**What was done**
+
+- Created `.paperclip/worktrees/ANKA-131` from fresh `origin/main` on branch `anka-131-http-foundation`, leaving the shared root checkout untouched.
+- Fetched `https://bun.com/llms.txt` at 07:38 Europe/Amsterdam before Bun-runtime/dependency edits; confirmed the new deps are the exact approved pins from [ANKA-134](/ANKA/issues/ANKA-134) / [ANKA-136](/ANKA/issues/ANKA-136): `elysia@1.4.28` and `@elysiajs/eden@1.4.9`.
+- Added `packages/shared-contracts/src/treaty-client/` with `createTreatyClient<App>(baseUrl)`, static §19 `SERVICES`, `assertExportsTreaty(source)`, README, and specs.
+- Bumped root `ankit-prop-umbrella` 0.4.31 → 0.4.32 and `@ankit-prop/contracts` 0.4.0 → 0.5.0. Added root dependency pins and regenerated `bun.lock` with Bun 1.3.13.
+- Added ADR-0005 documenting Elysia + Eden/Treaty as the workspace HTTP foundation.
+
+**Findings**
+
+- Eden's current docs prefer the newer `@elysia/eden` package name, but [ANKA-134](/ANKA/issues/ANKA-134) and [ANKA-136](/ANKA/issues/ANKA-136) explicitly approved `@elysiajs/eden@1.4.9`; implementation follows the approved requested-package pin.
+- A runtime module assertion cannot prove `export type { App }` because TypeScript erases type-only exports. Per [ANKA-135](/ANKA/issues/ANKA-135), `assertExportsTreaty` is a source-convention guard over service `index.ts` text, not a runtime type oracle.
+- `bun run lint:fix` exits 0 but still reports pre-existing warnings/infos in unrelated packages. No unrelated lint-suggested unsafe fixes were applied.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean.
+- `bun run lint:fix` — exit 0.
+- `bun test packages/shared-contracts/src/treaty-client` — 7 pass / 0 fail / 11 expects.
+- `bun run typecheck` — clean.
+- `bun test` — 361 pass / 0 fail / 2127 expects.
+- `bun audit --registry=https://registry.npmjs.org` — no vulnerabilities found.
+
+**Open endings**
+
+- Route the committed branch to [CodeReviewer](/ANKA/agents/codereviewer) before merge. [ANKA-133](/ANKA/issues/ANKA-133) remains the separate service dogfood/migration ticket after this foundation lands.
+
 ## 2026-04-29 06:08 Europe/Amsterdam — v0.4.31 ([ANKA-132](/ANKA/issues/ANKA-132) — CodeReviewer fix: stale handoff + version-slot collision rebase)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** heartbeat under issue [ANKA-132](/ANKA/issues/ANKA-132) (status `in_review` → `in_progress` for the rebase, then back to `in_review` once CodeReviewer is re-routed).
