@@ -22,6 +22,10 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 - Local verification and the GitHub smoke-test PR are recorded in [ANKA-142](/ANKA/issues/ANKA-142). No `.spec.ts` test added because workflow YAML is not Bun-runtime code; the GitHub Actions PR run is the integration test.
 
+**Smoke-test note**
+
+- PR #8 started the expected `lint + typecheck + test` workflow on `pull_request`, but run `25089452605` exceeded the 5-minute budget while still in `bun install --frozen-lockfile`. Per [ANKA-142](/ANKA/issues/ANKA-142), no cache/workflow tweak was folded into this diff; follow-up [ANKA-147](/ANKA/issues/ANKA-147) tracks that investigation.
+
 ## 0.4.29 — 2026-04-29 05:12 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-138](/ANKA/issues/ANKA-138) — `infra:ci` re-enable / replace / keep-off decision (follow-up to [ANKA-127](/ANKA/issues/ANKA-127) major finding and [ANKA-132](/ANKA/issues/ANKA-132) split).

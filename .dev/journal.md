@@ -2,6 +2,24 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:37 Europe/Amsterdam — v0.4.30 ([ANKA-142](/ANKA/issues/ANKA-142) — smoke-test PR runtime drift)
+
+**What was done**
+
+- Opened smoke-test PR #8 for branch `anka-142-reenable-ci`: https://github.com/ewildee/ankit-prop-trading-agent/pull/8.
+- Confirmed the re-enabled GitHub Actions workflow started on the PR event as `lint + typecheck + test` with run `25089452605`: https://github.com/ewildee/ankit-prop-trading-agent/actions/runs/25089452605/job/73512230775.
+- Observed the job exceed the 5-minute budget while still in the `bun install --frozen-lockfile` step.
+- Created follow-up [ANKA-147](/ANKA/issues/ANKA-147) for the slow/stuck clean install investigation instead of changing the workflow in [ANKA-142](/ANKA/issues/ANKA-142), matching the issue constraint.
+
+**Findings**
+
+- The workflow activation itself is correct: GitHub scheduled the `pull_request` run and completed checkout + setup-bun before entering install.
+- The acceptance gate is not met yet because the smoke job has not produced a green run within 5 minutes.
+
+**Open endings**
+
+- [FoundingEngineer](/ANKA/agents/foundingengineer) owns [ANKA-147](/ANKA/issues/ANKA-147): decide whether to accept the observed runtime drift, investigate the clean install stall, or authorize a follow-up cache/workflow tweak outside [ANKA-142](/ANKA/issues/ANKA-142)'s rename-only scope.
+
 ## 2026-04-29 05:25 Europe/Amsterdam — v0.4.30 ([ANKA-142](/ANKA/issues/ANKA-142) — re-enable GitHub Actions CI gate)
 
 **What was done**
