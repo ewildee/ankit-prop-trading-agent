@@ -2,12 +2,12 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-30 00:35 Europe/Amsterdam — [ANKA-280](/ANKA/issues/ANKA-280) CHANGES_REQUESTED addressed; back to CodeReviewer
+## 2026-04-30 00:45 Europe/Amsterdam — [ANKA-285](/ANKA/issues/ANKA-285) full-window replay baselines
 
-- Reviewer (CodeReviewer comment `3122cb0b`) found a fail-open in `replayWithProvider`: passing `symbolMetas: []` (or any subset omitting a requested symbol) silently produced `{tradeCount:0, breaches:0}` because `sim-engine` skips bars whose symbol has no meta. Now fail-closed: `assertSymbolMetaCoverage` runs before `backtest()` and throws `ReplaySymbolMetaMissing` listing every uncovered symbol.
-- `ReplaySymbolMetaMissing` is exported from `replay-driver.ts` and re-exported from `src/index.ts` so trader/autoresearch can pattern-match.
-- New spec coverage in `replay-driver.spec.ts`: empty-metas rejection + partial-metas rejection (asserts `missingSymbols`). Existing provider-error test repaired by supplying a synthetic `EURUSD` meta so it still hits the `MarketDataNotAvailable` path.
-- Reviewer's cwd nit fixed: `replay-baseline.spec.ts` now pins both `FIXTURE_ROOT` and baseline dir via `import.meta.dir`. `(cd packages/eval-harness && bun test src/replay-baseline.spec.ts)` → 2/2 pass (previously 0/2).
-- No version bump: same in-flight branch / same release window (`0.4.48` / `@ankit-prop/eval-harness@0.2.0`). CLI byte-stability `cmp -s` against committed baseline still byte-identical.
-- Verification: lint exit 0 (27 pre-existing warnings), `config:codegen --check` clean, typecheck clean, reviewer-named eval/replay suite 28 pass / 8128 expects, cwd-independent baseline probe 2 pass.
-- Next: commit + push + route [ANKA-280](/ANKA/issues/ANKA-280) back to CodeReviewer (`assigneeAgentId` + `status: 'in_review'` in same PATCH).
+- Fetched and read `https://bun.com/llms.txt` at 00:45 Europe/Amsterdam before Bun-runtime edits.
+- Generated full-window replay snapshots for `noop_v1` and `open_hold_close_v1` via `packages/eval-harness/src/replay-cli.ts`.
+- Two-run byte-stability checks passed for both `*__full.json` snapshots; windows are `1769558400000` → `1777334400000`.
+- `replay-baseline.spec.ts` now covers both smoke and full modes using `windowMode` from the baseline table.
+- `@ankit-prop/eval-harness` bumped `0.2.0` → `0.2.1`; package changelog created for ANKA-285.
+- Verification: `bun run lint:fix` exit 0; `bun run lint` exit 0 (27 pre-existing warnings / 37 infos); `bun run typecheck` clean; `bun test packages/eval-harness/` 71 pass; package-cwd `bun test src/replay-baseline.spec.ts` 4 pass.
+- Next: commit, push, then hand [ANKA-285](/ANKA/issues/ANKA-285) to CodeReviewer.

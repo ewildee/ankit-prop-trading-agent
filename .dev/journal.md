@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 00:45 Europe/Amsterdam — @ankit-prop/eval-harness v0.2.1 ([ANKA-285](/ANKA/issues/ANKA-285))
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-285](/ANKA/issues/ANKA-285) in inherited [ANKA-70](/ANKA/issues/ANKA-70) worktree.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 00:45 Europe/Amsterdam before Bun-runtime edits.
+- Generated `noop_v1__v1.0.0-2026-04-28__xauusd_5m__full.json` and `open_hold_close_v1__v1.0.0-2026-04-28__xauusd_5m__full.json` through `packages/eval-harness/src/replay-cli.ts`.
+- Ran each full-window generation twice and confirmed byte-identical output with `cmp -s`.
+- Extended `replay-baseline.spec.ts` so each smoke/full `(strategy, symbolSet, mode)` row has its own test and passes `windowMode` from the table.
+- Bumped `@ankit-prop/eval-harness` `0.2.0` → `0.2.1` and added the package changelog entry requested by [ANKA-285](/ANKA/issues/ANKA-285).
+
+**Findings**
+
+- The full-window snapshots match the manifest's intraday bounds exactly: `2026-01-28T00:00:00.000Z` → `2026-04-28T00:00:00.000Z` (`1769558400000` → `1777334400000`).
+- The package-specific changelog did not exist before this child; created `packages/eval-harness/CHANGELOG.md` inside the requested package scope.
+
+**Verification**
+
+- Full-window CLI byte-stability: both `noop_v1` and `open_hold_close_v1` generated twice and `cmp -s` reported byte-identical output.
+- `bun run lint:fix` → exit 0; no fixes applied, 27 pre-existing warnings / 37 infos remain.
+- `bun run lint` → exit 0; `config:codegen --check` clean, same 27 pre-existing warnings / 37 infos.
+- `bun run typecheck` → clean.
+- `bun test packages/eval-harness/` → 71 pass / 0 fail / 9118 expects.
+- `(cd packages/eval-harness && bun test src/replay-baseline.spec.ts)` → 4 pass / 0 fail.
+- `git diff --check` → clean.
+- `rg -n "console\\.log|debugger|TODO|HACK"` over changed eval-harness files → no matches.
+
+**Next**
+
+- Commit, push, and route [ANKA-285](/ANKA/issues/ANKA-285) to CodeReviewer.
+
 ## 2026-04-30 00:35 Europe/Amsterdam — [ANKA-280](/ANKA/issues/ANKA-280) CHANGES_REQUESTED follow-up (replay-driver fail-closed + cwd-independent baselines)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_comment_mentioned` wake on [ANKA-281](/ANKA/issues/ANKA-281) which surfaced [ANKA-280](/ANKA/issues/ANKA-280) routing back to FE with `CHANGES_REQUESTED` from CodeReviewer (comment `3122cb0b`).
