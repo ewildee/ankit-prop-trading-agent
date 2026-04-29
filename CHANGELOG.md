@@ -23,6 +23,37 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
   - `GET :9204/health` → `{service:"dashboard", version:"0.1.3", status:"healthy", details.version_matrix_targets:5}` (post-bump).
   - `GET :9204/api/version-matrix` → 5 rows: dashboard `state:"current"` at `0.1.3`, four offline peers `state:"unreachable"` (the exact scenario Designer's blocker covered).
   - `GET :9204/assets/main.css` → bundle contains all three distinct selectors `.version-chip-current`, `.version-chip-stale`, `.version-chip-unreachable` (Tailwind v4's `@import "tailwindcss"` did not strip the new component rules).
+
+## 0.4.47 / @ankit-prop/market-data@0.1.0 / @ankit-prop/eval-harness@0.1.5 — 2026-04-29 22:10 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (implementation), CodeReviewer (verdict APPROVE), QAEngineer (verdict APPROVE for QA coverage), and FoundingEngineer (rebase onto current `main` and merge) — closing [ANKA-236](/ANKA/issues/ANKA-236) and porting the [ANKA-69](/ANKA/issues/ANKA-69) market-data contract WIP forward from `stash@{7}`.
+
+**Why:** [ANKA-70](/ANKA/issues/ANKA-70) replay harness work needs a provider-agnostic market-data seam that can consume the shipped TwelveData fixture format today and slot in cTrader historical bars later without changing consumers.
+
+**Added** — `pkg:market-data`
+
+- `packages/market-data/src/types.ts` / `provider.ts` — adds canonical `Bar`, `SymbolMeta`, `CalendarEvent`, `MarketDataQuery`, `MarketDataNotAvailable`, and `IMarketDataProvider`.
+- `packages/market-data/src/fixture-schema.ts` — mirrors the shipped `@ankit-prop/market-data-twelvedata` v1 on-disk schemas for `manifest.json`, symbol meta, compact bar JSONL.gz rows, and adversarial windows (including `eventTsMs` on news windows).
+- `packages/market-data/src/cached-fixture-provider.ts` — loads fixture roots, derives `tsEnd` from timeframe, enforces half-open range queries, throws on unknown symbol/timeframe, returns sparse gaps without fabrication, composes broker specs from injected `instrumentSpecs` (zeroed when missing), and projects adversarial windows to point-in-time `CalendarEvent` (anchoring news at `eventTsMs`, closures at `startMs`, `restricted = kind === 'news' || impact === 'closure'`). `getEvents()` filters on the projected event timestamp so range queries match what consumers see.
+- `packages/market-data/src/*.spec.ts` — covers schema parity, contract round-trip, fixture loading, multi-timeframe queries, sparse/missing-bar behavior, range semantics (half-open boundary), loader-derived `tsEnd` (ignores on-disk bogus values), event projection (NFP `13:25Z..13:35Z`, closure as `restricted=true, impact='high'`), `instrumentSpecs` zeroing, malformed manifest/shard paths, and unknown symbol/timeframe failures.
+
+**Changed** — `pkg:eval-harness`
+
+- `packages/eval-harness/src/types.ts` — re-exports `Bar`, `SymbolMeta`, and `CalendarEvent` from `@ankit-prop/market-data` while preserving existing eval-harness call-site names.
+- `packages/eval-harness/package.json` — adds `@ankit-prop/market-data: workspace:*` and bumps `@ankit-prop/eval-harness` `0.1.4` → `0.1.5`.
+- `package.json` / `bun.lock` — bump root `0.4.46` → `0.4.47` and register the new workspace package. (Original implementation bumped `0.4.41` → `0.4.42`; rebumped during rebase resolution because `0.4.42`–`0.4.46` had already shipped via [ANKA-121](/ANKA/issues/ANKA-121), [ANKA-268](/ANKA/issues/ANKA-268), [ANKA-168](/ANKA/issues/ANKA-168), [ANKA-270](/ANKA/issues/ANKA-270), [ANKA-201](/ANKA/issues/ANKA-201), and [ANKA-277](/ANKA/issues/ANKA-277).)
+- `.dev/decisions.md` — records the ANKA-69 market-data decision as **ADR-0008** (the original WIP title said ADR-0003; current `main` owns ADR-0003 through ADR-0007 already, so the ADR was renumbered during rebase).
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean.
+- `bun run lint:fix` and `bun run lint` — exit 0; only pre-existing unrelated Biome warnings outside this diff.
+- `bun test packages/market-data packages/eval-harness` — 138 pass / 0 fail / 1324 expects (rerun ×3 on the calendar-event specs clean).
+- `bun run typecheck` — clean.
+- `git diff --check` — clean.
+- Service restart/health: package-only change; no long-running service package changed.
+- Reviewers: CodeReviewer APPROVE on rebased head `530b4988` (ANKA-266 predicate-fix re-review pass) and QAEngineer APPROVE for QA coverage on `91afb6e` (eight fail-closed paths audited; spec-only top-up commit covers `listAvailability` rejection of unknown symbols, loader-derived `tsEnd` against on-disk bogus values, and `typicalSpreadPips` zeroing).
+
 ## 0.4.45 — 2026-04-29 21:55 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-201](/ANKA/issues/ANKA-201) under CEO directive at comment `bdf72261` — apply DBF-002 verbatim after BlueprintAuditor verdict (comment `54b7d4a0`).

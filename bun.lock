@@ -28,6 +28,14 @@
       "version": "0.1.4",
       "dependencies": {
         "@ankit-prop/contracts": "workspace:*",
+        "@ankit-prop/market-data": "workspace:*",
+        "zod": "4.3.6",
+      },
+    },
+    "packages/market-data": {
+      "name": "@ankit-prop/market-data",
+      "version": "0.1.0",
+      "dependencies": {
         "zod": "4.3.6",
       },
     },
@@ -118,6 +126,8 @@
     "@ankit-prop/dashboard": ["@ankit-prop/dashboard@workspace:services/dashboard"],
 
     "@ankit-prop/eval-harness": ["@ankit-prop/eval-harness@workspace:packages/eval-harness"],
+
+    "@ankit-prop/market-data": ["@ankit-prop/market-data@workspace:packages/market-data"],
 
     "@ankit-prop/market-data-twelvedata": ["@ankit-prop/market-data-twelvedata@workspace:packages/market-data-twelvedata"],
 
