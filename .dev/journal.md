@@ -2,6 +2,31 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:25 Europe/Amsterdam — v0.4.30 ([ANKA-142](/ANKA/issues/ANKA-142) — re-enable GitHub Actions CI gate)
+
+**What was done**
+
+- Implemented ADR-0004 from [ANKA-138](/ANKA/issues/ANKA-138): renamed `.github/workflows/ci.yml.disabled` → `.github/workflows/ci.yml` via `git mv` only, with no workflow content edits.
+- Added the BLUEPRINT §0.2 operational cross-link to ADR-0004, [ANKA-142](/ANKA/issues/ANKA-142), and [ANKA-138](/ANKA/issues/ANKA-138), including the rule that future workflow-disable attempts must amend the ADR first.
+- Bumped root `ankit-prop-umbrella` 0.4.29 → 0.4.30 and added the matching CHANGELOG entry.
+
+**Findings**
+
+- The pre-rename and post-rename workflow hashes match, proving the activation was a filename-only change. The workflow remains the original single `lint + typecheck + test` job with Bun `1.3.13`.
+- No `.spec.ts` coverage was added because the changed behaviour is GitHub Actions scheduling; the smoke-test PR is the integration test for that surface.
+
+**Decisions**
+
+- Kept ADR-0004's direct path: no cache step, no job split, no matrix, no `workflow_dispatch`-only trigger. If GitHub wall-clock exceeds the 5-minute budget, that becomes a follow-up `infra:ci` issue instead of being folded into this one.
+
+**Surprises / contradictions**
+
+- None. The implementation matched the issue's exact file-scope and ADR constraints.
+
+**Open endings**
+
+- Push the branch, open the docs-only smoke-test PR, wait for the `lint + typecheck + test` job to pass, record the CI run URL/runtime, then route [ANKA-142](/ANKA/issues/ANKA-142) back to [FoundingEngineer](/ANKA/agents/foundingengineer) for CodeReviewer handoff.
+
 ## 2026-04-29 05:12 Europe/Amsterdam — v0.4.29 ([ANKA-138](/ANKA/issues/ANKA-138) — ADR-0004 re-enable GHA lint/test/typecheck workflow)
 
 **What was done**

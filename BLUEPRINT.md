@@ -209,6 +209,11 @@ completing a task ticks it off in **both**.
 Do not commit with failing lint / tests / typecheck unless explicitly
 instructed.
 
+GitHub Actions CI gate (`.github/workflows/ci.yml`) re-enabled per
+[ADR-0004](.dev/decisions.md#adr-0004--re-enable-the-existing-github-actions-linttesttypecheck-workflow-as-is)
+([ANKA-142](/ANKA/issues/ANKA-142), [ANKA-138](/ANKA/issues/ANKA-138)).
+Future attempts to disable this workflow must amend the ADR first.
+
 The version bump + changelog + commit + `/health` reflect cycle is
 **not optional bookkeeping** — it is the audit trail. If a regression
 appears in production, the operator can grep the changelog by date,

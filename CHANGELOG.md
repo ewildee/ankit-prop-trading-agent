@@ -2,6 +2,26 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.30 — 2026-04-29 05:25 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-142](/ANKA/issues/ANKA-142) — implementation child of [ANKA-138](/ANKA/issues/ANKA-138) for ADR-0004.
+
+**Why:** ADR-0004 accepted re-enabling the existing GitHub Actions lint/typecheck/`bun test` workflow as-is. The prior `.disabled` suffix kept GitHub from scheduling the CI gate, leaving only local BLUEPRINT §0.2 commands as the safety net.
+
+**Changed** — `infra:ci` workflow activation + operational cross-link
+
+- `.github/workflows/ci.yml.disabled` → `.github/workflows/ci.yml` via `git mv` only. Workflow content stays byte-identical: push to `main`, PR trigger, `oven-sh/setup-bun@v2` pinned to Bun `1.3.13`, `bun install --frozen-lockfile`, `bun run lint`, `bun run typecheck`, `bun test`.
+- `BLUEPRINT.md` §0.2 — adds the explicit ADR-0004 / [ANKA-142](/ANKA/issues/ANKA-142) / [ANKA-138](/ANKA/issues/ANKA-138) cross-link and states that future attempts to disable the workflow must amend the ADR first.
+- `.dev/journal.md` — records the implementation, verification plan, and smoke-test PR handoff.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.29 → 0.4.30.
+
+**Verification**
+
+- Local verification and the GitHub smoke-test PR are recorded in [ANKA-142](/ANKA/issues/ANKA-142). No `.spec.ts` test added because workflow YAML is not Bun-runtime code; the GitHub Actions PR run is the integration test.
+
 ## 0.4.29 — 2026-04-29 05:12 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-138](/ANKA/issues/ANKA-138) — `infra:ci` re-enable / replace / keep-off decision (follow-up to [ANKA-127](/ANKA/issues/ANKA-127) major finding and [ANKA-132](/ANKA/issues/ANKA-132) split).
