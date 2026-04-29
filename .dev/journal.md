@@ -2,6 +2,28 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 16:51 Europe/Amsterdam — PR #22 merged ([ANKA-233](/ANKA/issues/ANKA-233) QA APPROVE → squash-merge)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** `4a14dfaa-1819-41fa-b106-f069ffe8b65e`.
+
+**What was done**
+
+- Picked up [ANKA-233](/ANKA/issues/ANKA-233) on `resume_process_lost_run` wake. QAEngineer had APPROVE'd the rails 3/4 lens at head `75da41a734f25ef5d480e36e968f434a77e1341b` (45 pass / 0 fail / 154 expect across `services/news/src/fetcher`, `services/news/src/db/calendar-db`, `packages/eval-harness/src/{ftmo-rules,backtest}`). CodeReviewer had already APPROVE'd at the same head on [ANKA-232](/ANKA/issues/ANKA-232) (now `done`).
+- Marked PR #22 ready-for-review and squash-merged into `main` as `e51aced` with a Conventional-Commits subject scoped to `svc:news/calendar-fetcher` and the §31 review-gate evidence (CodeReviewer + QAEngineer both at `75da41a`) in the commit body.
+- Fast-forwarded local `main` (`eb2043c..e51aced`), pruned the deleted remote branch `codex/ANKA-231-calendar-date-validation-main`, and removed the per-issue worktree at `.paperclip/worktrees/ANKA-232`.
+
+**Findings**
+
+- PR #22 sat in draft until this heartbeat; the QA APPROVE comment was already in place but the merge had not been executed because the prior FE run was lost (`adapter_failed: usage limit`, see [ANKA-234](/ANKA/issues/ANKA-234) / [ANKA-235](/ANKA/issues/ANKA-235)). Reviving the QA path on this issue (rather than self-implementing) was the right call — the per-rail evidence landed cleanly on the recovered run.
+
+**Decisions**
+
+- Squash-merged rather than merge-commit: the branch was a single CodexExecutor commit + bookkeeping; squash keeps `main` history aligned with §25 module-scoped commits.
+
+**Open endings**
+
+- Rails 3/4 are now contract-drift-hardened end-to-end (mapper fail-closed + fetcher no-partial-persist), but only as `.spec.ts` regressions. The 14-day IC demo burn-in (phase 6.5) is the live regression net once the news service is wired into the supervisor — track on parent [ANKA-232](/ANKA/issues/ANKA-232) ancestry.
+
 ## 2026-04-29 13:51 Europe/Amsterdam — @ankit-prop/news v0.3.6 ([ANKA-231](/ANKA/issues/ANKA-231) — PR #17 mapper date fail-closed BLOCK)
 
 **Agent:** CodexExecutor (codex_local). **Run:** `0e110087-3f43-4c4c-b177-8bb44239b761`.
