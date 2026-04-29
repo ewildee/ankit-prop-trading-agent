@@ -406,11 +406,15 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/market-data-twelvedata` 0.1.1 → 0.1.2 (patch — fetch safety and default-path bug fix).
-## 0.4.24 — 2026-04-28 13:49 Europe/Amsterdam
+- root `ankit-prop-umbrella` 0.4.21 → 0.4.22 (patch — workspace package version move; backfilled by [ANKA-160](/ANKA/issues/ANKA-160) — original entry omitted this line, but commit `aceecfe` advanced root from `0.4.21` to `0.4.22`).
+
+## ANKA-113 merge reconciliation — @ankit-prop/news 0.1.0 → 0.2.0 — 2026-04-28 13:49 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (agent), executing the board-requested follow-up on [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
 
 **Why:** Board flagged that `svc:news/symbol-tag-mapper` should consume the operator-canonical configuration loader `@triplon/config` (internal NPM mirror; source at `~/Work/Projects/shared/config-loader`) instead of duplicating bespoke YAML loading, ad-hoc path resolution, and a custom `SymbolTagMapLoadError` shape. `@triplon/config` already provides layered file resolution (`~/.config/<scope>/<name>.config.yaml` → `./<name>.config.yaml` → override), Zod validation, and structured `ConfigError` codes — keeping the mapper's surface area minimal and consistent with the rest of Triplon Mac tooling.
+
+**ANKA-113 merge reconciliation:** Authored on PR #1 branch `anka-77-ftmo-calendar-cassette` (commit `e8bac18`) and landed on `main` via merge commit `05bf75b` (root `0.4.25 → 0.4.26`). The original branch-side `## 0.4.24` heading and `root ankit-prop-umbrella 0.4.23 → 0.4.24` bump line were demoted by [ANKA-160](/ANKA/issues/ANKA-160) because that root slot was already used on `main` by [ANKA-111](/ANKA/issues/ANKA-111) at 17:59. The `@ankit-prop/news` 0.1.0 → 0.2.0 package-level bump below still stands.
 
 **Changed** — `@ankit-prop/news` v0.1.0 → v0.2.0
 
@@ -426,7 +430,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/news` 0.1.0 → 0.2.0 (minor — public mapper API contract changed: sync return + `ConfigError` instead of `SymbolTagMapLoadError`. No external consumers yet — N2/N4 are still out of scope per the parent plan).
-- root `ankit-prop-umbrella` 0.4.23 → 0.4.24 (patch — workspace package version move).
+- ~~root `ankit-prop-umbrella` 0.4.23 → 0.4.24~~ — removed by [ANKA-160](/ANKA/issues/ANKA-160); branch-side root bump never advanced `main`'s `package.json` (see merge commit `05bf75b`).
 
 **Verification**
 
@@ -438,11 +442,13 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 - `@triplon/config` is dual-listed in `~/.bunfig.toml` `minimumReleaseAgeExcludes` so the 2-day install hold doesn't apply, and the `@triplon` scope token in `~/.npmrc` already points at the private registry — no repo-side npm/bun config needed.
 
-## 0.4.23 — 2026-04-28 13:19 Europe/Amsterdam
+## ANKA-113 merge reconciliation — @ankit-prop/news 0.0.2 → 0.1.0 — 2026-04-28 13:19 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-79](/ANKA/issues/ANKA-79) under parent [ANKA-75](/ANKA/issues/ANKA-75).
 
 **Why:** `svc:news` needs the symbol-tag-mapper sub-module before the calendar fetcher can turn FTMO `instrument` strings into the tracked trading symbols that restricted-window and pre-news evaluators consume. BLUEPRINT §11.3 requires splitting FTMO tags on `" + "` and §17.3 defines the operator-canonical `symbol-tag-map.config.yaml` shape. BLUEPRINT §5 forbids adding `yaml` / `js-yaml`, so this loader uses Bun's native `Bun.YAML.parse`.
+
+**ANKA-113 merge reconciliation:** Authored on PR #1 branch `anka-77-ftmo-calendar-cassette` (commit `42cb3ed` lineage) and landed on `main` via merge commit `05bf75b` (root `0.4.25 → 0.4.26`). The original branch-side `## 0.4.23` heading and `root ankit-prop-umbrella 0.4.22 → 0.4.23` bump line were demoted by [ANKA-160](/ANKA/issues/ANKA-160) because that root slot was already used on `main` by [ANKA-102](/ANKA/issues/ANKA-102) at 17:14. The `@ankit-prop/news` 0.0.2 → 0.1.0 package-level bump below still stands.
 
 **Added** — `@ankit-prop/news` v0.0.2 → v0.1.0
 
@@ -454,7 +460,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/news` 0.0.2 → 0.1.0 (minor — new public mapper module).
-- root `ankit-prop-umbrella` 0.4.22 → 0.4.23 (patch — workspace package version move).
+- ~~root `ankit-prop-umbrella` 0.4.22 → 0.4.23~~ — removed by [ANKA-160](/ANKA/issues/ANKA-160); branch-side root bump never advanced `main`'s `package.json` (see merge commit `05bf75b`).
 
 **Verification**
 
@@ -468,11 +474,13 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - The `SymbolTagMap` schema stays inline for now because `@ankit-prop/contracts` has no `config` namespace yet; follow-up [T009.c](TODOS.md) tracks lifting it once that shared surface exists.
 - `services/news` still has only the placeholder `start` script and no `/health` implementation, so there is no service process/version endpoint to restart and verify yet.
 
-## 0.4.22 — 2026-04-28 13:15 Europe/Amsterdam
+## ANKA-113 merge reconciliation — @ankit-prop/contracts 0.3.3 → 0.4.0 — 2026-04-28 13:15 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-78](/ANKA/issues/ANKA-78) under parent [ANKA-75](/ANKA/issues/ANKA-75).
 
 **Why:** The news service and gateway rail-7 `NewsClient` need one shared contract surface before the `svc:news` runtime lands. BLUEPRINT §11.2 pins the FTMO calendar item shape; [ANKA-78](/ANKA/issues/ANKA-78) extends that package surface with the restricted-window replies consumed by the later endpoint and force-flat work.
+
+**ANKA-113 merge reconciliation:** Authored on PR #1 branch `anka-77-ftmo-calendar-cassette` and landed on `main` via merge commit `05bf75b` (root `0.4.25 → 0.4.26`). The original branch-side `## 0.4.22` heading and `root ankit-prop-umbrella 0.4.21 → 0.4.22` bump line were demoted by [ANKA-160](/ANKA/issues/ANKA-160) because that root slot was already used on `main` by [ANKA-97](/ANKA/issues/ANKA-97) at 14:47. The `@ankit-prop/contracts` 0.3.3 → 0.4.0 package-level bump below still stands.
 
 **Added** — `@ankit-prop/contracts` v0.3.3 → v0.4.0
 
@@ -483,7 +491,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/contracts` 0.3.3 → 0.4.0 (minor — new public schema surface).
-- root `ankit-prop-umbrella` 0.4.21 → 0.4.22 (patch — workspace package version move).
+- ~~root `ankit-prop-umbrella` 0.4.21 → 0.4.22~~ — removed by [ANKA-160](/ANKA/issues/ANKA-160); branch-side root bump never advanced `main`'s `package.json` (see merge commit `05bf75b`).
 
 **Verification**
 
@@ -537,11 +545,13 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 - No service restart required: only the shared contracts package changed, and no service `/health` surface was running from this package.
 
-## 0.4.21 — 2026-04-28 13:13 Europe/Amsterdam
+## ANKA-113 merge reconciliation — @ankit-prop/news 0.0.1 → 0.0.2 — 2026-04-28 13:13 Europe/Amsterdam
 
 **Initiated by:** DocumentSpecialist (agent), executing [ANKA-77](/ANKA/issues/ANKA-77) under [ANKA-75](/ANKA/issues/ANKA-75).
 
 **Why:** `svc:news` needs a canonical real FTMO economic-calendar cassette for the 14-day replay and contract-change detector work described in BLUEPRINT §11.1-§11.3 and §21.3. The chosen 2026-03-23 → 2026-04-06 Prague window crosses the 2026-03-29 DST boundary and includes the requested high-impact USD, restricted, and multi-tag NFP coverage.
+
+**ANKA-113 merge reconciliation:** Authored on PR #1 branch `anka-77-ftmo-calendar-cassette` (commit `43f3a30`) and landed on `main` via merge commit `05bf75b` (root `0.4.25 → 0.4.26`). The original branch-side `## 0.4.21` heading and `root ankit-prop-umbrella 0.4.20 → 0.4.21` bump line were demoted by [ANKA-160](/ANKA/issues/ANKA-160) because that root slot was already used on `main` by [ANKA-31](/ANKA/issues/ANKA-31) at 14:30. The `@ankit-prop/news` 0.0.1 → 0.0.2 package-level bump below still stands.
 
 **Added** — `@ankit-prop/news` v0.0.2 cassette assets
 
@@ -555,7 +565,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Bumped**
 
 - `@ankit-prop/news` 0.0.1 → 0.0.2 (patch — version-pinned FTMO calendar cassette assets).
-- root `ankit-prop-umbrella` 0.4.20 → 0.4.21 (patch — workspace package version move).
+- ~~root `ankit-prop-umbrella` 0.4.20 → 0.4.21~~ — removed by [ANKA-160](/ANKA/issues/ANKA-160); branch-side root bump never advanced `main`'s `package.json` (see merge commit `05bf75b`).
 
 **Verification**
 
