@@ -54,6 +54,6 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 ## Cross-cutting
 
 - [x] **T014** Enforce Paperclip co-author footer with repo-local `commit-msg` hook — _ANKA-102_.
-- [x] **T015** Enforce Paperclip co-author footer on GitHub PR/merge paths — _ANKA-137_.
+- [~] **T015** Enforce Paperclip co-author footer on GitHub PR/merge paths — _ANKA-137_; review respin under [ANKA-144](/ANKA/issues/ANKA-144) for merge-commit topology guard and GitHub red/green smoke.
 - [~] **Q001** Choose cTrader Open API app credentials path (operator action — folded into ANKA-5 onboarding interaction).
 - [ ] **IDEA-001** Backlog of trading-lab ideas tracked in BLUEPRINT §13.7 (decision CC).

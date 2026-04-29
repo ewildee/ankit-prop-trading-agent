@@ -41,9 +41,11 @@ AGENTS.md carve-outs:
 - author name or email identifies `dependabot[bot]`
 - author name or email identifies `github-actions[bot]`
 - a single-commit range whose subject starts with `Merge pull request #`
+  and whose commit has merge topology (`parent_count >= 2`)
 
 The GitHub merge-commit exception only applies when that merge commit is
-the only commit in the range.
+the only commit in the range. A one-parent commit that spoofs the GitHub
+merge subject is still checked for the Paperclip trailer and fails closed.
 
 ## Implementation
 
@@ -53,4 +55,5 @@ checker lives at `scripts/commit-footer-check.sh`, and
 `__tests__/commit-footer-check.sh` builds temporary git repositories to
 cover passing exact trailers, lowercase trailers, missing trailers,
 multi-commit first-offender reporting, clean multi-commit ranges, bot
-exceptions, and the single GitHub merge-commit exception.
+exceptions, the single GitHub merge-commit exception, and a one-parent
+spoofed GitHub merge-subject regression.

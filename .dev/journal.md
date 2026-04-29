@@ -2,6 +2,37 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:34 Europe/Amsterdam — v0.4.31 ([ANKA-144](/ANKA/issues/ANKA-144) — [ANKA-137](/ANKA/issues/ANKA-137) merge-exemption spoof fix)
+
+**What was done**
+
+- Followed the scoped Paperclip wake for [ANKA-144](/ANKA/issues/ANKA-144) and acknowledged CodeReviewer's BLOCK before broader repo exploration.
+- Kept work in `.paperclip/worktrees/ANKA-137` on branch `anka-137-commit-footer-check`, because [ANKA-144](/ANKA/issues/ANKA-144) is the review respin for the parent [ANKA-137](/ANKA/issues/ANKA-137) feature branch.
+- Added `is_github_merge_commit` to `.github/workflows/scripts/commit-footer-check.sh`; a single `Merge pull request #...` commit is exempt only when it has at least two parents.
+- Added a pure-bash one-parent spoof regression and changed the allowed merge test to construct a real two-parent merge commit.
+- Updated `commit-footer-check.spec.md`, moved `T015` back to in-progress, bumped root `ankit-prop-umbrella` to 0.4.31, and added the 0.4.31 CHANGELOG entry.
+
+**Findings**
+
+- The reviewer reproduction was valid: subject-only matching defeated the exact server-side footer gate. Parent-count verification is the smallest fix that closes the bypass without changing bot exceptions or trailer parsing.
+- A single real merge commit in the test harness needs both parents already reachable from the range base; the harness now builds that shape explicitly with `git commit-tree`.
+
+**Contradictions**
+
+- `TODOS.md` had `T015` marked done while [ANKA-137](/ANKA/issues/ANKA-137) was still under review. Resolved by marking it in-progress until reviewer approval and GitHub smoke complete.
+
+**Decisions**
+
+- Require `parent_count >= 2` rather than trying to infer GitHub provenance from author, committer, or message body. Topology is local, deterministic, and sufficient for the blocker.
+
+**Unexpected behaviour**
+
+- First attempt at the real-merge test assumed the temp repo did not already have a `main` branch. The harness now records and switches back to the repo's initial branch name.
+
+**Open endings**
+
+- [ANKA-137](/ANKA/issues/ANKA-137) still needs CodeReviewer re-review and the GitHub red/green smoke called out by the original issue before `T015` can return to done.
+
 ## 2026-04-29 05:23 Europe/Amsterdam — v0.4.30 ([ANKA-137](/ANKA/issues/ANKA-137) — GitHub PR/merge-path commit-footer guard)
 
 **What was done**

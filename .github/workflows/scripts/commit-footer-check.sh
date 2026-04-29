@@ -25,6 +25,17 @@ is_allowed_bot_author() {
   return 1
 }
 
+is_github_merge_commit() {
+  local sha=$1
+  local subject=$2
+  local parent_count
+
+  [[ "$subject" == Merge\ pull\ request\ \#* ]] || return 1
+
+  parent_count=$(git show -s --format=%P "$sha" | wc -w | tr -d ' ')
+  [ "$parent_count" -ge 2 ]
+}
+
 print_footer_error() {
   local sha=$1
   local observed=$2
@@ -70,7 +81,7 @@ check_commit_footer_range() {
       continue
     fi
 
-    if [ "$commit_count" = "1" ] && [[ "$subject" == Merge\ pull\ request\ \#* ]]; then
+    if [ "$commit_count" = "1" ] && is_github_merge_commit "$sha" "$subject"; then
       printf 'Skipping single GitHub merge commit %s (%s).\n' "$sha" "$subject"
       continue
     fi

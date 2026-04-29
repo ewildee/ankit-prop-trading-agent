@@ -163,16 +163,47 @@ skips_allowed_bot_commit() {
   [ "$status" = "0" ]
 }
 
+merge_commit_message() {
+  local repo=$1
+  local first_parent=$2
+  local second_parent=$3
+  local subject=$4
+
+  git -C "$repo" commit-tree "$first_parent^{tree}" -p "$first_parent" -p "$second_parent" -m "$subject"
+}
+
 skips_single_github_merge_commit() {
-  local repo base head result status
+  local repo initial_branch base side merged_base head result status
 
   repo=$(new_repo)
   base=$(commit_message "$repo" 'chore: base' "$REQUIRED_TRAILER")
-  head=$(commit_message "$repo" 'Merge pull request #123 from ewildee/example')
-  result=$(run_check "$repo" "$base..$head")
+  initial_branch=$(git -C "$repo" rev-parse --abbrev-ref HEAD)
+  git -C "$repo" switch -q -c feature "$base"
+  side=$(commit_message "$repo" 'docs: feature branch' "$REQUIRED_TRAILER")
+  git -C "$repo" switch -q "$initial_branch"
+  git -C "$repo" merge -q --no-ff "$side" -m 'Merge feature branch'
+  merged_base=$(git -C "$repo" rev-parse HEAD)
+  head=$(merge_commit_message "$repo" "$merged_base" "$side" 'Merge pull request #123 from ewildee/example')
+  git -C "$repo" update-ref refs/heads/main "$head"
+  result=$(run_check "$repo" "$merged_base..$head")
   status=$(printf '%s\n' "$result" | sed -n '1p')
 
   [ "$status" = "0" ]
+}
+
+fails_spoofed_github_merge_subject_without_merge_topology() {
+  local repo base head result status output
+
+  repo=$(new_repo)
+  base=$(commit_message "$repo" 'chore: base' "$REQUIRED_TRAILER")
+  head=$(commit_message "$repo" 'Merge pull request #999 from attacker/no-footer')
+  result=$(run_check "$repo" "$base..$head")
+  status=$(printf '%s\n' "$result" | sed -n '1p')
+  output=$(printf '%s\n' "$result" | sed '1d')
+
+  [ "$status" != "0" ] || return 1
+  assert_contains "$output" "$head"
+  assert_contains "$output" '<missing>'
 }
 
 run_test 'passes with exact Paperclip trailer' passes_with_exact_trailer
@@ -181,4 +212,5 @@ run_test 'fails with missing Paperclip trailer and reports <missing>' fails_with
 run_test 'fails first offending commit in multi-commit range' fails_first_offending_commit_in_multi_commit_range
 run_test 'passes a clean multi-commit range' passes_clean_multi_commit_range
 run_test 'skips allowed bot-authored commits' skips_allowed_bot_commit
-run_test 'skips a single GitHub merge commit' skips_single_github_merge_commit
+run_test 'skips a single real GitHub merge commit' skips_single_github_merge_commit
+run_test 'fails spoofed GitHub merge subject without merge topology' fails_spoofed_github_merge_subject_without_merge_topology

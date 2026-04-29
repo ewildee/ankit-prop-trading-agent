@@ -2,6 +2,33 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.31 — 2026-04-29 05:34 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-144](/ANKA/issues/ANKA-144) review respin for [ANKA-137](/ANKA/issues/ANKA-137) — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
+
+**Why:** CodeReviewer blocked the first [ANKA-137](/ANKA/issues/ANKA-137) review because the GitHub merge-commit exemption trusted the `Merge pull request #...` subject alone. A one-parent human-authored spoof commit without the Paperclip trailer could bypass the server-side footer gate.
+
+**Changed** — `infra:ci/commit-footer-check`
+
+- `.github/workflows/scripts/commit-footer-check.sh` — the GitHub merge exemption now requires both a `Merge pull request #...` subject and actual merge topology (`parent_count >= 2`) before skipping a single-commit range.
+- `.github/workflows/commit-footer-check.spec.md` — documents the topology requirement and the fail-closed spoof case.
+- `TODOS.md` — moves `T015` back to in-progress until this review respin and GitHub red/green smoke complete.
+
+**Added**
+
+- `.github/workflows/__tests__/commit-footer-check.sh` — adds a one-parent spoofed merge-subject regression that fails without the canonical Paperclip trailer, and changes the allowed merge test to build a real two-parent merge commit.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.30 → 0.4.31.
+
+**Verification**
+
+- `bash .github/workflows/__tests__/commit-footer-check.sh` — 8 pass.
+- `bun run lint:fix` — exit 0 with existing warnings/no fixes.
+- `bun test` — 342 pass / 0 fail / 2092 expects.
+- `bun run typecheck` — clean.
+
 ## 0.4.30 — 2026-04-29 05:23 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-137](/ANKA/issues/ANKA-137) — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
