@@ -55,5 +55,6 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 
 - [x] **T014** Enforce Paperclip co-author footer with repo-local `commit-msg` hook — _ANKA-102_.
 - [x] **T015** Scaffold `@triplon/config` with Bun-native YAML loading, env-name derivation, SymbolTagMap schema/codegen artifacts, and freshness checks — _Closes [ANKA-130](/ANKA/issues/ANKA-130)_.
+- [x] **I003** Reverse `defineAppConfig` user/project precedence and add regression coverage — _[ANKA-149](/ANKA/issues/ANKA-149)_.
 - [~] **Q001** Choose cTrader Open API app credentials path (operator action — folded into ANKA-5 onboarding interaction).
 - [ ] **IDEA-001** Backlog of trading-lab ideas tracked in BLUEPRINT §13.7 (decision CC).
