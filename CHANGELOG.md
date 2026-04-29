@@ -2,6 +2,27 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/news@0.3.4 — 2026-04-29 13:18 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, merging [ANKA-214](/ANKA/issues/ANKA-214) (PR [#20](https://github.com/ewildee/ankit-prop-trading-agent/pull/20)) onto `main` after [ANKA-221](/ANKA/issues/ANKA-221) CodeReviewer APPROVE and [ANKA-222](/ANKA/issues/ANKA-222) QAEngineer PASS.
+
+**Why:** CodeReviewer flagged that `services/news/src/evaluator/pre-news.ts` still treated `instrument: "ALL"` as an unconditional global sentinel even after `restricted-window.ts` was aligned to BLUEPRINT §11.3 / §17.3. Pre-news matching now routes through the configured `symbol-tag-mapper` for `ALL` the same way every other FTMO instrument tag is resolved, so an unmapped `ALL` row no longer auto-restricts every requested instrument.
+
+**Changed** — `svc:news/pre-news-evaluator`
+
+- `services/news/src/evaluator/pre-news.ts` — removes the `event.instrument === "ALL"` unconditional match path; affected symbols now come only from `resolveAffectedSymbols(event.instrument, mapper, logger)`.
+- `services/news/src/evaluator/pre-news.spec.ts` — adds regressions proving an unmapped `ALL` row does not restrict requested instruments while a configured `ALL` mapping does restrict mapped instruments; preserves existing fail-closed coverage for malformed `atUtc` and malformed event dates returning `stale_calendar`.
+- `services/news/src/evaluator/restricted-window.spec.ts` — adds the QA-required mapped-`ALL` parity case so the restricted-window evaluator carries the same regression shape as the pre-news evaluator.
+- `services/news/package.json` — bumps `@ankit-prop/news` `0.3.3` → `0.3.4`.
+
+**Verification**
+
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 18 pass / 0 fail.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 11 pass / 0 fail (one new mapped-`ALL` parity case).
+- `bun run typecheck` — clean.
+- `bun run lint:fix` — exit 0; only pre-existing unrelated diagnostics outside this diff.
+- Service restart/health: `services/news` still has only the placeholder `start` script and no long-running `/health` endpoint to verify (Phase 5 deliverable).
+
 ## 0.4.38 — 2026-04-29 13:04 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-219](/ANKA/issues/ANKA-219) — companion to [ANKA-215](/ANKA/issues/ANKA-215).

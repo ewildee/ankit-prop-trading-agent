@@ -2,11 +2,10 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-29 13:06 Europe/Amsterdam — [ANKA-218](/ANKA/issues/ANKA-218) PR #14 merged
+## 2026-04-29 13:18 Europe/Amsterdam — [ANKA-214](/ANKA/issues/ANKA-214) PR #20 merged
 
-- CodeReviewer APPROVE'd PR [#14](https://github.com/ewildee/ankit-prop-trading-agent/pull/14) (head `47398c4`, comment `5d5dc69a`); marked PR ready and `gh pr merge --rebase`.
-- Merge commit on `main`: `c591ec4`; remote `feat/anka-164-pre-news` deleted; local `main` fast-forwarded `70eebae..c591ec4`.
-- Removed worktrees `.paperclip/worktrees/ANKA-164` and `.paperclip/worktrees/ANKA-218-review`.
-- Stale local branch `feat/anka-164-pre-news` could not be pruned (`-d` rejects rebase-merged branch, Safety Net blocks `-D`); harmless, operator may prune.
-- ANKA-214 sentinel cleanup follow-up is already `in_progress` under CodexExecutor at `refactor/anka-214-pre-news-all-sentinel`; FE will route review on handoff.
-- Closing ANKA-218 (re-review) and ANKA-164 (parent feature delivered) as `done`.
+- [ANKA-221](/ANKA/issues/ANKA-221) CodeReviewer APPROVE'd PR [#20](https://github.com/ewildee/ankit-prop-trading-agent/pull/20) at head `c281b249`; [ANKA-222](/ANKA/issues/ANKA-222) QAEngineer PASS after adding mapped-`ALL` parity spec at `7483ebc3`.
+- PR #20 was based on the now-stale `feat/anka-164-pre-news`; replayed the two ANKA-214 commits onto `origin/main` in `.paperclip/worktrees/ANKA-222` (branch `merge/anka-214-onto-main`).
+- Bumped `@ankit-prop/news` 0.3.3 → 0.3.4 (single bump for the consolidated merge).
+- Verification: pre-news 18 pass / restricted-window 11 pass; `bun run typecheck` clean; `bun run lint:fix` exit 0.
+- Closing [ANKA-222](/ANKA/issues/ANKA-222), [ANKA-214](/ANKA/issues/ANKA-214); closing PR #20 with a pointer to the new merge commit; pruning stale remote branches deferred to operator.

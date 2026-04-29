@@ -2,6 +2,36 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 13:18 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-214](/ANKA/issues/ANKA-214) PR #20 merged onto main)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped Paperclip wake on [ANKA-222](/ANKA/issues/ANKA-222) after QAEngineer PASS verdict.
+
+**What was done**
+
+- Confirmed [ANKA-221](/ANKA/issues/ANKA-221) CodeReviewer APPROVE (verdict comment `c310372b`, lint/typecheck/pre-news 18 pass/restricted-window 10 pass at PR head `c281b249`) and [ANKA-222](/ANKA/issues/ANKA-222) QAEngineer PASS (verdict comment `fb258d56`, mapped-`ALL` parity test added at `7483ebc3`, focused specs 54/33 pass with `--rerun-each=3`).
+- PR [#20](https://github.com/ewildee/ankit-prop-trading-agent/pull/20) base was the now-stale `feat/anka-164-pre-news` branch (PR #14 merged via squash with different SHAs). Tree diff between `origin/feat/anka-164-pre-news` and `origin/main` was docs-only (`.dev/`, CHANGELOG, AGENTS.md, root `package.json`); evaluator code identical.
+- Created `.paperclip/worktrees/ANKA-222` off `origin/main` on a new `merge/anka-214-onto-main` branch and pulled the four ANKA-214/ANKA-222 source/spec files (`services/news/src/evaluator/pre-news.ts`, `pre-news.spec.ts`, `restricted-window.spec.ts`) verbatim from `origin/refactor/anka-214-pre-news-all-sentinel`. Bumped `@ankit-prop/news` 0.3.3 → 0.3.4 (single bump rather than 0.3.4 + 0.3.5 because both refactor commits land as one merge).
+- An earlier `git rebase --onto origin/main origin/feat/anka-164-pre-news` failed in CHANGELOG/.dev conflicts because the post-PR-#14 docs lines on main were appended after the refactor branch was authored. Rebase aborted; clean replay onto main was simpler.
+- Wrote fresh CHANGELOG/journal/progress entries naming both reviewer verdicts as the merge gate.
+
+**Findings**
+
+- The refactor branch was based on `feat/anka-164-pre-news`, which still exists on remote even though PR #14 was already merged into main via a different SHA path. Worth pruning that ref later — but harmless for now.
+- Single squash merge keeps the version line clean: 0.3.3 → 0.3.4 reflects the ANKA-214 behavior change, regression spec, and QA parity case as one delivery on main.
+
+**Verification**
+
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 18 pass / 0 fail.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 11 pass / 0 fail (mapped-`ALL` parity included).
+- `bun run typecheck` — clean.
+- `bun run lint:fix` — exit 0; only pre-existing unrelated diagnostics.
+- Service restart/health: `services/news` still has only the Phase 5 placeholder; no `/health` endpoint exists to verify yet.
+
+**Open endings**
+
+- Close [ANKA-222](/ANKA/issues/ANKA-222) and [ANKA-214](/ANKA/issues/ANKA-214) once PR #20 is closed (we land via the consolidated merge branch, then close PR #20 with a comment pointing to the merge commit).
+- Stale `feat/anka-164-pre-news` and `refactor/anka-214-pre-news-all-sentinel` remote branches can be pruned by operator after merge.
+
 ## 2026-04-29 13:06 Europe/Amsterdam — PR #14 merged ([ANKA-218](/ANKA/issues/ANKA-218) re-review APPROVE)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` wake on [ANKA-218](/ANKA/issues/ANKA-218).
