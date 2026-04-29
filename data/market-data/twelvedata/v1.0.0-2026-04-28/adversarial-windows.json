@@ -9,6 +9,7 @@
       "category": "NFP",
       "startMs": 1762520400000,
       "endMs": 1762524000000,
+      "eventTsMs": 1762522200000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -22,6 +23,7 @@
       "category": "NFP",
       "startMs": 1764939600000,
       "endMs": 1764943200000,
+      "eventTsMs": 1764941400000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -35,6 +37,7 @@
       "category": "NFP",
       "startMs": 1767358800000,
       "endMs": 1767362400000,
+      "eventTsMs": 1767360600000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -48,6 +51,7 @@
       "category": "NFP",
       "startMs": 1770382800000,
       "endMs": 1770386400000,
+      "eventTsMs": 1770384600000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -61,6 +65,7 @@
       "category": "NFP",
       "startMs": 1772802000000,
       "endMs": 1772805600000,
+      "eventTsMs": 1772803800000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -74,6 +79,7 @@
       "category": "NFP",
       "startMs": 1775221200000,
       "endMs": 1775224800000,
+      "eventTsMs": 1775223000000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -87,6 +93,7 @@
       "category": "FOMC",
       "startMs": 1761759000000,
       "endMs": 1761762600000,
+      "eventTsMs": 1761760800000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -100,6 +107,7 @@
       "category": "FOMC",
       "startMs": 1765391400000,
       "endMs": 1765395000000,
+      "eventTsMs": 1765393200000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -113,6 +121,7 @@
       "category": "FOMC",
       "startMs": 1769625000000,
       "endMs": 1769628600000,
+      "eventTsMs": 1769626800000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -126,6 +135,7 @@
       "category": "FOMC",
       "startMs": 1773855000000,
       "endMs": 1773858600000,
+      "eventTsMs": 1773856800000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -139,6 +149,7 @@
       "category": "ECB",
       "startMs": 1761828300000,
       "endMs": 1761831900000,
+      "eventTsMs": 1761830100000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -152,6 +163,7 @@
       "category": "ECB",
       "startMs": 1766061900000,
       "endMs": 1766065500000,
+      "eventTsMs": 1766063700000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -165,6 +177,7 @@
       "category": "ECB",
       "startMs": 1769690700000,
       "endMs": 1769694300000,
+      "eventTsMs": 1769692500000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -178,6 +191,7 @@
       "category": "ECB",
       "startMs": 1773319500000,
       "endMs": 1773323100000,
+      "eventTsMs": 1773321300000,
       "symbols": [
         "NAS100",
         "XAUUSD"
@@ -191,6 +205,7 @@
       "category": "us-equity-closure",
       "startMs": 1764201600000,
       "endMs": 1764288000000,
+      "eventTsMs": 1764201600000,
       "symbols": [
         "NAS100"
       ],
@@ -202,6 +217,7 @@
       "category": "us-equity-closure",
       "startMs": 1766620800000,
       "endMs": 1766707200000,
+      "eventTsMs": 1766620800000,
       "symbols": [
         "NAS100"
       ],
@@ -213,6 +229,7 @@
       "category": "us-equity-closure",
       "startMs": 1767225600000,
       "endMs": 1767312000000,
+      "eventTsMs": 1767225600000,
       "symbols": [
         "NAS100"
       ],
@@ -224,6 +241,7 @@
       "category": "us-equity-closure",
       "startMs": 1768780800000,
       "endMs": 1768867200000,
+      "eventTsMs": 1768780800000,
       "symbols": [
         "NAS100"
       ],
@@ -235,6 +253,7 @@
       "category": "us-equity-closure",
       "startMs": 1771200000000,
       "endMs": 1771286400000,
+      "eventTsMs": 1771200000000,
       "symbols": [
         "NAS100"
       ],
@@ -246,6 +265,7 @@
       "category": "us-equity-closure",
       "startMs": 1775174400000,
       "endMs": 1775260800000,
+      "eventTsMs": 1775174400000,
       "symbols": [
         "NAS100"
       ],

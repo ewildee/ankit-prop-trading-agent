@@ -121,6 +121,7 @@ describe('fixture-schema (mirrors @ankit-prop/market-data-twelvedata wire format
       category: 'NFP',
       startMs: 1_712_232_000_000 - 30 * 60_000,
       endMs: 1_712_232_000_000 + 30 * 60_000,
+      eventTsMs: 1_712_232_000_000,
       symbols: ['XAUUSD', 'NAS100'],
       impact: 'high',
     });
@@ -132,6 +133,7 @@ describe('fixture-schema (mirrors @ankit-prop/market-data-twelvedata wire format
       category: 'us-equity-closure',
       startMs: 0,
       endMs: 24 * 60 * 60_000,
+      eventTsMs: 0,
       symbols: ['NAS100'],
       impact: 'closure',
     });
@@ -143,10 +145,22 @@ describe('fixture-schema (mirrors @ankit-prop/market-data-twelvedata wire format
       category: 'NFP',
       startMs: 0,
       endMs: 1,
+      eventTsMs: 0,
       symbols: [],
       impact: 'high',
     });
     expect(noSymbols.success).toBe(false);
+
+    const missingEventTs = AdversarialWindowSchema.safeParse({
+      id: 'missing-event-ts',
+      kind: 'news',
+      category: 'NFP',
+      startMs: 0,
+      endMs: 1,
+      symbols: ['XAUUSD'],
+      impact: 'high',
+    });
+    expect(missingEventTs.success).toBe(false);
   });
 
   test('AdversarialWindowsFileSchema requires schemaVersion alignment', () => {
@@ -159,14 +173,15 @@ describe('fixture-schema (mirrors @ankit-prop/market-data-twelvedata wire format
     expect(ok.success).toBe(true);
   });
 
-  test('TIMEFRAME_MS / timeframeMs cover all SUPPORTED_TIMEFRAMES', () => {
+  test('TIMEFRAME_MS / timeframeMs mirror the producer-supported timeframes', () => {
+    expect(Object.keys(TIMEFRAME_MS).sort()).toEqual(['15m', '1d', '1h', '1m', '5m']);
     expect(TIMEFRAME_MS['1m']).toBe(60_000);
     expect(TIMEFRAME_MS['5m']).toBe(300_000);
     expect(TIMEFRAME_MS['15m']).toBe(900_000);
     expect(TIMEFRAME_MS['1h']).toBe(3_600_000);
-    expect(TIMEFRAME_MS['4h']).toBe(14_400_000);
     expect(TIMEFRAME_MS['1d']).toBe(86_400_000);
     expect(timeframeMs('5m')).toBe(300_000);
+    expect(timeframeMs('4h')).toBeUndefined();
     expect(timeframeMs('totally-bogus')).toBeUndefined();
   });
 });

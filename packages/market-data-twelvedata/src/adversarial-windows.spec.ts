@@ -17,6 +17,28 @@ describe('buildCuratedAdversarialWindows', () => {
     }
   });
 
+  test('news entries pin eventTsMs to the print time inside the pre-window', () => {
+    for (const w of file.windows.filter((entry) => entry.kind === 'news')) {
+      expect(w.eventTsMs).toBe(w.startMs + 30 * 60_000);
+      expect(w.endMs).toBe(w.eventTsMs + 30 * 60_000);
+    }
+    expect(file.windows.find((w) => w.id === 'nfp-2026-04-03')?.eventTsMs).toBe(
+      Date.parse('2026-04-03T13:30:00Z'),
+    );
+    expect(file.windows.find((w) => w.id === 'fomc-2026-03-18')?.eventTsMs).toBe(
+      Date.parse('2026-03-18T18:00:00Z'),
+    );
+    expect(file.windows.find((w) => w.id === 'ecb-2026-03-12')?.eventTsMs).toBe(
+      Date.parse('2026-03-12T13:15:00Z'),
+    );
+  });
+
+  test('closure entries pin eventTsMs to the closure start', () => {
+    for (const w of file.windows.filter((entry) => entry.kind === 'holiday')) {
+      expect(w.eventTsMs).toBe(w.startMs);
+    }
+  });
+
   test('covers NFP, FOMC, and ECB releases inside the locked window', () => {
     const cats = new Set(file.windows.filter((w) => w.kind === 'news').map((w) => w.category));
     expect(cats.has('NFP')).toBe(true);
