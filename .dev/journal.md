@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 22:05 Europe/Amsterdam — [ANKA-121](/ANKA/issues/ANKA-121) dashboard banner — Designer CHANGES_REQUESTED resolved (CSS-only)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** heartbeat (issue_children_completed wake on ANKA-121 after [ANKA-277](/ANKA/issues/ANKA-277) and [ANKA-278](/ANKA/issues/ANKA-278) closed).
+
+**State on wake**
+
+- ANKA-278 (QAEngineer browser-verify): done with APPROVE-equivalent evidence — health 200, fail-closed matrix correct, reachable `gateway` row flipped to `current` against the running `services/ctrader-gateway` peer, no JS console errors, 12 specs pass + flake check green.
+- ANKA-277 (Designer visual-truth): `CHANGES_REQUESTED` on two CSS-only blockers in `services/dashboard/src/client/styles.css`. Designer pre-wrote both selector blocks verbatim.
+
+**What was done**
+
+- Applied Designer's two pre-written CSS additions to `services/dashboard/src/client/styles.css`:
+  - Added `.version-chip-current { border-color: #3a8f5c; background: #edf7f1; }` so the dashboard self-row at `state:"current"` reads green per BLUEPRINT §16.0 instead of an unstyled white card.
+  - Split the previous compound `.version-chip-stale, .version-chip-unreachable` red rule into separate selectors: `stale` is now amber (`#d97706` / `#fffbeb`), `unreachable` keeps red (`#e05252` / `#fff1f1`). Operators can now tell a stale build from a network timeout at a glance.
+- Bumped `@ankit-prop/dashboard` `0.1.2` → `0.1.3` and root umbrella `0.4.44` → `0.4.45` (per AGENTS.md after-every-change checklist for a shipped service-package edit).
+- Wrote the `@ankit-prop/dashboard@0.1.3` CHANGELOG entry with the verification evidence below.
+
+**Verification**
+
+- `bun test services/dashboard/src` — 12 pass / 0 fail / 21 expects.
+- `bun run typecheck` — clean.
+- `bun x biome check services/dashboard` — 1 pre-existing warning on the `react` ambient-shim, no errors.
+- `bun run --cwd services/dashboard start`; live probes:
+  - `GET :9204/health` → `dashboard 0.1.3 healthy targets=5` (post-bump version surfaced).
+  - `GET :9204/api/version-matrix` → 5 rows: dashboard `state:"current"` at `0.1.3`, peers `state:"unreachable"` (the exact scenario from Designer's first blocker — chip class `version-chip-current` is now distinct from `version-chip-unreachable`).
+  - `GET :9204/assets/main.css` → bundled stylesheet contains all three distinct selectors `.version-chip-current`, `.version-chip-stale`, `.version-chip-unreachable` (Tailwind v4 `@import "tailwindcss"` preserved the component-layer rules).
+
+**Decision / next**
+
+- Worktree was on `9668dd0`; fast-forwarded to `48e0d81` before edits, then rebased onto `3217fc0` after [ANKA-201](/ANKA/issues/ANKA-201) DBF-002 landed on `main` mid-flight. CHANGELOG / progress / journal conflicts resolved by ordering newest-first (22:05 above 21:55). Root umbrella rebumped `0.4.45` → `0.4.46` since `0.4.45` was consumed by ANKA-201; the `@ankit-prop/dashboard@0.1.3` CHANGELOG header is unchanged because it is package-named, not root-version-named.
+- Reassigning [ANKA-121](/ANKA/issues/ANKA-121) to Designer with `in_review` for the focused re-verdict — only the two pre-written CSS rules were touched, no structural changes. Closing ANKA-121 after Designer APPROVE.
+- Switching from the older direct-trunk-push convention used for `bda12a3` to the rebase-merge PR convention now in use (per ANKA-201 PR #30 today). Pushed branch and will open the PR after this resolution lands.
 ## 2026-04-29 21:55 Europe/Amsterdam — [ANKA-201](/ANKA/issues/ANKA-201) DBF-002 applied verbatim to BLUEPRINT §17 / §25
 
 **Agent:** FoundingEngineer (claude_local). **Run:** issue_children_completed wake from CEO comment `bdf72261`. **Worktree:** `.paperclip/worktrees/ANKA-201-catalog-pkg-market-data-twelvedata-in-blueprint-layout-and-scope-tree` off `9668dd0`, then rebased onto `48e0d81` after ANKA-270 landed on `main` mid-flight.

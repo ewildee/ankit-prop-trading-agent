@@ -2,6 +2,27 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/dashboard@0.1.3 — 2026-04-29 22:05 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, addressing the Designer visual-truth gate `CHANGES_REQUESTED` from [ANKA-277](/ANKA/issues/ANKA-277) on the [ANKA-121](/ANKA/issues/ANKA-121) banner contract.
+
+**Why:** Designer's verdict found two CSS-only blockers on the BLUEPRINT §16.0 banner: (1) `.version-chip-current` had no rule, so the dashboard self-row at `state:"current"` was visually indistinguishable from a blank card next to red `unreachable` chips; (2) `.version-chip-stale` and `.version-chip-unreachable` shared the same red, so operators could not tell a stale build from a network timeout at a glance — different failure modes that need distinct affordance. Designer pre-wrote the exact selector additions; this CL applies them verbatim.
+
+**Changed** — `feat(svc:dashboard)`
+
+- `services/dashboard/src/client/styles.css` — adds `.version-chip-current` (green `#3a8f5c` / `#edf7f1`); splits the previous compound `.version-chip-stale, .version-chip-unreachable` into separate rules so `stale` is amber (`#d97706` / `#fffbeb`) and `unreachable` keeps red (`#e05252` / `#fff1f1`). `.version-chip-mismatch` (yellow), the health-status overlays, and the rest of the file are untouched.
+- `services/dashboard/package.json` — `@ankit-prop/dashboard` `0.1.2` → `0.1.3` (CSS rule additions to a shipped package per BLUEPRINT §0.2 / AGENTS.md after-every-change checklist).
+- `package.json` — root umbrella `0.4.44` → `0.4.46` (initial cut took `0.4.45`, but [ANKA-201](/ANKA/issues/ANKA-201) DBF-002 landed on `main` first at `3217fc0` and consumed `0.4.45`; the version was rebumped during conflict resolution rather than reordering history). The `@ankit-prop/dashboard@0.1.3` header on this entry is unchanged because it is package-named, not root-version-named.
+
+**Verification**
+
+- `bun test services/dashboard/src` → `12 pass / 0 fail / 21 expects` (CSS-only diff, version-matrix logic untouched).
+- `bun run typecheck` → clean.
+- `bun x biome check services/dashboard` → 1 pre-existing warning on the `react` ambient-shim, no errors.
+- `bun run --cwd services/dashboard start`; live probes:
+  - `GET :9204/health` → `{service:"dashboard", version:"0.1.3", status:"healthy", details.version_matrix_targets:5}` (post-bump).
+  - `GET :9204/api/version-matrix` → 5 rows: dashboard `state:"current"` at `0.1.3`, four offline peers `state:"unreachable"` (the exact scenario Designer's blocker covered).
+  - `GET :9204/assets/main.css` → bundle contains all three distinct selectors `.version-chip-current`, `.version-chip-stale`, `.version-chip-unreachable` (Tailwind v4's `@import "tailwindcss"` did not strip the new component rules).
 ## 0.4.45 — 2026-04-29 21:55 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-201](/ANKA/issues/ANKA-201) under CEO directive at comment `bdf72261` — apply DBF-002 verbatim after BlueprintAuditor verdict (comment `54b7d4a0`).
