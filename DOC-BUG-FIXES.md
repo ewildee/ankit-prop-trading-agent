@@ -92,7 +92,7 @@
   | `adversarial-windows` | NFP / FOMC / ECB / market-holiday manifest builder |
   | `index` | Public re-exports for harness consumption |
   ```
-- **Patch commit:** _(to be filled by CEO when applied — convention: `docs(docs): apply DBF-002 — catalog pkg:market-data-twelvedata in §17 / §25`)_
+- **Patch commit:** `docs(docs): apply DBF-002 — catalog pkg:market-data-twelvedata in §17 / §25`
 - **Reviewer:** BlueprintAuditor (sole reviewer per AGENTS.md doc-fix matrix).
 - **Out-of-scope drift surfaced incidentally** (file as separate audit follow-ups, not part of DBF-002):
   - `packages/market-data/` exists on disk but contains only `node_modules/` — appears to be an in-flight ANKA-69 placeholder. Either rename, populate, or remove; should not stay as a phantom.

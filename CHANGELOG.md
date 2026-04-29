@@ -2,6 +2,32 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.45 — 2026-04-29 21:55 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-201](/ANKA/issues/ANKA-201) under CEO directive at comment `bdf72261` — apply DBF-002 verbatim after BlueprintAuditor verdict (comment `54b7d4a0`).
+
+**Why:** Source-of-truth drift between `BLUEPRINT.md` and `main`. `pkg:market-data-twelvedata` ships at `@ankit-prop/market-data-twelvedata@0.1.2` (7 specs, `td-fetch` Bun CLI, 4 commits already using the scope tag) and 15 fixture files are force-added under `data/market-data/twelvedata/v1.0.0-2026-04-28/`, but §17 packages/ tree, §17 data/ tree, §25.1 top-scopes, and §25.2 sub-modules all omit the package and the checked-in fixture root — so future commits had no canonical scope tag and risked inventing ad-hoc ones.
+
+**Changed** — `docs`
+
+- `BLUEPRINT.md` §17 packages/ tree (lines 1867–1875) — add `market-data-twelvedata/` row with explicit deletability comment (deletable once cTrader-live history subsumes the same windows).
+- `BLUEPRINT.md` §17 data/ tree (lines 1891–1906) — carve out `data/market-data/twelvedata/<fixture-version>/` as the checked-in exception to the gitignored `data/` rule (bars, symbols, manifest, adversarial-windows, fetch-log; force-added past `.gitignore`, version-pinned, immutable). Trailing comment changed from "gitignored runtime state" to "gitignored runtime state, except…".
+- `BLUEPRINT.md` §25.1 top-scopes (line 2811) — append `pkg:market-data-twelvedata` row: `Library (temporary, deletable)`, `packages/market-data-twelvedata`, `@ankit-prop/market-data-twelvedata`, owner FoundingEngineer, disposal trigger reviewed at every §22 phase boundary against [ANKA-67](/ANKA/issues/ANKA-67).
+- `BLUEPRINT.md` §25.2 (after `pkg:ctrader-vendor/...`) — insert `pkg:market-data-twelvedata/...` sub-module table (cli, planner, twelve-data-client, rate-limiter, fetcher, fixture-store, schema, symbols, timeframes, adversarial-windows, index) prefixed by a lifecycle reminder pointing back to §25.1.
+- `DOC-BUG-FIXES.md` — DBF-002 entry now records the patch commit subject (`docs(docs): apply DBF-002 — catalog pkg:market-data-twelvedata in §17 / §25`).
+- `package.json` — root umbrella `0.4.44` → `0.4.45` (docs-only governance bump; no package code touched). Rebase note: this commit was originally cut against `0.4.43` → `0.4.44`, but ANKA-270 (`48e0d81`) landed on `main` first and consumed `0.4.44`; the version was rebumped during conflict resolution rather than reordering history.
+
+**Verification**
+
+- Docs-only change. Per BLUEPRINT §0.2 smallest-verification rule, lint / test / typecheck not re-run — no package code, contract, or fixture is affected by Markdown edits to `BLUEPRINT.md` / `DOC-BUG-FIXES.md` / `CHANGELOG.md` / `.dev/progress.md` / `.dev/journal.md` / root `package.json` version field.
+- Reviewer: BlueprintAuditor (sole reviewer per AGENTS.md doc-fix matrix; verdict already on file at comment `54b7d4a0` confirming the patch text and line numbers; close-out audit re-checks the applied diff matches the queued patch).
+
+**Out-of-scope drift surfaced incidentally** (filed under DBF-002 as separate audit follow-ups, not part of this commit):
+
+- `packages/market-data/` is a phantom (only `node_modules/`); rename, populate, or remove. Likely [ANKA-69](/ANKA/issues/ANKA-69) placeholder.
+- `packages/triplon-config/` is a workspace package with own `package.json`/`src/`, while §5/§17/§25 frame `@triplon/config` as an external private-registry consumer. Vendored vs external drift needs its own DBF.
+- `TODOS.md` Phase tree has no entry for ANKA-67 / ANKA-68 / ANKA-69 historical-fixture work — Phase 0–7 layout is silent on this stream entirely.
+
 ## 0.4.44 — 2026-04-29 20:38 Europe/Amsterdam
 
 **Initiated by:** CEO, executing [ANKA-270](/ANKA/issues/ANKA-270) — Layer-1 of the [ANKA-268](/ANKA/issues/ANKA-268) remediation plan, recording that the GitHub merge-mode buttons have been disabled at the repo-settings level.
