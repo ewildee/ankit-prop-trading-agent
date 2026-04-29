@@ -2,6 +2,18 @@
 
 _Append-only, newest first. Each ADR captures: context, decision, alternatives, consequences._
 
+## ADR-0004 — Enforce Paperclip co-author trailers on GitHub PR and merge paths
+
+- **Date:** 2026-04-29 05:16 Europe/Amsterdam
+- **Status:** Accepted
+- **Context:** [ANKA-137](/ANKA/issues/ANKA-137) follows [ANKA-127](/ANKA/issues/ANKA-127) and [ANKA-132](/ANKA/issues/ANKA-132). The repo-local `.githooks/commit-msg` hook enforces `Co-Authored-By: Paperclip <noreply@paperclip.ing>` for local agent commits, but GitHub PR merge, squash, rebase, merge queue, and web-authored paths do not run local hooks. Commit `31012ff` landed on `origin/main` with `Co-authored-by: Paperclip <noreply@paperclip.ing>`, proving that local enforcement is insufficient.
+- **Decision:** Add a GitHub Actions workflow that checks every commit in the event-specific PR, `main` push, or `merge_group` range for the exact canonical Paperclip trailer before the change is accepted server-side.
+- **Alternatives considered:**
+  - _Rely only on the local hook._ Rejected — it already failed to cover the GitHub merge path.
+  - _Rewrite the offending commit._ Rejected for the same reason as ADR-0003: history rewrite is a one-way-door action and would not prevent recurrence.
+  - _Use a Node/Bun action or package._ Rejected — bash + git are sufficient, and this guard should not widen the dependency surface.
+- **Consequences:** Future GitHub-merged commits fail closed when the Paperclip trailer is missing or has non-canonical casing. The workflow becomes part of the org's merge gate, so the checker stays deliberately small and has pure-bash regression tests for the known acceptance cases.
+
 ## ADR-0003 — Do not rewrite `main` to backfill missing Paperclip co-author footer
 
 - **Date:** 2026-04-28 17:08 Europe/Amsterdam

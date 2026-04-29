@@ -2,6 +2,29 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.28 — 2026-04-29 05:16 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), executing [ANKA-137](/ANKA/issues/ANKA-137) — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
+
+**Why:** The local `.githooks/commit-msg` hook enforced the canonical Paperclip co-author trailer for agent-authored local commits, but GitHub PR merge, squash, rebase, merge queue, and web-authored paths do not run local hooks. Commit `31012ff` proved that gap by landing `Co-authored-by: Paperclip <noreply@paperclip.ing>` with non-canonical casing.
+
+**Added**
+
+- `.github/workflows/commit-footer-check.yml` — GitHub Actions workflow for `pull_request`, `push` to `main`, and `merge_group` events. It computes the event-specific commit range and fails when any non-exempt commit lacks the exact `Co-Authored-By: Paperclip <noreply@paperclip.ing>` trailer.
+- `.github/workflows/scripts/commit-footer-check.sh` — bash + git range checker using `git interpret-trailers --parse`, with explicit lowercase/non-canonical Paperclip trailer reporting.
+- `.github/workflows/__tests__/commit-footer-check.sh` — dependency-free shell regression test that builds temporary git repositories for exact, lowercase, missing, multi-commit, clean-range, bot-exception, and GitHub merge-commit exception cases.
+- `.github/workflows/commit-footer-check.spec.md` — workflow semantics, event ranges, required trailer, exception list, and dependency constraints.
+- `.dev/decisions.md` — ADR-0004 documenting why PR-side enforcement is required in addition to local hooks.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.27 → 0.4.28.
+
+**Verification**
+
+- `bash .github/workflows/__tests__/commit-footer-check.sh` — 7 pass.
+- Full lint/test/typecheck run recorded in [ANKA-137](/ANKA/issues/ANKA-137) issue thread.
+
 ## 0.4.27 — 2026-04-28 23:50 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-126](/ANKA/issues/ANKA-126) — `infra:tooling` worktree-first directive (defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) platform fix lands).

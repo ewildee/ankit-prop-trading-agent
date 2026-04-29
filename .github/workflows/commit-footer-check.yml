@@ -1,0 +1,84 @@
+name: Commit Footer Check
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  push:
+    branches: [main]
+  merge_group:
+
+permissions:
+  contents: read
+
+jobs:
+  paperclip-footer:
+    name: Paperclip co-author footer
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run shell regression tests
+        run: bash .github/workflows/__tests__/commit-footer-check.sh
+
+      - name: Compute commit range
+        id: range
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BEFORE_SHA: ${{ github.event.before }}
+          CURRENT_SHA: ${{ github.sha }}
+          REF_TYPE: ${{ github.ref_type }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          MERGE_GROUP_BASE_SHA: ${{ github.event.merge_group.base_sha }}
+          MERGE_GROUP_HEAD_SHA: ${{ github.event.merge_group.head_sha }}
+        run: |
+          set -euo pipefail
+
+          range=''
+          skip_reason=''
+
+          case "$EVENT_NAME" in
+            pull_request)
+              range="$PR_BASE_SHA..$PR_HEAD_SHA"
+              ;;
+            push)
+              if [ "$REF_TYPE" = "tag" ]; then
+                skip_reason='tag-only push'
+              elif [[ "$BEFORE_SHA" =~ ^0{40}$ ]]; then
+                skip_reason='initial push with all-zero before sha'
+              else
+                range="$BEFORE_SHA..$CURRENT_SHA"
+              fi
+              ;;
+            merge_group)
+              range="$MERGE_GROUP_BASE_SHA..$MERGE_GROUP_HEAD_SHA"
+              ;;
+            *)
+              printf 'Unsupported event %s\n' "$EVENT_NAME" >&2
+              exit 2
+              ;;
+          esac
+
+          if [ -n "$skip_reason" ]; then
+            printf 'Skipping commit footer check: %s.\n' "$skip_reason"
+            printf 'skip=true\n' >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          if [ -z "$range" ] || [[ "$range" = '..' ]]; then
+            printf 'Could not compute commit footer check range for event %s.\n' "$EVENT_NAME" >&2
+            exit 2
+          fi
+
+          printf 'Checking commit footer range: %s\n' "$range"
+          printf 'skip=false\n' >>"$GITHUB_OUTPUT"
+          printf 'range=%s\n' "$range" >>"$GITHUB_OUTPUT"
+
+      - name: Check Paperclip co-author trailer
+        if: steps.range.outputs.skip != 'true'
+        env:
+          COMMIT_RANGE: ${{ steps.range.outputs.range }}
+        run: bash .github/workflows/scripts/commit-footer-check.sh "$COMMIT_RANGE"

@@ -2,6 +2,44 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:16 Europe/Amsterdam — v0.4.28 ([ANKA-137](/ANKA/issues/ANKA-137) — GitHub PR/merge-path commit-footer guard)
+
+**What was done**
+
+- Followed the scoped Paperclip wake for [ANKA-137](/ANKA/issues/ANKA-137), acknowledging the latest assignment comment and its ID corrections before broad repo exploration.
+- Created `.paperclip/worktrees/ANKA-137` from `origin/main` on branch `anka-137-commit-footer-check` because the shared root checkout is on an unrelated dashboard branch.
+- Fetched `https://bun.com/llms.txt` at 05:12 Europe/Amsterdam.
+- Added `.github/workflows/commit-footer-check.yml` for `pull_request`, `push` to `main`, and `merge_group` commit-range enforcement.
+- Added `.github/workflows/scripts/commit-footer-check.sh`, a dependency-free bash + git checker that uses `git interpret-trailers --parse` and fails on missing or non-canonical Paperclip co-author trailers.
+- Added `.github/workflows/__tests__/commit-footer-check.sh`, a pure-bash temp-git regression harness for exact, lowercase, missing, multi-commit, clean-range, bot-exception, and GitHub merge-commit exception cases.
+- Added `.github/workflows/commit-footer-check.spec.md`, bumped root `ankit-prop-umbrella` to 0.4.28, and logged ADR-0004.
+
+**Findings**
+
+- The issue brief correctly scoped this as the GitHub-side gap, not a local hook gap. `.githooks/commit-msg` and its Bun tests remain untouched.
+- The GitHub workflow can stay off the npm dependency surface entirely; `actions/checkout@v4`, bash, and git are enough.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Put the reusable checker in `.github/workflows/scripts/commit-footer-check.sh` so the workflow and shell tests execute the same logic instead of duplicating a non-trivial range scanner.
+- Keep GitHub event SHA values in `env:` and quoted bash variables; the checker prints plain stderr errors instead of workflow-command annotations to avoid treating commit-message content as an Actions command channel.
+
+**Unexpected behaviour**
+
+- The first local test run failed because the harness tried to execute the checker through `git -C` as if it were a git subcommand. The harness now changes into the temp repo and runs the checker directly.
+
+**Adaptations**
+
+- Added explicit bot-author and single GitHub merge-commit tests because the exception list is hard-coded and future changes should not silently widen it.
+
+**Open endings**
+
+- [ANKA-137](/ANKA/issues/ANKA-137) still requires CodeReviewer and SecurityReviewer approval, plus a real GitHub PR smoke that demonstrates red on lowercase and green on the canonical trailer.
+
 ## 2026-04-28 23:50 Europe/Amsterdam — v0.4.27 ([ANKA-126](/ANKA/issues/ANKA-126) — worktree-first defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) lands)
 
 **What was done.** Added the in-repo defensive guard for the per-issue worktree convention while we wait for the Paperclip `claude_local` per-issue-worktree platform fix from [ANKA-98](/ANKA/issues/ANKA-98).
