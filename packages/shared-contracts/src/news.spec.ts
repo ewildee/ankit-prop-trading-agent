@@ -4,6 +4,8 @@ import {
   CalendarImpact,
   CalendarItem,
   CalendarResponse,
+  NewsFreshnessReason,
+  NewsHealthSnapshot,
   NextRestrictedReply,
   RestrictedReason,
   RestrictedReply,
@@ -157,6 +159,36 @@ describe('news calendar contracts', () => {
       CalendarItem.parse({
         ...minimalCalendarItem,
         impact: 'critical',
+      }),
+    ).toThrow();
+  });
+
+  test('NewsHealthSnapshot accepts the /health/details response shape', () => {
+    const parsed = NewsHealthSnapshot.parse({
+      ok: false,
+      version: '0.4.3',
+      fetchAgeSeconds: 7_201,
+      freshReason: 'stale_calendar',
+      lastFetchAtUtc: '2026-04-29T10:00:00.000Z',
+    });
+
+    expect(parsed.freshReason).toBe('stale_calendar');
+    expect(NewsFreshnessReason.options).toEqual([
+      'fresh',
+      'stale_calendar',
+      'never_fetched',
+      'fetch_unhealthy',
+    ]);
+  });
+
+  test('NewsHealthSnapshot rejects non-numeric fetch age after JSON serialization', () => {
+    expect(() =>
+      NewsHealthSnapshot.parse({
+        ok: false,
+        version: '0.4.3',
+        fetchAgeSeconds: null,
+        freshReason: 'never_fetched',
+        lastFetchAtUtc: null,
       }),
     ).toThrow();
   });

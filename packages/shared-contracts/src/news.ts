@@ -23,6 +23,23 @@ export const CalendarResponse = z.strictObject({
 });
 export type CalendarResponse = z.infer<typeof CalendarResponse>;
 
+export const NewsFreshnessReason = z.enum([
+  'fresh',
+  'stale_calendar',
+  'never_fetched',
+  'fetch_unhealthy',
+]);
+export type NewsFreshnessReason = z.infer<typeof NewsFreshnessReason>;
+
+export const NewsHealthSnapshot = z.strictObject({
+  ok: z.boolean(),
+  version: z.string().min(1),
+  fetchAgeSeconds: z.number().nonnegative(),
+  freshReason: NewsFreshnessReason,
+  lastFetchAtUtc: z.string().nullable(),
+});
+export type NewsHealthSnapshot = z.infer<typeof NewsHealthSnapshot>;
+
 const UtcIsoInstant = z.string().refine(
   (value) => {
     if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(value)) {

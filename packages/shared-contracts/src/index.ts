@@ -42,6 +42,8 @@ export {
   CalendarImpact,
   CalendarItem,
   CalendarResponse,
+  NewsFreshnessReason,
+  NewsHealthSnapshot,
   NextRestrictedReply,
   RestrictedReason,
   RestrictedReply,
