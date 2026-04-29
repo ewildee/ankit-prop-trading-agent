@@ -36,6 +36,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 ## Phase 5 — `news`
 
 - [x] **T009.a** Shared news calendar contracts (`packages/shared-contracts/src/news.ts`) for [ANKA-78](/ANKA/issues/ANKA-78): port BLUEPRINT §11.2 schemas plus `RestrictedReply` / `NextRestrictedReply`.
+- [x] **T009.d** `svc:news/pre-news-evaluator` 2 h tier-1 lookahead — _[ANKA-164](/ANKA/issues/ANKA-164)_.
 - [ ] **T009** FTMO calendar fetcher with `timezone=Europe%2FPrague`; 2-h staleness blackout.
   - [x] **T009.b** `svc:news/symbol-tag-mapper` YAML loader + `instrument` multi-tag split for tracked symbols — _ANKA-79_.
   - [x] **T009.d** `svc:news/restricted-window-evaluator` pure ±5 min tier-1 evaluator — _[ANKA-163](/ANKA/issues/ANKA-163)_; QA gap coverage _[ANKA-207](/ANKA/issues/ANKA-207)_.
