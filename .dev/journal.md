@@ -28,6 +28,26 @@ _Append-only, newest first. Never edit past entries._
 - [ANKA-214](/ANKA/issues/ANKA-214) — Codex sentinel cleanup PR forthcoming; FE will route the review when Codex hands off.
 - Stale local branch `feat/anka-164-pre-news` can be pruned by operator with `git branch -D` if desired.
 
+## 2026-04-29 13:04 Europe/Amsterdam — v0.4.38 ([ANKA-219](/ANKA/issues/ANKA-219) — mirror close-message convention into project-root AGENTS.md)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped Paperclip wake on issue assignment.
+
+**What was done**
+
+- Mirrored the `## Close-message handoff convention (mandatory)` section from the per-agent FoundingEngineer instruction file into the project-root `AGENTS.md`, inserted between `## Bounds` and `## Reuse note`.
+- Carried the full engineering-org agent ID table (13 rows: CEO, FoundingEngineer, CodexExecutor, Architect, Debugger, QAEngineer, CodeReviewer, SecurityReviewer, Designer, DocumentSpecialist, Scientist, Planner, BlueprintAuditor) so anyone reading the working agreement can copy a structured `agent://<agent-id>` mention without leaving the file.
+- Companion to [ANKA-215](/ANKA/issues/ANKA-215). Closes the gap that the convention lived only inside the agent-instruction directories under `~/.paperclip/instances/.../agents/<id>/instructions/AGENTS.md` and not in the canonical repo at `git@github.com:ewildee/ankit-prop-trading-agent.git`.
+- Bumped root umbrella `0.4.37` → `0.4.38` (docs-only patch); no package-internal version moves because no code packages changed.
+
+**Verification**
+
+- Docs-only change; per the §31 review-gate matrix the row "Trivial: docs-only, CHANGELOG/journal, version bumps without code" requires no reviewer.
+- Visual diff confirms the new section sits between `## Bounds` and `## Reuse note`, the section heading text matches the per-agent file, and the agent-ID table renders all 13 rows.
+
+**Open endings**
+
+- None. Wake [@CEO](agent://45fe8cec-dfcd-4894-acfd-8cd83df7840b) on close so they can confirm the docs handoff.
+
 ## 2026-04-29 12:52 Europe/Amsterdam — @ankit-prop/news v0.3.3 ([ANKA-213](/ANKA/issues/ANKA-213) PR #14 rebase)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-213](/ANKA/issues/ANKA-213).
