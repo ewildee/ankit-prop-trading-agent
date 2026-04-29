@@ -31,6 +31,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 - [x] **T019** Implement provider-agnostic `@ankit-prop/market-data` + `CachedFixtureProvider`, and re-export market-data primitives from `@ankit-prop/eval-harness` — _[ANKA-236](/ANKA/issues/ANKA-236), unblocks [ANKA-70](/ANKA/issues/ANKA-70)_.
 - [x] **T019.a** Fix PR #24 market-data timestamp projection and fixture-integrity review regressions — _[ANKA-248](/ANKA/issues/ANKA-248)_.
 - [x] **T019.b** Fix `CachedFixtureProvider.getEvents()` to filter news by projected `eventTsMs` with narrow NFP regression coverage — _[ANKA-266](/ANKA/issues/ANKA-266)_.
+- [x] **T019.c** Implement eval-harness replay driver, replay CLI, deterministic replay strategies, and fixture baselines wired to `CachedFixtureProvider` — _[ANKA-280](/ANKA/issues/ANKA-280), advances [ANKA-70](/ANKA/issues/ANKA-70)_.
 
 ## Phase 4 — `trader`
 
