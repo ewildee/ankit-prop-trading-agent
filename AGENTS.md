@@ -159,7 +159,33 @@ issue thread. Both `--squash` and `--merge` become available again
 only after a fresh ADR supersedes ADR-0006 with an equivalent
 server-side footer validation path.
 
-### 2. Fallback: `gh` CLI when the GitHub App returns 403
+### 2. Post-merge audit (mandatory, ADR-0007)
+
+PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13)
+landed on `main` as `dbe4d31` via the GitHub-side "Squash and merge"
+button despite this protocol forbidding it. The defect was metadata
+only — the diff was correct — but the audit trail was wrong: single
+parent, `committer GitHub <noreply@github.com>`, missing canonical
+Paperclip footer. ADR-0007 logs `dbe4d31` as an exception (no `main`
+rewrite) and adds this audit step so a future bypass is caught at
+merge time, not weeks later.
+
+After every merge to `main`, the merging agent runs the audit locally
+against the landed commit `<sha>` and pastes the output into the
+Paperclip issue thread before closing:
+
+```sh
+git rev-list --parents -n 1 <sha>      # exactly TWO parents on a rebase merge of a multi-commit PR; ONE parent is only acceptable on a fast-forward of a single-commit PR
+git show --no-patch --pretty=fuller <sha>   # committer must be the author, not "GitHub <noreply@github.com>"
+git log -n 1 --format=%B <sha> | grep -F 'Co-Authored-By: Paperclip <noreply@paperclip.ing>'   # must match exactly
+```
+
+Failure on any line means the merge bypassed the rebase path. Open a
+remediation issue immediately (template: [ANKA-268](/ANKA/issues/ANKA-268))
+and route to FoundingEngineer; do **not** force-push `main` without a
+fresh CEO-approved ADR.
+
+### 3. Fallback: `gh` CLI when the GitHub App returns 403
 
 The default agent merge path (MCP `_merge_pull_request` / GitHub App)
 returns `403 Resource not accessible by integration` because the App

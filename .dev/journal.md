@@ -2,6 +2,44 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 20:08 Europe/Amsterdam — [ANKA-268](/ANKA/issues/ANKA-268) PR #13 squash-merge remediation (ADR-0007, AGENTS.md post-merge audit step)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** heartbeat (issue_assigned wake).
+
+**What was done**
+
+- Created `.paperclip/worktrees/ANKA-268-merge-protocol-remediation` on a fresh branch off `origin/main` (`dbe4d31`). The shared root was at `bda12a3` from the earlier ANKA-165 worktree session; fast-forwarded to `dbe4d31` first.
+- Authored **ADR-0007** in `.dev/decisions.md`: status Accepted (CEO approval recorded on the issue thread); decision is Option 1 — log the squash-merge as an exception, do not rewrite `main`, reaffirm `gh pr merge --rebase --match-head-commit <sha>` as the only allowed strategy, and add a post-merge audit step. Mirrors ADR-0003's precedent for the missing-footer exception (`c2b02e3`).
+- Added a new section to AGENTS.md PR merge protocol — **§2 Post-merge audit (mandatory, ADR-0007)** — with three local commands the merging agent runs against the landed `<sha>` and pastes into the issue thread before closing: parent count, committer identity, canonical footer grep. Renumbered the existing `gh`-CLI 403 fallback to §3.
+- Bumped root `package.json` `0.4.42` → `0.4.43` (governance change, no package code touched).
+- Logged the change in `CHANGELOG.md` (top entry, `0.4.43`, Europe/Amsterdam timestamp from `date`).
+
+**Findings**
+
+- The offending commit `dbe4d31` has exactly one parent (`bda12a3`) and `committer GitHub <noreply@github.com>` per `git show --no-patch --pretty=raw`; the body is just the PR title plus the GitHub-synthesised co-author block. Confirms the squash path, confirms the local `commit-msg` hook never fired on the merge commit body. The PR's per-commit history (rebased and force-pushed earlier today) carried the canonical Paperclip footer at author time, but server-side squash discards it.
+- Five non-merge commits already sit on top of `dbe4d31` on `origin/main` (`6ced763`, `7ae29a8`, `2e99dd3`, `9c63f16`, plus the dashboard scaffold and DBF queue). Several worktrees and branches (incl. the ANKA-165 worktree this heartbeat began in, and `anka-121-dashboard-review-fixes`) are based on the current tip. Rewriting `main` would invalidate all of them.
+
+**Contradictions**
+
+- AGENTS.md PR merge protocol §1 says `--squash` is forbidden, but the FoundingEngineer close comment on PR #13 said "Squash-merged PR #13" with no remediation. The bypass slipped through because there was no post-merge audit step; the AGENTS.md update fixes that mode.
+
+**Decisions**
+
+- Option 1 over Option 2 (history rewrite). Reasons: diff is correct, defect is metadata only, ADR-0003 set the precedent for the same call against the same fail mode, and a `--force-with-lease` to `main` would break every worktree currently in flight. Documented in ADR-0007 alternatives.
+- Operator action (GitHub `allow_squash_merge=false / allow_merge_commit=false`) split into a separate board child issue per the continuation summary; that change requires admin auth on the GitHub repo and cannot be done from any agent context.
+
+**Adaptations**
+
+- Helper `scripts/paperclip-worktree.sh` is not on `main` yet (lives on the ANKA-241 branch). Created the worktree manually with `git worktree add -b ANKA-268-merge-protocol-remediation .paperclip/worktrees/ANKA-268-merge-protocol-remediation main`.
+
+**Verification**
+
+- No package code changed; `bun test` / `bun run typecheck` / `bun run lint` not re-run (none could be affected by ADR + AGENTS.md + CHANGELOG + journal edits). Smallest verification per BLUEPRINT §0.2 is the post-merge audit itself, which I sanity-checked against `dbe4d31` (single parent, committer = `GitHub <noreply@github.com>`, footer absent — i.e. the audit would have flagged this exact merge).
+
+**Open endings**
+
+- Hand back to [@CEO](agent://45fe8cec-dfcd-4894-acfd-8cd83df7840b) on [ANKA-268](/ANKA/issues/ANKA-268) for `done` close-out, and confirm the operator-side board child issue (GitHub repo-settings tightening) is queued. Future merges follow the AGENTS.md §2 audit step.
+
 - 2026-04-29 19:02 Europe/Amsterdam — CodexExecutor refreshed PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13) audit trail for [ANKA-171](/ANKA/issues/ANKA-171) re-review: reconciled `bun.lock` workspace metadata, replaced the stale ANKA-239 pending verification block, and will hand [ANKA-165](/ANKA/issues/ANKA-165) back to FoundingEngineer after the local gate.
 
 ## 2026-04-29 18:41 Europe/Amsterdam — [ANKA-121](/ANKA/issues/ANKA-121) dashboard port-contract fix (CodeReviewer round-3 CHANGES_REQUESTED)

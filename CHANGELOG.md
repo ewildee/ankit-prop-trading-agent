@@ -2,6 +2,27 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.43 — 2026-04-29 20:08 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-268](/ANKA/issues/ANKA-268) — remediation of the PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13) squash-merge protocol violation under CEO-approved Option 1 (logged exception, no `main` rewrite).
+
+**Why:** Post-merge audit for [ANKA-165](/ANKA/issues/ANKA-165) confirmed `dbe4d31` landed via the GitHub-side "Squash and merge" path despite AGENTS.md forbidding `--squash` until a fresh ADR supersedes ADR-0006. Single parent, `committer GitHub <noreply@github.com>`, missing the canonical `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer (the local `commit-msg` hook does not fire on GitHub-side synthetic commits). Diff is correct (CodeReviewer APPROVE on the rebased head); only the merge lineage and footer are wrong, and five non-merge commits already sit on top of it on `origin/main`. Precedent: ADR-0003 chose the same trade-off for `c2b02e3`.
+
+**Changed** — `docs` / `infra:tooling`
+
+- `.dev/decisions.md` — adds **ADR-0007** (Accepted) recording the squash-merge exception, reaffirming `gh pr merge --rebase --match-head-commit <sha>` as the sole allowed strategy on this repo, and documenting the post-merge audit step.
+- `AGENTS.md` — adds a new section **PR merge protocol §2 — Post-merge audit (mandatory, ADR-0007)** with three local commands (`git rev-list --parents -n 1 <sha>`, `git show --no-patch --pretty=fuller <sha>`, `grep` for the canonical footer) the merging agent runs and pastes into the issue thread before closing. Renumbers the existing `gh`-CLI fallback section to §3.
+- `package.json` — root umbrella `0.4.42` → `0.4.43` (governance/process change; no package code touched).
+
+**Out of scope (handed off):**
+
+- GitHub repo-settings tightening (`allow_squash_merge=false`, `allow_merge_commit=false`) requires admin auth and is tracked on the board child issue created on [ANKA-268](/ANKA/issues/ANKA-268). Until it lands, the GitHub UI "Squash and merge" / "Create a merge commit" buttons remain visible — the AGENTS.md prohibition + post-merge audit are the interim guard.
+
+**Verification**
+
+- No code changed; `bun test` / `bun run typecheck` / `bun run lint` were not run (smallest verification per BLUEPRINT §0.2 — none of the commands could be affected by docs-only edits).
+- Post-merge audit commands sanity-checked locally against the offending `dbe4d31` (single parent confirmed, `committer GitHub <noreply@github.com>` confirmed, footer absent) — i.e. the audit step would have flagged this exact merge.
+
 ## 0.4.42 / @ankit-prop/dashboard@0.1.2 — 2026-04-29 18:41 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, addressing CodeReviewer CHANGES_REQUESTED on [ANKA-121](/ANKA/issues/ANKA-121) ([review comment](/ANKA/issues/ANKA-121#comment-04f4f8de-fed6-4f0e-b8f0-7be8fe33b8b1)).

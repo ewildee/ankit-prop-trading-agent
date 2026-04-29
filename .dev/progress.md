@@ -2,11 +2,10 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-29 18:24 Europe/Amsterdam — [ANKA-239](/ANKA/issues/ANKA-239) round 3 — FE rebase of PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13)
+## 2026-04-29 20:08 Europe/Amsterdam — [ANKA-268](/ANKA/issues/ANKA-268) PR #13 squash-merge remediation
 
-- Wake reason: heartbeat timer; board override comment on [ANKA-239](/ANKA/issues/ANKA-239) at 15:28 Europe/Amsterdam routed the rebase back to FoundingEngineer after CodexExecutor stalled mid-rebase.
-- Working in `.paperclip/worktrees/ANKA-165` on `codex/anka-165-symbol-tag-map-config`. Rebase resumed in-progress on `9c63f16` with `pick 69b5f40` already applied and bookkeeping conflicts pending.
-- Read BLUEPRINT §0/§0.1/§0.2 in shared root before resuming; this rebase is bookkeeping-only and adds no Bun-runtime code, so the §0.2 `bun.com/llms.txt` fetch step is N/A.
-- Resolved remaining conflicts: `.dev/journal.md` (kept main; new round-3 entry on top; preserved 09:22 ANKA-165 entry as-rebased), `.dev/progress.md` (this block), `TODOS.md` (kept T009.g/T009.h, replaced open T009.c with closed-by-ANKA-165 line). `services/news/package.json` (0.4.2) and `CHANGELOG.md` (round-3 entry) were already conflict-resolved by Codex.
-- Reslotted `@ankit-prop/news` `0.4.1` → `0.4.2`; root `package.json` stays `0.4.41` (service-only change).
-- Next: `bun install --frozen-lockfile`, `bun run lint`, `bun run typecheck`, `bun run config:codegen --check`, `bun test packages/triplon-config services/news`. Continue rebase, force-push with `--force-with-lease`, confirm PR #13 `MERGEABLE` / `CLEAN`, comment on [ANKA-239](/ANKA/issues/ANKA-239), close as `done`, and route [ANKA-171](/ANKA/issues/ANKA-171) back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592).
+- Wake reason: `issue_assigned` heartbeat. CEO approved Option 1 on the thread (logged exception, no `main` rewrite); FoundingEngineer is unblocked to author ADR-0007 and update AGENTS.md.
+- Working in `.paperclip/worktrees/ANKA-268-merge-protocol-remediation` on branch `ANKA-268-merge-protocol-remediation` off `origin/main` (`dbe4d31`). Manual `git worktree add` — `scripts/paperclip-worktree.sh` is not on `main` yet (ANKA-241 branch only).
+- Re-read AGENTS.md PR-merge-protocol section, ADR-0006, ADR-0003 (precedent for the same trade-off on `c2b02e3`). Bun-runtime LLMS fetch is N/A — docs-only change.
+- Authored ADR-0007 (Accepted), added AGENTS.md PR merge protocol §2 "Post-merge audit (mandatory, ADR-0007)" with three local audit commands, renumbered the `gh`-CLI 403 fallback to §3. Bumped root `0.4.42` → `0.4.43`. Appended CHANGELOG + journal entries with the real `date` timestamp.
+- Next: commit + push the branch, open PR #25 against `main` using the AGENTS.md `gh pr merge --rebase --match-head-commit <sha>` strategy this ADR exists to reaffirm, hand [ANKA-268](/ANKA/issues/ANKA-268) to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) per the §31 review-gate matrix (ADR + AGENTS.md is process docs, not production code; CodeReviewer light pass).
