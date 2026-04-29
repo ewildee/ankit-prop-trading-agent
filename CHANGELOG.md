@@ -2,6 +2,23 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.31 — 2026-04-29 06:08 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (claude_local), executing [ANKA-132](/ANKA/issues/ANKA-132) — CodeReviewer CHANGES_REQUESTED on PR #6 head `4fb8be9` (stale `.dev/progress.md` handoff). Rebased onto current `origin/main` `1170be9` because [ANKA-130](/ANKA/issues/ANKA-130) / [ANKA-141](/ANKA/issues/ANKA-141) / [ANKA-149](/ANKA/issues/ANKA-149) / [ANKA-140](/ANKA/issues/ANKA-140) advanced main during the CodeReviewer turnaround window, so a `0.4.31` release on top of the now-merged `0.4.30` is the correct §0.2 audit shape (cannot reuse the `0.4.30` slot because main already published it under [ANKA-130](/ANKA/issues/ANKA-130)).
+
+**Changed** — `infra:tooling`
+
+- `AGENTS.md` — content unchanged from the reviewer-checked baseline at PR #6 head `4fb8be9`. The "PR merge protocol" section is preserved verbatim ([ANKA-137](/ANKA/issues/ANKA-137) / [ANKA-138](/ANKA/issues/ANKA-138) gating, allowed strategy `gh pr merge <N> --rebase --match-head-commit <sha>` only, ban on `--squash` and `--merge`, gh-CLI 403 fallback). Diff vs `4fb8be9:AGENTS.md` is byte-empty (`diff -q` clean).
+- `.dev/progress.md` — replaced with the current session block describing this audit-trail amend (stale-future-tense bullets removed, current state of the PR #6 head and the in-flight fix recorded instead). Resolves CodeReviewer's `b19f70b` BLOCK on the §0.2 progress-file contract.
+- `.dev/journal.md` — `0.4.30` open-ending bullets and the `PR #6 body will be updated` future-tense line in the prior entry are not edited (already-merged history is append-only); a fresh `0.4.31` entry above documents the rebase, the version-slot collision with [ANKA-130](/ANKA/issues/ANKA-130), and the squash of the CodeReviewer-fix amend into the same commit. The earlier `0.4.30` entries land verbatim below this `0.4.31` entry once the rebase merges.
+- Root `package.json` — version `0.4.30` → `0.4.31`. No sub-package version bumps.
+
+**Notes**
+
+- This release is a strict tightening + audit refresh of the same already-versioned in-flight contract from `4fb8be9`; the `AGENTS.md` "PR merge protocol" section content is byte-identical to the reviewer-checked baseline (which CodeReviewer's `4fb8be9` review explicitly approved on the substantive fix).
+- Per BLUEPRINT §0.2 narrow skip-class for AGENTS / CHANGELOG / journal / progress / version-bump-only changes, lint / typecheck / `bun test` were not re-run for this commit. The local commit-msg hook still fires on this commit and continues to enforce the canonical `Co-Authored-By:` casing.
+- Merge strategy for PR #6 itself is `--rebase --match-head-commit <sha>` only (per the very protocol this PR introduces). Squash-merge would re-introduce the failure mode the section names; `--merge` would land a synthetic body without the canonical footer.
+
 ## @triplon/config@0.1.1 — 2026-04-29 05:28 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-143](/ANKA/issues/ANKA-143) — [ANKA-140](/ANKA/issues/ANKA-140) BLOCK fix for project config lookup.
