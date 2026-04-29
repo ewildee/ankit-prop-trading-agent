@@ -97,17 +97,22 @@ export const ManifestSchema = z.object({
 });
 export type Manifest = z.infer<typeof ManifestSchema>;
 
-// Adversarial windows are pre-windowed on disk — startMs/endMs already include
-// the ±N-min envelope around news prints (or full-day for closures). The
-// provider exposes them through `getEvents()` as point-in-time CalendarEvents
-// using `startMs` as the timestamp; replay code is responsible for re-windowing
-// via `buildBlackoutWindows`/`buildPreNewsWindows`.
+// Adversarial windows are pre-windowed on disk — startMs/endMs include the
+// ±N-min envelope around news prints (or full-day for closures). eventTsMs is
+// the actual print time (for news) or the closure-period anchor (for
+// holidays). The provider exposes them through getEvents() as point-in-time
+// CalendarEvents using eventTsMs as the timestamp; replay code re-derives the
+// FTMO ±5m blackout / 2h pre-news windows via
+// buildBlackoutWindows/buildPreNewsWindows from event.timestamp per BLUEPRINT
+// §11.5. Producer-internal symmetry is NOT contractual; consumers MUST NOT
+// compute the print time from window bounds.
 export const AdversarialWindowSchema = z.object({
   id: z.string(),
   kind: z.enum(['news', 'holiday']),
   category: z.string(),
   startMs: z.number().int(),
   endMs: z.number().int(),
+  eventTsMs: z.number().int(),
   symbols: z.array(z.string()).min(1),
   impact: z.enum(['low', 'medium', 'high', 'closure']),
   notes: z.string().optional(),
@@ -130,7 +135,6 @@ export const TIMEFRAME_MS: Record<string, number> = {
   '5m': 5 * 60_000,
   '15m': 15 * 60_000,
   '1h': 60 * 60_000,
-  '4h': 4 * 60 * 60_000,
   '1d': 24 * 60 * 60_000,
 };
 

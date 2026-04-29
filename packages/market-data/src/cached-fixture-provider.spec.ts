@@ -1,10 +1,13 @@
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { buildBlackoutWindows, buildPreNewsWindows } from '../../eval-harness/src/ftmo-rules.ts';
 import { CachedFixtureProvider } from './cached-fixture-provider.ts';
 import {
   type AdversarialWindowsFile,
+  AdversarialWindowsFileSchema,
   type BarLine,
   FIXTURE_SCHEMA_VERSION,
   type Manifest,
@@ -17,6 +20,16 @@ import { type InstrumentSpec, MarketDataNotAvailable } from './types.ts';
 const FIVE_MIN_MS = 5 * 60_000;
 const FIFTEEN_MIN_MS = 15 * 60_000;
 const T0 = 1_700_000_000_000;
+const REAL_FIXTURE_ROOT = join(
+  dirname(fileURLToPath(import.meta.url)),
+  '..',
+  '..',
+  '..',
+  'data',
+  'market-data',
+  'twelvedata',
+  'v1.0.0-2026-04-28',
+);
 
 const XAUUSD_META: SymbolMetaFile = {
   symbol: 'XAUUSD',
@@ -53,12 +66,28 @@ function mkBar(t: number, base: number): BarLine {
   return { t, o: base, h: base + 1, l: base - 1, c: base + 0.5, v: 100 };
 }
 
-function writeJsonl(path: string, rows: ReadonlyArray<BarLine>): void {
+function writeJsonl(
+  path: string,
+  rows: ReadonlyArray<BarLine>,
+): {
+  byteSizeCompressed: number;
+  sha256: string;
+} {
   const text = rows.map((r) => JSON.stringify(r)).join('\n');
-  writeFileSync(path, Bun.gzipSync(new TextEncoder().encode(text)));
+  const compressed = Bun.gzipSync(new TextEncoder().encode(text));
+  writeFileSync(path, compressed);
+  return {
+    byteSizeCompressed: compressed.length,
+    sha256: new Bun.CryptoHasher('sha256').update(compressed).digest('hex'),
+  };
 }
 
-function shard(symbol: string, timeframe: string, bars: ReadonlyArray<BarLine>): ShardEntry {
+function shard(
+  symbol: string,
+  timeframe: string,
+  bars: ReadonlyArray<BarLine>,
+  integrity: { byteSizeCompressed: number; sha256: string },
+): ShardEntry {
   return {
     path: `bars/${symbol}/${timeframe}.jsonl.gz`,
     symbol,
@@ -66,9 +95,23 @@ function shard(symbol: string, timeframe: string, bars: ReadonlyArray<BarLine>):
     barCount: bars.length,
     firstBarStart: bars.length > 0 ? (bars[0]?.t ?? null) : null,
     lastBarStart: bars.length > 0 ? (bars[bars.length - 1]?.t ?? null) : null,
-    byteSizeCompressed: 1,
-    sha256: 'placeholder',
+    byteSizeCompressed: integrity.byteSizeCompressed,
+    sha256: integrity.sha256,
   };
+}
+
+function readManifest(root: string): Manifest {
+  return JSON.parse(readFileSync(join(root, 'manifest.json'), 'utf8')) as Manifest;
+}
+
+function writeManifest(root: string, manifest: Manifest): void {
+  writeFileSync(join(root, 'manifest.json'), JSON.stringify(manifest));
+}
+
+function mutateManifest(root: string, mutate: (manifest: Manifest) => void): void {
+  const manifest = readManifest(root);
+  mutate(manifest);
+  writeManifest(root, manifest);
 }
 
 function buildFixture(root: string): {
@@ -95,9 +138,9 @@ function buildFixture(root: string): {
   mkdirSync(join(root, 'bars', 'XAUUSD'), { recursive: true });
   mkdirSync(join(root, 'bars', 'NAS100'), { recursive: true });
   mkdirSync(join(root, 'symbols'), { recursive: true });
-  writeJsonl(join(root, 'bars', 'XAUUSD', '5m.jsonl.gz'), xauBars5m);
-  writeJsonl(join(root, 'bars', 'XAUUSD', '15m.jsonl.gz'), xauBars15m);
-  writeJsonl(join(root, 'bars', 'NAS100', '5m.jsonl.gz'), nasBars5m);
+  const xau5m = writeJsonl(join(root, 'bars', 'XAUUSD', '5m.jsonl.gz'), xauBars5m);
+  const xau15m = writeJsonl(join(root, 'bars', 'XAUUSD', '15m.jsonl.gz'), xauBars15m);
+  const nas5m = writeJsonl(join(root, 'bars', 'NAS100', '5m.jsonl.gz'), nasBars5m);
   writeFileSync(join(root, 'symbols', 'XAUUSD.meta.json'), JSON.stringify(XAUUSD_META));
   writeFileSync(join(root, 'symbols', 'NAS100.meta.json'), JSON.stringify(NAS100_META));
 
@@ -113,9 +156,9 @@ function buildFixture(root: string): {
     symbols: ['XAUUSD', 'NAS100'],
     timeframes: { intraday: ['5m', '15m'], daily: ['1d'] },
     shards: [
-      shard('XAUUSD', '5m', xauBars5m),
-      shard('XAUUSD', '15m', xauBars15m),
-      shard('NAS100', '5m', nasBars5m),
+      shard('XAUUSD', '5m', xauBars5m, xau5m),
+      shard('XAUUSD', '15m', xauBars15m, xau15m),
+      shard('NAS100', '5m', nasBars5m, nas5m),
     ],
     credits: { estimated: 100, spent: 100 },
     adversarialWindowsCount: 2,
@@ -134,6 +177,7 @@ function buildFixture(root: string): {
         category: 'NFP',
         startMs: T0 + 6 * FIVE_MIN_MS,
         endMs: T0 + 6 * FIVE_MIN_MS + 60 * 60_000,
+        eventTsMs: T0 + 6 * FIVE_MIN_MS + 30 * 60_000,
         symbols: ['XAUUSD', 'NAS100'],
         impact: 'high',
       },
@@ -143,6 +187,7 @@ function buildFixture(root: string): {
         category: 'FOMC',
         startMs: T0 + 100 * FIVE_MIN_MS,
         endMs: T0 + 100 * FIVE_MIN_MS + 60 * 60_000,
+        eventTsMs: T0 + 100 * FIVE_MIN_MS + 30 * 60_000,
         symbols: ['XAUUSD'],
         impact: 'high',
       },
@@ -152,6 +197,7 @@ function buildFixture(root: string): {
         category: 'us-equity-closure',
         startMs: T0 + 200 * FIVE_MIN_MS,
         endMs: T0 + 200 * FIVE_MIN_MS + 24 * 60 * 60_000,
+        eventTsMs: T0 + 200 * FIVE_MIN_MS,
         symbols: ['NAS100'],
         impact: 'closure',
       },
@@ -318,18 +364,113 @@ describe('CachedFixtureProvider', () => {
     expect(fifteen[0]?.tsEnd).toBe((fifteen[0]?.tsStart ?? 0) + FIFTEEN_MIN_MS);
   });
 
-  test('getEvents projects pre-windowed AdversarialWindow → CalendarEvent at startMs', async () => {
+  test('getEvents projects pre-windowed AdversarialWindow → CalendarEvent at eventTsMs', async () => {
     const inner = await provider.getEvents({ fromMs: T0, toMs: T0 + 50 * FIVE_MIN_MS });
     expect(inner.map((e) => e.id)).toEqual(['nfp-test']);
-    expect(inner[0]?.timestamp).toBe(T0 + 6 * FIVE_MIN_MS);
+    expect(inner[0]?.timestamp).toBe(T0 + 6 * FIVE_MIN_MS + 30 * 60_000);
     expect(inner[0]?.impact).toBe('high');
     expect(inner[0]?.restricted).toBe(true);
 
     const wider = await provider.getEvents({ fromMs: T0, toMs: T0 + 250 * FIVE_MIN_MS });
     expect(wider.map((e) => e.id).sort()).toEqual(['fomc-test', 'nfp-test', 'us-closure']);
     const closure = wider.find((e) => e.id === 'us-closure');
+    expect(closure?.timestamp).toBe(T0 + 200 * FIVE_MIN_MS);
     expect(closure?.impact).toBe('high'); // closure → high
     expect(closure?.restricted).toBe(true); // closure → restricted
+  });
+
+  test('real fixture news events project from eventTsMs before eval-harness re-windowing', async () => {
+    const provider2 = new CachedFixtureProvider({
+      rootPath: REAL_FIXTURE_ROOT,
+      instrumentSpecs: SPECS,
+    });
+    const events = await provider2.getEvents({
+      fromMs: Date.parse('2026-03-01T00:00:00Z'),
+      toMs: Date.parse('2026-04-04T00:00:00Z'),
+    });
+
+    const assertWindows = (
+      id: string,
+      tsMs: number,
+      blackoutStart: number,
+      blackoutEnd: number,
+    ) => {
+      const event = events.find((e) => e.id === id);
+      expect(event?.timestamp).toBe(tsMs);
+      if (!event) throw new Error(`missing fixture event ${id}`);
+      const input = {
+        tsMs: event.timestamp,
+        symbols: event.symbols,
+        restricted: event.restricted,
+        impact: event.impact,
+      };
+      expect(buildBlackoutWindows([input], 5 * 60_000)).toEqual([
+        { symbols: new Set(event.symbols), startMs: blackoutStart, endMs: blackoutEnd },
+      ]);
+      expect(buildPreNewsWindows([input], 120 * 60_000)).toEqual([
+        { symbols: new Set(event.symbols), startMs: tsMs - 120 * 60_000, endMs: tsMs },
+      ]);
+    };
+
+    assertWindows(
+      'nfp-2026-04-03',
+      Date.parse('2026-04-03T13:30:00Z'),
+      Date.parse('2026-04-03T13:25:00Z'),
+      Date.parse('2026-04-03T13:35:00Z'),
+    );
+    assertWindows(
+      'fomc-2026-03-18',
+      Date.parse('2026-03-18T18:00:00Z'),
+      Date.parse('2026-03-18T17:55:00Z'),
+      Date.parse('2026-03-18T18:05:00Z'),
+    );
+    assertWindows(
+      'ecb-2026-03-12',
+      Date.parse('2026-03-12T13:15:00Z'),
+      Date.parse('2026-03-12T13:10:00Z'),
+      Date.parse('2026-03-12T13:20:00Z'),
+    );
+
+    const closure = events.find((e) => e.id === 'us-good-friday-2026');
+    expect(closure?.timestamp).toBe(Date.parse('2026-04-03T00:00:00Z'));
+    expect(closure?.restricted).toBe(true);
+    expect(closure?.impact).toBe('high');
+  });
+
+  test('real fixture bar shard passes manifest integrity validation and loads unchanged', async () => {
+    const provider2 = new CachedFixtureProvider({
+      rootPath: REAL_FIXTURE_ROOT,
+      instrumentSpecs: SPECS,
+    });
+    const bars = await provider2.getBars({
+      symbol: 'XAUUSD',
+      timeframe: '5m',
+      fromMs: 1_769_558_400_000,
+      toMs: 1_777_334_100_000 + FIVE_MIN_MS,
+    });
+    expect(bars).toHaveLength(25_901);
+    expect(bars[0]?.tsStart).toBe(1_769_558_400_000);
+    expect(bars.at(-1)?.tsStart).toBe(1_777_334_100_000);
+  });
+
+  test('AdversarialWindowsFileSchema rejects windows missing eventTsMs', () => {
+    const parsed = AdversarialWindowsFileSchema.safeParse({
+      schemaVersion: FIXTURE_SCHEMA_VERSION,
+      curatedAt: '2026-04-28',
+      source: 'manual-curated',
+      windows: [
+        {
+          id: 'nfp-missing-event-ts',
+          kind: 'news',
+          category: 'NFP',
+          startMs: T0,
+          endMs: T0 + 60 * 60_000,
+          symbols: ['XAUUSD'],
+          impact: 'high',
+        },
+      ],
+    });
+    expect(parsed.success).toBe(false);
   });
 
   test('contract conformance: provider satisfies IMarketDataProvider', () => {
@@ -347,6 +488,75 @@ describe('CachedFixtureProvider', () => {
     expect(xau?.providerSymbol).toBe('XAU/USD'); // identity still populated
     expect(xau?.pipSize).toBe(0); // broker spec absent → zeroed
     expect(xau?.contractSize).toBe(0);
+  });
+
+  test('validates shard integrity metadata before returning bars', async () => {
+    const bars = await provider.getBars({
+      symbol: 'XAUUSD',
+      timeframe: '5m',
+      fromMs: T0,
+      toMs: T0 + 12 * FIVE_MIN_MS,
+    });
+    expect(bars).toHaveLength(12);
+  });
+
+  test('throws when manifest sha256 does not match the compressed shard', async () => {
+    mutateManifest(root, (manifest) => {
+      const shardEntry = manifest.shards.find((s) => s.symbol === 'XAUUSD' && s.timeframe === '5m');
+      if (!shardEntry) throw new Error('test setup missing XAUUSD/5m shard');
+      shardEntry.sha256 = `0${shardEntry.sha256.slice(1)}`;
+    });
+    const provider2 = new CachedFixtureProvider({ rootPath: root, instrumentSpecs: SPECS });
+    await expect(
+      provider2.getBars({ symbol: 'XAUUSD', timeframe: '5m', fromMs: T0, toMs: T0 + 1 }),
+    ).rejects.toThrow(/sha256/);
+  });
+
+  test('throws when manifest barCount does not match parsed bars', async () => {
+    mutateManifest(root, (manifest) => {
+      const shardEntry = manifest.shards.find((s) => s.symbol === 'XAUUSD' && s.timeframe === '5m');
+      if (!shardEntry) throw new Error('test setup missing XAUUSD/5m shard');
+      shardEntry.barCount += 1;
+    });
+    const provider2 = new CachedFixtureProvider({ rootPath: root, instrumentSpecs: SPECS });
+    await expect(
+      provider2.getBars({ symbol: 'XAUUSD', timeframe: '5m', fromMs: T0, toMs: T0 + 1 }),
+    ).rejects.toThrow(/barCount/);
+  });
+
+  test('throws when manifest byteSizeCompressed does not match the shard bytes', async () => {
+    mutateManifest(root, (manifest) => {
+      const shardEntry = manifest.shards.find((s) => s.symbol === 'XAUUSD' && s.timeframe === '5m');
+      if (!shardEntry) throw new Error('test setup missing XAUUSD/5m shard');
+      shardEntry.byteSizeCompressed += 1;
+    });
+    const provider2 = new CachedFixtureProvider({ rootPath: root, instrumentSpecs: SPECS });
+    await expect(
+      provider2.getBars({ symbol: 'XAUUSD', timeframe: '5m', fromMs: T0, toMs: T0 + 1 }),
+    ).rejects.toThrow(/byteSizeCompressed/);
+  });
+
+  test('throws when manifest firstBarStart or lastBarStart does not match parsed bars', async () => {
+    mutateManifest(root, (manifest) => {
+      const shardEntry = manifest.shards.find((s) => s.symbol === 'XAUUSD' && s.timeframe === '5m');
+      if (!shardEntry) throw new Error('test setup missing XAUUSD/5m shard');
+      shardEntry.firstBarStart = T0 + FIVE_MIN_MS;
+    });
+    const provider2 = new CachedFixtureProvider({ rootPath: root, instrumentSpecs: SPECS });
+    await expect(
+      provider2.getBars({ symbol: 'XAUUSD', timeframe: '5m', fromMs: T0, toMs: T0 + 1 }),
+    ).rejects.toThrow(/firstBarStart/);
+
+    mutateManifest(root, (manifest) => {
+      const shardEntry = manifest.shards.find((s) => s.symbol === 'XAUUSD' && s.timeframe === '5m');
+      if (!shardEntry) throw new Error('test setup missing XAUUSD/5m shard');
+      shardEntry.firstBarStart = T0;
+      shardEntry.lastBarStart = T0;
+    });
+    const provider3 = new CachedFixtureProvider({ rootPath: root, instrumentSpecs: SPECS });
+    await expect(
+      provider3.getBars({ symbol: 'XAUUSD', timeframe: '5m', fromMs: T0, toMs: T0 + 1 }),
+    ).rejects.toThrow(/lastBarStart/);
   });
 });
 
@@ -442,10 +652,18 @@ describe('CachedFixtureProvider — failure modes', () => {
     mkdirSync(join(root, 'symbols'), { recursive: true });
     writeFileSync(join(root, 'symbols', 'XAUUSD.meta.json'), JSON.stringify(XAUUSD_META));
     mkdirSync(join(root, 'bars', 'XAUUSD'), { recursive: true });
-    writeJsonl(join(root, 'bars', 'XAUUSD', '5m.jsonl.gz'), [
-      mkBar(T0 + FIVE_MIN_MS, 2350),
-      mkBar(T0, 2350),
-    ]);
+    const bars = [mkBar(T0 + FIVE_MIN_MS, 2350), mkBar(T0, 2350)];
+    const integrity = writeJsonl(join(root, 'bars', 'XAUUSD', '5m.jsonl.gz'), bars);
+    const shardEntry = manifest.shards[0];
+    if (!shardEntry) throw new Error('test setup missing XAUUSD/5m shard');
+    manifest.shards[0] = {
+      ...shardEntry,
+      firstBarStart: T0 + FIVE_MIN_MS,
+      lastBarStart: T0,
+      byteSizeCompressed: integrity.byteSizeCompressed,
+      sha256: integrity.sha256,
+    };
+    writeFileSync(join(root, 'manifest.json'), JSON.stringify(manifest));
     const provider = new CachedFixtureProvider({ rootPath: root });
     await expect(
       provider.getBars({ symbol: 'XAUUSD', timeframe: '5m', fromMs: T0, toMs: T0 + 1_000_000 }),

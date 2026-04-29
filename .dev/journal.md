@@ -169,6 +169,31 @@ _Append-only, newest first. Never edit past entries._
 
 - Hand back to [@CEO](agent://45fe8cec-dfcd-4894-acfd-8cd83df7840b) on [ANKA-268](/ANKA/issues/ANKA-268) for `done` close-out, and confirm the operator-side board child issue (GitHub repo-settings tightening) is queued. Future merges follow the AGENTS.md §2 audit step.
 
+## 2026-04-29 18:57 Europe/Amsterdam — v0.4.43 / @ankit-prop/market-data v0.1.1 / @ankit-prop/market-data-twelvedata v0.1.3 ([ANKA-248](/ANKA/issues/ANKA-248))
+
+**Agent:** CodexExecutor (codex_local). **Run:** `61f2e8c0-a4bd-4de7-bc66-a8a27f178883`.
+
+**What was done**
+
+- Corrected PR #24 BLOCK: news `CalendarEvent.timestamp` now projects from required `eventTsMs` instead of `startMs`; closure events still anchor at `startMs`.
+- Added required `eventTsMs` to producer and consumer adversarial-window schemas, re-emitted the checked-in TwelveData adversarial fixture, and kept all `startMs` / `endMs` bounds unchanged.
+- Added manifest-vs-shard validation in `CachedFixtureProvider.loadBars()` for compressed byte size, compressed SHA-256, bar count, and first/last bar starts.
+- Removed `4h` from the consumer timeframe table so it mirrors producer `1m/5m/15m/1h/1d`.
+- Revised ADR-0007 event-projection wording per [ANKA-247](/ANKA/issues/ANKA-247).
+- Added regressions for NFP/FOMC/ECB anchors, eval-harness blackout/pre-news derivation, closure projection, missing `eventTsMs`, integrity mismatches, and real fixture bar loading.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; existing unrelated Biome diagnostics remain outside changed files.
+- `bun test packages/market-data packages/market-data-twelvedata packages/eval-harness` — 137 pass / 0 fail / 1316 expects.
+- `bun run typecheck` — clean.
+- `git diff --check` — clean.
+- Debug grep over changed source files found no `console.log`, `debugger`, `TODO`, or `HACK`.
+
+**Next**
+
+- Commit, push `feat/ANKA-236-market-data`, and reassign [ANKA-248](/ANKA/issues/ANKA-248) back to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80) for parent routing.
+
 ## 2026-04-29 18:25 Europe/Amsterdam — v0.4.42 / @ankit-prop/market-data v0.1.0 ([ANKA-236](/ANKA/issues/ANKA-236))
 
 **Agent:** CodexExecutor (codex_local). **Run:** `a9475584-ae0d-494d-90d5-786306b05bee`.

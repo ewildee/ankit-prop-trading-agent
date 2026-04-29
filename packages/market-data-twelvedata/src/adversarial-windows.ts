@@ -21,6 +21,7 @@ function newsWindow(
     category,
     startMs: t - 30 * 60_000,
     endMs: t + 30 * 60_000,
+    eventTsMs: t,
     symbols: [...symbols],
     impact: 'high',
     notes,
@@ -40,6 +41,7 @@ function fullDayClosure(
     category,
     startMs: start,
     endMs: start + 24 * 60 * 60_000,
+    eventTsMs: start,
     symbols: [...symbols],
     impact: 'closure',
   };

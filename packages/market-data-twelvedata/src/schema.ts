@@ -78,6 +78,7 @@ export const AdversarialWindowSchema = z.object({
   category: z.string(),
   startMs: z.number().int(),
   endMs: z.number().int(),
+  eventTsMs: z.number().int(),
   symbols: z.array(z.string()).min(1),
   impact: z.enum(['low', 'medium', 'high', 'closure']),
   notes: z.string().optional(),

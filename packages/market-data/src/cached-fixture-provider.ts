@@ -6,6 +6,7 @@ import {
   FIXTURE_SCHEMA_VERSION,
   type Manifest,
   ManifestSchema,
+  type ShardEntry,
   type SymbolMetaFile,
   SymbolMetaSchema,
   timeframeMs,
@@ -43,6 +44,7 @@ export class CachedFixtureProvider implements IMarketDataProvider {
   private adversarial: AdversarialWindow[] | null = null;
   private barCache = new Map<string, Bar[]>();
   private windowIndex = new Map<string, { fromMs: number | null; toMs: number | null }>();
+  private shardByKey = new Map<string, ShardEntry>();
 
   constructor(private readonly opts: CachedFixtureProviderOptions) {}
 
@@ -118,10 +120,12 @@ export class CachedFixtureProvider implements IMarketDataProvider {
     this.manifest = manifest;
 
     for (const shard of manifest.shards) {
-      this.windowIndex.set(barKey(shard.symbol, shard.timeframe), {
+      const key = barKey(shard.symbol, shard.timeframe);
+      this.windowIndex.set(key, {
         fromMs: shard.firstBarStart,
         toMs: shard.lastBarStart,
       });
+      this.shardByKey.set(key, shard);
     }
 
     const metas = new Map<string, SymbolMeta>();
@@ -156,6 +160,12 @@ export class CachedFixtureProvider implements IMarketDataProvider {
     const key = barKey(symbol, timeframe);
     const cached = this.barCache.get(key);
     if (cached) return cached;
+    const shard = this.shardByKey.get(key);
+    if (!shard) {
+      throw new Error(
+        `market-data: manifest shard missing for ${symbol}/${timeframe} after availability check`,
+      );
+    }
     const path = join(this.opts.rootPath, 'bars', symbol, `${timeframe}.jsonl.gz`);
     const file = Bun.file(path);
     if (!(await file.exists())) {
@@ -172,6 +182,17 @@ export class CachedFixtureProvider implements IMarketDataProvider {
       );
     }
     const compressed = await file.bytes();
+    if (shard.byteSizeCompressed !== compressed.length) {
+      throw new Error(
+        `market-data: shard ${symbol}/${timeframe} byteSizeCompressed mismatch: manifest=${shard.byteSizeCompressed} actual=${compressed.length}`,
+      );
+    }
+    const sha256 = new Bun.CryptoHasher('sha256').update(compressed).digest('hex');
+    if (shard.sha256 !== sha256) {
+      throw new Error(
+        `market-data: shard ${symbol}/${timeframe} sha256 mismatch: manifest=${shard.sha256} actual=${sha256}`,
+      );
+    }
     const decompressed = compressed.length === 0 ? new Uint8Array() : Bun.gunzipSync(compressed);
     const text = new TextDecoder().decode(decompressed);
     const bars: Bar[] = [];
@@ -206,6 +227,7 @@ export class CachedFixtureProvider implements IMarketDataProvider {
         volume: rec.v,
       });
     }
+    validateShardMetadata(shard, bars);
     this.barCache.set(key, bars);
     return bars;
   }
@@ -233,23 +255,46 @@ function barKey(symbol: string, timeframe: string): string {
   return `${symbol}::${timeframe}`;
 }
 
-// Pre-windowed AdversarialWindow → point-in-time CalendarEvent. We use
-// `startMs` as the canonical timestamp (consistent with how eval-harness's
-// `buildPreNewsWindows` treats Tier-1 events: ±N-min envelope re-derived from
-// the timestamp). `restricted` defaults true for `kind === 'news'` and any
-// closure window; medium/low news that aren't restricted by FTMO can still slip
-// through if a future fetcher relaxes the curation.
+// Projects a pre-windowed AdversarialWindow into a point-in-time
+// CalendarEvent. For news, the timestamp is the actual print time
+// (eventTsMs); eval-harness re-derives the FTMO ±5m blackout / 2h pre-news
+// envelopes from this anchor per BLUEPRINT §11.5. For closures, the closure
+// start IS the event. There is no fallback path — eventTsMs is contractually
+// required by the v1 fixture schema and any missing field is a fixture-
+// integrity bug we surface loudly.
 function toCalendarEvent(w: AdversarialWindow): CalendarEvent {
   const impact: CalendarEvent['impact'] =
     w.impact === 'closure' || w.impact === 'high' ? 'high' : w.impact;
   const restricted = w.kind === 'news' || w.impact === 'closure';
+  const timestamp = w.kind === 'news' ? w.eventTsMs : w.startMs;
   return {
     id: w.id,
-    timestamp: w.startMs,
+    timestamp,
     symbols: [...w.symbols],
     impact,
     restricted,
   };
+}
+
+function validateShardMetadata(shard: ShardEntry, bars: ReadonlyArray<Bar>): void {
+  const label = `${shard.symbol}/${shard.timeframe}`;
+  if (shard.barCount !== bars.length) {
+    throw new Error(
+      `market-data: shard ${label} barCount mismatch: manifest=${shard.barCount} actual=${bars.length}`,
+    );
+  }
+  const first = bars[0]?.tsStart ?? null;
+  const last = bars.at(-1)?.tsStart ?? null;
+  if (shard.firstBarStart !== first) {
+    throw new Error(
+      `market-data: shard ${label} firstBarStart mismatch: manifest=${shard.firstBarStart} actual=${first}`,
+    );
+  }
+  if (shard.lastBarStart !== last) {
+    throw new Error(
+      `market-data: shard ${label} lastBarStart mismatch: manifest=${shard.lastBarStart} actual=${last}`,
+    );
+  }
 }
 
 async function readJsonFile(path: string): Promise<unknown> {
