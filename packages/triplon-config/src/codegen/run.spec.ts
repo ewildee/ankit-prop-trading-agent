@@ -7,6 +7,7 @@ import { runCodegen } from './run.ts';
 const REPO_ROOT = resolve(import.meta.dir, '..', '..', '..', '..');
 const GENERATED_DIR = join(REPO_ROOT, 'packages', 'triplon-config', 'src', 'generated');
 const SCHEMA_PATH = join(GENERATED_DIR, 'symbol-tag-map.schema.json');
+const LOADER_PATH = join(GENERATED_DIR, 'symbol-tag-map.loader.ts');
 
 async function restoreGenerated(): Promise<void> {
   await runCodegen();
@@ -26,9 +27,11 @@ describe('config codegen', () => {
     ).toContain(true);
   });
 
-  test('emits deterministic SymbolTagMap schema and type artifacts', async () => {
+  test('emits deterministic SymbolTagMap schema, type, and loader artifacts', async () => {
     await runCodegen();
     const schema = JSON.parse(await readFile(SCHEMA_PATH, 'utf8')) as Record<string, unknown>;
+    const loader = await readFile(LOADER_PATH, 'utf8');
+
     expect(schema.title).toBe('SymbolTagMap');
     expect(schema.properties).toEqual({
       mappings: {
@@ -53,6 +56,8 @@ describe('config codegen', () => {
         type: 'object',
       },
     });
+    expect(loader).toContain('export function createSymbolTagMapConfig()');
+    expect(loader).toContain('export function loadSymbolTagMapConfig(path?: string): SymbolTagMap');
   });
 
   test('root --check exits non-zero when generated output is stale', async () => {

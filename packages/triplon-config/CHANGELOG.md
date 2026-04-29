@@ -2,6 +2,16 @@
 
 All notable changes to `@triplon/config`. Newest first.
 
+## 0.2.0 — 2026-04-29 09:22 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-165](/ANKA/issues/ANKA-165).
+
+**Added**
+
+- Generated SymbolTagMap loader artifact with `createSymbolTagMapConfig()` and `loadSymbolTagMapConfig(path?)`.
+- Codegen support for loader artifacts alongside JSON Schema and generated types.
+- Package export `@triplon/config/generated/symbol-tag-map`.
+
 ## 0.1.2 — 2026-04-29 05:49 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-149](/ANKA/issues/ANKA-149) after [ANKA-140](/ANKA/issues/ANKA-140) review feedback.

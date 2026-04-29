@@ -2,6 +2,8 @@
 
 _Append-only, newest first. Never edit past entries._
 
+- 2026-04-29 19:02 Europe/Amsterdam — CodexExecutor refreshed PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13) audit trail for [ANKA-171](/ANKA/issues/ANKA-171) re-review: reconciled `bun.lock` workspace metadata, replaced the stale ANKA-239 pending verification block, and will hand [ANKA-165](/ANKA/issues/ANKA-165) back to FoundingEngineer after the local gate.
+
 ## 2026-04-29 18:41 Europe/Amsterdam — [ANKA-121](/ANKA/issues/ANKA-121) dashboard port-contract fix (CodeReviewer round-3 CHANGES_REQUESTED)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `0f7a2a9f-4be1-4ed2-9434-ae21d6112fe9`.
@@ -44,6 +46,31 @@ _Append-only, newest first. Never edit past entries._
 **Next**
 
 - Force-push `anka-121-dashboard-review-fixes` (single commit on top of `origin/main`), set [ANKA-121](/ANKA/issues/ANKA-121) to `in_review`, reassign to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) with the full §0.2 verification block.
+
+## 2026-04-29 18:24 Europe/Amsterdam — [ANKA-239](/ANKA/issues/ANKA-239) round 3 — FE rebase of PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13) onto `origin/main` `9c63f16`
+
+**Agent:** FoundingEngineer (claude_local). **Run:** `$PAPERCLIP_RUN_ID` (heartbeat).
+
+**What was done**
+
+- Picked up [ANKA-239](/ANKA/issues/ANKA-239) on heartbeat after the board override comment ("CodexExecutor failed to finish the job. Do this one yourself.") superseded the standard delegate-implementation rule for this rebase only.
+- Resumed the in-progress rebase in `.paperclip/worktrees/ANKA-165` (interactive rebase already at `pick 69b5f40` → `pick 8ac72ab` onto `9c63f16`). Codex had already resolved `services/news/package.json` (now `0.4.2`) and `CHANGELOG.md` (new ANKA-239 round-3 entry on top); finished the remaining bookkeeping conflicts in `.dev/journal.md`, `.dev/progress.md`, and `TODOS.md`.
+- Took main's content for `.dev/journal.md` and `.dev/progress.md` per replace-current-section convention; merged `TODOS.md` to keep T009.g/T009.h from main and replace the open T009.c with the closed-by-ANKA-165 migration line.
+- Reslotted `@ankit-prop/news` from rebase-onto-main `0.4.1` → `0.4.2`; root `package.json` stays `0.4.41` (Codex did not advance the root version slot in this PR — symbol-tag-mapper migration is a service-only change).
+- Continued and completed the rebase, force-pushed `codex/anka-165-symbol-tag-map-config` with `--force-with-lease`, and confirmed PR #13 reports `MERGEABLE` / `CLEAN`.
+
+**Findings**
+
+- The 09:22 ANKA-165 entry left by the original PR-side commit lands chronologically out-of-order between the 16:54 and 16:51 entries; preserved as-rebased to keep the diff minimal — the journal is already loose-ordered (see 13:10 / 13:08 below 13:18 entries).
+- `services/news` still has only the Phase 5 placeholder `start` script; no `/health` endpoint yet, so §0.2 service-restart verification is not applicable for this rebase pass.
+
+**Decisions**
+
+- Single-author rebase (no Codex re-route) per the board comment on [ANKA-239](/ANKA/issues/ANKA-239) at 15:28 Europe/Amsterdam. Logged the exception under the §AGENTS.md "delegate implementation" rule as a one-off board override, not a precedent.
+
+**Open endings**
+
+- Hand back to FoundingEngineer (myself) for the [ANKA-171](/ANKA/issues/ANKA-171) re-route to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592). Comment on [ANKA-239](/ANKA/issues/ANKA-239) with the verbatim local-check output and close as `done`.
 
 ## 2026-04-29 17:43 Europe/Amsterdam — PR #23 merged ([ANKA-167](/ANKA/issues/ANKA-167) — N8 freshness monitor, CodeReviewer APPROVE → rebase-merge)
 
@@ -141,6 +168,32 @@ _Append-only, newest first. Never edit past entries._
 **Open endings**
 
 - Force-push PR #18 and hand back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592).
+
+## 2026-04-29 09:22 Europe/Amsterdam — v0.4.34 / @triplon/config v0.2.0 / @ankit-prop/news v0.2.1 ([ANKA-165](/ANKA/issues/ANKA-165) — SymbolTagMap generated loader migration)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped Paperclip wake on [ANKA-165](/ANKA/issues/ANKA-165).
+
+**What was done**
+
+- Fetched `https://bun.com/llms.txt` at session start and created `.paperclip/worktrees/ANKA-165` off `origin/main` for the multi-file change.
+- Extended `@triplon/config` codegen so `symbol-tag-map` emits a generated loader artifact in addition to schema JSON and generated types. Added the package export `@triplon/config/generated/symbol-tag-map`.
+- Added `services/news/src/config/load-symbol-tag-map.ts`, preserving user > project config precedence and falling back to `services/news/config/symbol-tag-map.yaml` only when no operator/project config exists.
+- Removed the inline SymbolTagMap Zod schema and direct `defineAppConfig` handle construction from `services/news/src/symbol-tag-mapper.ts`; the public mapper API names remain unchanged.
+- Added the required schema-drift regression to prove invalid SymbolTagMap YAML still throws `ConfigError` through the generated loader path.
+- Bumped root `0.4.33` → `0.4.34`, `@triplon/config` `0.1.2` → `0.2.0`, and `@ankit-prop/news` `0.2.0` → `0.2.1`; updated `CHANGELOG.md`, `packages/triplon-config/CHANGELOG.md`, `TODOS.md`, and `.dev/progress.md`.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean.
+- `bun test services/news/src/symbol-tag-mapper.spec.ts packages/triplon-config/src/codegen/run.spec.ts` — 14 pass / 0 fail / 26 expects.
+- `bun run lint:fix` — exit 0; no final changes required after the last pass. Biome still reports pre-existing warnings/infos in unrelated packages.
+- `bun run config:codegen --check` — clean.
+- `bun test` — 368 pass / 0 fail / 2151 expects.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- Remaining handoff work in this heartbeat: debug-code grep, commit, push, and issue status update.
 
 ## 2026-04-29 16:51 Europe/Amsterdam — PR #22 merged ([ANKA-233](/ANKA/issues/ANKA-233) QA APPROVE → squash-merge)
 

@@ -63,7 +63,7 @@
     },
     "packages/triplon-config": {
       "name": "@triplon/config",
-      "version": "0.1.2",
+      "version": "0.2.0",
       "dependencies": {
         "zod": "4.3.6",
       },
@@ -93,10 +93,10 @@
     },
     "services/news": {
       "name": "@ankit-prop/news",
-      "version": "0.4.1",
+      "version": "0.4.2",
       "dependencies": {
         "@ankit-prop/contracts": "workspace:*",
-        "@triplon/config": "^0.1.0",
+        "@triplon/config": "^0.2.0",
         "zod": "4.3.6",
       },
     },

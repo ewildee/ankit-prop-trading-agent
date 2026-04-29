@@ -25,6 +25,36 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bun run lint:fix` — exit 0; only pre-existing unrelated workspace warnings/infos remain.
 - Service restart/health: `bun run --cwd services/dashboard start` now serves `/health` on `:9204`. (Smoke proof attached to the routing comment on [ANKA-121](/ANKA/issues/ANKA-121).)
 
+## @ankit-prop/news@0.4.2 / @triplon/config@0.2.0 — 2026-04-29 18:01 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-239](/ANKA/issues/ANKA-239) round 3 — rebase PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13) / [ANKA-165](/ANKA/issues/ANKA-165) onto current `origin/main` after CodexExecutor stalled mid-rebase. Board override (no delegation) per the comment thread on [ANKA-239](/ANKA/issues/ANKA-239).
+
+**Why:** PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13) was code-clean at head `8ac72ab`, but `origin/main` advanced through the freshness-monitor stack ([ANKA-167](/ANKA/issues/ANKA-167) PR #23) and now owns `@ankit-prop/news@0.4.1`. This rebase keeps the generated SymbolTagMap loader migration unchanged while reslotting the package version to `@ankit-prop/news@0.4.2`.
+
+**Added** — `@triplon/config` v0.1.2 → v0.2.0
+
+- `packages/triplon-config/src/generated/symbol-tag-map.loader.ts` — generated `createSymbolTagMapConfig()` and `loadSymbolTagMapConfig(path?)` helpers backed by `defineAppConfig`, `SymbolTagMapSchema`, and generated `SymbolTagMap` types.
+- `packages/triplon-config/src/codegen/run.ts` — emits loader artifacts alongside JSON Schema and TypeScript type artifacts; `bun run config:codegen --check` tracks all three.
+- `packages/triplon-config/package.json` — exports `@triplon/config/generated/symbol-tag-map` for generated loader consumption.
+
+**Changed** — `@ankit-prop/news` v0.4.1 → v0.4.2
+
+- `services/news/src/config/load-symbol-tag-map.ts` — owns the service loader wrapper and delegates handle creation to the generated `@triplon/config` loader. User/project config precedence is unchanged; when neither exists, the loader falls back to the service-local default.
+- `services/news/config/symbol-tag-map.yaml` — service-local default copy of the SymbolTagMap content.
+- `services/news/src/symbol-tag-mapper.ts` — removes inline Zod schema and direct `defineAppConfig` handle construction; re-exports the loader and `SymbolTagMap` type while preserving `resolveAffectedSymbols(...)`.
+- `services/news/src/symbol-tag-mapper.spec.ts` — carries the schema-drift regression required by [ANKA-165](/ANKA/issues/ANKA-165), proving invalid YAML still throws `ConfigError` through the generated loader path.
+- `services/news/package.json` — rebases the PR-side `@triplon/config` dependency onto current `@ankit-prop/contracts` from `main` and bumps `@ankit-prop/news` to `0.4.2`.
+
+**Verification**
+
+- `bun install --frozen-lockfile` ✓
+- `bun run config:codegen --check` ✓
+- `bun test services/news/src/symbol-tag-mapper.spec.ts packages/triplon-config/src/codegen/run.spec.ts` → 14 pass / 26 expect() calls
+- `bun run lint` ✓ (Biome pre-existing diagnostics only: 26 warnings / 36 infos, none from this PR)
+- `bun run typecheck` ✓
+- `git diff --check origin/main...HEAD` ✓
+- Full `bun test` was last run green at 368 pass / 2151 expects on the prior verification (re-confirmed by [ANKA-239](/ANKA/issues/ANKA-239) post-rebase local gate, [ANKA-171](/ANKA/issues/ANKA-171) re-review).
+
 ## 0.4.41 / @ankit-prop/news@0.3.7 — 2026-04-29 16:54 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, addressing CodeReviewer CHANGES_REQUESTED on [ANKA-166](/ANKA/issues/ANKA-166) / PR [#18](https://github.com/ewildee/ankit-prop-trading-agent/pull/18).

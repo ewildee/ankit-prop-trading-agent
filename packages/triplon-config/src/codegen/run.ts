@@ -40,6 +40,34 @@ function typesFor(schema: RegisteredConfigSchema): string {
   ].join('\n');
 }
 
+function loaderFor(schema: RegisteredConfigSchema): string {
+  return [
+    "import { defineAppConfig } from '../app-config.ts';",
+    `import { ${schema.title}Schema } from '${schema.schemaImport}';`,
+    `import type { ${schema.typeName} } from './${schema.name}.types.ts';`,
+    '',
+    `export type { ${schema.typeName} } from './${schema.name}.types.ts';`,
+    '',
+    `export function create${schema.title}Config() {`,
+    '  return defineAppConfig({',
+    "    scope: 'ankit-prop',",
+    `    name: '${schema.name}',`,
+    `    schema: ${schema.title}Schema,`,
+    '    envOverrides: false,',
+    '  });',
+    '}',
+    '',
+    `export function load${schema.title}Config(path?: string): ${schema.typeName} {`,
+    `  const handle = create${schema.title}Config();`,
+    '  if (path !== undefined) {',
+    '    handle.setConfigOverridePath(path);',
+    '  }',
+    '  return handle.getConfig();',
+    '}',
+    '',
+  ].join('\n');
+}
+
 async function writeGenerated(path: string, content: string, check: boolean): Promise<boolean> {
   const current = existsSync(path) ? readFileSync(path, 'utf8') : null;
   if (current === content) {
@@ -73,6 +101,10 @@ export async function runCodegen(opts: CodegenOptions = {}): Promise<CodegenResu
       {
         path: join(GENERATED_DIR, `${schema.name}.types.ts`),
         content: typesFor(schema),
+      },
+      {
+        path: join(GENERATED_DIR, `${schema.name}.loader.ts`),
+        content: loaderFor(schema),
       },
     ];
 
