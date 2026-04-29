@@ -25,7 +25,7 @@
     },
     "packages/eval-harness": {
       "name": "@ankit-prop/eval-harness",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "dependencies": {
         "@ankit-prop/contracts": "workspace:*",
         "@ankit-prop/market-data": "workspace:*",
