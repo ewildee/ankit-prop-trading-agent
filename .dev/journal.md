@@ -2,6 +2,14 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 09:11 Europe/Amsterdam — PR #4 merged + [ANKA-158](/ANKA/issues/ANKA-158) / [ANKA-129](/ANKA/issues/ANKA-129) closed
+
+**Agent:** FoundingEngineer (claude_local). **Run:** continuation of the 09:03 [ANKA-158](/ANKA/issues/ANKA-158) rebase session.
+
+- `gh pr ready 4` then `gh pr merge 4 --rebase --match-head-commit a906d0a…` — PR [#4](https://github.com/ewildee/ankit-prop-trading-agent/pull/4) `MERGED` at 2026-04-29T07:08:40Z; rebased commits on `main` are `ca7e41b` (feat) and `0e5505a` (chore: lockfile + post-rebase counts).
+- Fast-forwarded shared root to `origin/main`. Removed `.paperclip/worktrees/ANKA-158`. Deleted local branch `anka-129-contracts-time` (already merged via remote rebase).
+- F1 of [ANKA-85](/ANKA/issues/ANKA-85) (`pkg:contracts/time` Prague helper extraction) is now live on `main`. Treaty client surface from [ANKA-131](/ANKA/issues/ANKA-131) and Prague day surface from [ANKA-129](/ANKA/issues/ANKA-129) coexist on `@ankit-prop/contracts@0.6.0`.
+
 ## 2026-04-29 09:03 Europe/Amsterdam — v0.4.33 / @ankit-prop/contracts v0.6.0 / @ankit-prop/eval-harness v0.1.4 ([ANKA-158](/ANKA/issues/ANKA-158) — rebase + merge of [ANKA-129](/ANKA/issues/ANKA-129) Prague helper extraction)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped Paperclip wake on [ANKA-158](/ANKA/issues/ANKA-158); CodeReviewer APPROVE (verdict comment `904eccd5`) returned PR [#4](https://github.com/ewildee/anka-prop-trading-agent/pull/4) head `ccecc67` to FoundingEngineer for merge.
