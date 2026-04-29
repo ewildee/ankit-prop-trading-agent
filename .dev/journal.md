@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 05:12 Europe/Amsterdam — v0.4.29 ([ANKA-138](/ANKA/issues/ANKA-138) — ADR-0004 re-enable GHA lint/test/typecheck workflow)
+
+**What was done**
+
+- Re-read `.github/workflows/ci.yml.disabled` (30 lines, Bun-only minimal: `actions/checkout@v4` → `oven-sh/setup-bun@v2` pinned to `1.3.13` → `bun install --frozen-lockfile` → `bun run lint` → `bun run typecheck` → `bun test`) and the `70ceb6c` commit message that disabled it under [ANKA-107](/ANKA/issues/ANKA-107).
+- Read [ANKA-138](/ANKA/issues/ANKA-138) routing: FE writes the ADR, then CodexExecutor implements; do not start implementation before the ADR is committed. Followed AGENTS.md "What FE keeps" — ADRs in `.dev/decisions.md` are FE-owned, not delegable.
+- Appended **ADR-0004** to `.dev/decisions.md`. Decision: re-enable the workflow **as-is** by renaming back to `ci.yml`, no content edits. Recorded four rejected alternatives (hand-rolled replacement, matrix fork, keep-off-with-rationale, `workflow_dispatch`-only).
+- Pre-routed the implementation contract inside the ADR: rename + BLUEPRINT operational cross-link + smoke-test PR + close-on-CodeReviewer-APPROVE-and-green-CI. Branch-protection promotion to "required check" is explicitly out of scope per the issue (operator-owned).
+- Bumped root `ankit-prop-umbrella` 0.4.28 → 0.4.29 with CHANGELOG entry. Worktree-first per AGENTS.md ([ANKA-126](/ANKA/issues/ANKA-126)) — ADR + journal + CHANGELOG + `package.json` is multi-file, so all edits and the commit happened in `.paperclip/worktrees/ANKA-138` off `origin/main`.
+
+**Findings**
+
+- The disabled workflow uses zero items from the §5.3 forbidden npm list and adds no new dependency surface — it is exactly the §0.2 local gate, run on `ubuntu-latest`. Replacing it with anything custom would be net-negative on supply-chain surface.
+- ANKA-107's "operator-only signal pre-production" rationale was thin in retrospect: the [ANKA-101](/ANKA/issues/ANKA-101) co-author footer audit trail proved the operator-only contract slips at least once already, and Phase 4 (`svc:trader`) and Phase 6 (`svc:dashboard`) raise the regression cost of a missed `bun test` between heartbeats. Defence-in-depth (operator commands AND CI) is the project default for safety paths — CI is the cheap half of that pair and has to be on.
+- BLUEPRINT §25 catalog row `infra:ci` already pins the file location at `.github/workflows/`. The ADR cross-link landing in the BLUEPRINT operational section keeps the audit trail unbroken: future "disable CI again" attempts have to go through ADR-0004 rather than landing as a quiet rename.
+- Sibling [ANKA-132](/ANKA/issues/ANKA-132) bump to 0.4.28 landed at 05:08 Europe/Amsterdam during this heartbeat. Rebased my ADR commit onto `bad012b` and re-versioned to 0.4.29 (same precedent as the `0.4.26` merge-integration window in [ANKA-126](/ANKA/issues/ANKA-126) / [ANKA-124](/ANKA/issues/ANKA-124)). No semantic conflict — ANKA-132 is the §0.2 audit-trail correction; this commit is the ADR that closes the major finding ANKA-132 routed forward.
+
+**Decisions**
+
+- Single workflow, single job, no matrix, no caching layer for now. If observed wall-clock drifts above the 5-minute budget the issue calls out, the bun-cache step is a separate `infra:ci` follow-up — not part of [ANKA-138](/ANKA/issues/ANKA-138).
+- Implementation is a single Codex diff: rename + BLUEPRINT cross-link + the smoke-test PR. CodeReviewer is the mandatory pre-close reviewer per the AGENTS.md review-gate matrix (any non-trivial diff in `infra:ci` policy-touching surface).
+- This commit is docs-only on FE's side — explicitly **not** the file rename, and explicitly **not** opening the smoke-test PR. The next heartbeat creates the Codex child issue with the diff brief.
+
+**Surprises / contradictions**
+
+- None semantic. The disabled workflow content matched the §0.2 gate exactly; no design ambiguity to resolve before routing implementation. Mid-heartbeat collision with [ANKA-132](/ANKA/issues/ANKA-132) version bump was a routine rebase-and-re-version, not a contradiction.
+
+**Open endings**
+
+- Create the [CodexExecutor](/ANKA/agents/codexexecutor) child issue under [ANKA-138](/ANKA/issues/ANKA-138) with the rename + BLUEPRINT cross-link diff brief. Block close of [ANKA-138](/ANKA/issues/ANKA-138) on (a) Codex commits and pushes the diff, (b) CodeReviewer APPROVE on the diff, (c) docs-only smoke-test PR shows the `lint + typecheck + test` job green ≤ 5 minutes.
+- Branch-protection rule promotion (make this CI a "required check" on `main`) stays operator-owned. Surface to CEO once the workflow has demonstrated stability over a few PRs.
+
 ## 2026-04-29 05:08 Europe/Amsterdam — v0.4.28 ([ANKA-132](/ANKA/issues/ANKA-132) — retroactive §0.2 audit trail for [ANKA-127](/ANKA/issues/ANKA-127) BLOCK)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** heartbeat under issue [ANKA-127](/ANKA/issues/ANKA-127) (status `in_review`).

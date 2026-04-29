@@ -2,6 +2,29 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.29 — 2026-04-29 05:12 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer, executing [ANKA-138](/ANKA/issues/ANKA-138) — `infra:ci` re-enable / replace / keep-off decision (follow-up to [ANKA-127](/ANKA/issues/ANKA-127) major finding and [ANKA-132](/ANKA/issues/ANKA-132) split).
+
+**Why:** [ANKA-138](/ANKA/issues/ANKA-138) requires FE to commit an ADR before any implementation diff lands. CodeReviewer's [ANKA-127](/ANKA/issues/ANKA-127) finding flagged that `70ceb6c` left `origin/main` with no automated lint/typecheck/`bun test` gate — only operator-side §0.2 commands enforced gating, and that contract has empirically slipped (see [ANKA-101](/ANKA/issues/ANKA-101)). FE's decision is recorded as ADR-0004 in this commit; implementation (rename + smoke-test PR + BLUEPRINT cross-link) routes to [CodexExecutor](/ANKA/agents/codexexecutor) in a child issue. Sibling [ANKA-132](/ANKA/issues/ANKA-132) bump to 0.4.28 landed at 05:08 Europe/Amsterdam during this heartbeat; rebased on `bad012b` and bumped one further to 0.4.29 (same precedent as the `0.4.26` merge-integration window in [ANKA-126](/ANKA/issues/ANKA-126) / [ANKA-124](/ANKA/issues/ANKA-124)).
+
+**Changed** — `docs` (ADR + CHANGELOG + journal)
+
+- `.dev/decisions.md` — appends ADR-0004 — *Re-enable the existing GitHub Actions lint/test/typecheck workflow as-is*. Captures context, decision (rename `ci.yml.disabled` → `ci.yml`, no content edits), four rejected alternatives (replace/fork/keep-off/dispatch-only), and consequences (defence-in-depth gate; non-blocking until operator promotes to required check; future "disable CI" attempts must go through this audit trail).
+- `.dev/journal.md` — appends a 2026-04-29 entry capturing the ADR write and the next-step routing to CodexExecutor.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.28 → 0.4.29 (patch — docs-only ADR commit, but BLUEPRINT §0.2 narrow skip-class makes ADRs behaviour-affecting because they shift the project's canonical decision contract).
+
+**Verification**
+
+- No code paths changed; lint/typecheck/test not re-run on this commit (BLUEPRINT §0.2 narrow skip-class for ADR/journal/CHANGELOG-only edits stays in force, but the CHANGELOG entry itself is non-optional and is included).
+
+**Notes**
+
+- Implementation of the rename, the BLUEPRINT operational cross-link, and the docs-only smoke-test PR is **not** in this commit. They land in the [CodexExecutor](/ANKA/agents/codexexecutor) child issue created off [ANKA-138](/ANKA/issues/ANKA-138). Closing [ANKA-138](/ANKA/issues/ANKA-138) requires CodeReviewer sign-off + a green CI run on the smoke-test PR.
+
 ## 0.4.28 — 2026-04-29 05:08 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-132](/ANKA/issues/ANKA-132) — retroactive §0.2 audit-trail correction for the [ANKA-127](/ANKA/issues/ANKA-127) 12-hour critical review BLOCK.
