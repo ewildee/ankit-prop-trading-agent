@@ -2,6 +2,33 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 17:43 Europe/Amsterdam — PR #23 merged ([ANKA-167](/ANKA/issues/ANKA-167) — N8 freshness monitor, CodeReviewer APPROVE → rebase-merge)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** `f0cee6a1-48c2-4963-9708-a31425c4724c`.
+
+**What was done**
+
+- Picked up [ANKA-167](/ANKA/issues/ANKA-167) on `issue_assigned` wake. CodeReviewer APPROVE'd PR #23 at head `fca1d69e9b134a6752fc419b08d7d5c38d026772` ([verdict](/ANKA/issues/ANKA-167#comment-4f50aeac-5830-4613-89c5-aa8b275e277d)) with `8 pass / 0 fail / 15 expect()` on `services/news/src/freshness` and a clean `bun run typecheck`.
+- Rebased the two ANKA-167 commits in `.paperclip/worktrees/ANKA-167` onto current `origin/main` `f8fef00` (post ANKA-166 merge). Resolved version-slot collisions by reslotting `@ankit-prop/news` `0.3.7` → `0.4.0` → `0.4.1` against the new base; merged CHANGELOG entries; took main's content for `.dev/journal.md` (FE merge entry recorded here instead).
+- Re-ran the local verification gate at the rebased head: `bun install --frozen-lockfile` clean, `bun run lint` clean (only pre-existing unrelated workspace warnings/infos), `bun run typecheck` clean, `bun test services/news/src/freshness` 8 pass / 0 fail / 15 expects.
+- Force-pushed `feat/anka-167-freshness-monitor` (`fca1d69` → `4e8b444`), marked PR #23 ready-for-review, and rebase-merged into `main` (`gh pr merge 23 --rebase --match-head-commit 4e8b444...`). Merged commits on main: `6ced763` (feat) and `7ae29a8` (fix).
+- Fast-forwarded shared root local `main` (`f8fef00..7ae29a8`).
+
+**Findings**
+
+- Branch was based on the pre-ANKA-166 main (eb2043c era); had to merge across the four ANKA-166/233/231/214 commits. Workspace-only version-bump conflicts in `bun.lock` and `package.json` resolved by accepting the rebased commit's version line and re-pinning the `services/news` workspace entry.
+- `services/news` still has only the Phase 5 placeholder `start` script; the §0.2 service-restart/health step can only confirm that no long-running `/health` endpoint exists yet for this package.
+
+**Decisions**
+
+- Rebase-merged (not squash, not merge-commit) per ADR-0006 and §25 module-scoped commit policy. Both ANKA-167 commits already carry `feat(svc:news/freshness-monitor)` and `fix(svc:news/freshness-monitor)` scope tags; squash would have collapsed legible history without benefit.
+- Took main's `.dev/journal.md` during conflict resolution and recorded the merge-time entry on top of main as a separate `docs(...)` commit, mirroring the ANKA-166 / PR #18 pattern at `f8fef00`.
+
+**Open endings**
+
+- Pure freshness watchdog now lives in `services/news/src/freshness/`; binding to `/health/details` (N9) and the metrics emitter (N10) is still outstanding under [ANKA-75](/ANKA/issues/ANKA-75) wave-2.
+- Worktree at `.paperclip/worktrees/ANKA-167` and local branch `feat/anka-167-freshness-monitor` to be cleaned up next; ANKA-167 to be closed with code-reviewer APPROVE evidence and the `7ae29a8` merge SHA.
+
 ## 2026-04-29 17:13 Europe/Amsterdam — PR #18 merged ([ANKA-166](/ANKA/issues/ANKA-166) — N7 next-restricted locator, both reviewers APPROVE → rebase-merge)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `3ddb120f-fba3-4367-9730-b4d8fa19ab88`.
