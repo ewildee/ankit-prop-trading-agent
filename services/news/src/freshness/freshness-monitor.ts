@@ -24,6 +24,7 @@ export interface FreshnessMonitorLogger {
 export interface CreateFreshnessMonitorOptions {
   readonly db: FreshnessMonitorDb;
   readonly clock?: FreshnessMonitorClock;
+  // Reserved for N9/N10 transition logging; currentSnapshot stays side-effect free.
   readonly logger?: FreshnessMonitorLogger;
 }
 
@@ -51,16 +52,26 @@ export function createFreshnessMonitor(opts: CreateFreshnessMonitorOptions): Fre
         };
       }
 
-      if (lastFetchOk === '0') {
+      const nowUtc = clock.nowUtc();
+
+      if (lastFetchOk !== '1') {
         return {
-          ageSeconds: computeAgeSeconds(clock.nowUtc(), lastFetchAt),
+          ageSeconds: computeAgeSeconds(nowUtc, lastFetchAt),
           fresh: false,
           reason: 'fetch_unhealthy',
         };
       }
 
-      const ageMs = ageMsSince(clock.nowUtc(), lastFetchAt);
+      const ageMs = ageMsSince(nowUtc, lastFetchAt);
       const ageSeconds = ageSecondsFromMs(ageMs);
+
+      if (ageMs < 0) {
+        return {
+          ageSeconds,
+          fresh: false,
+          reason: 'fetch_unhealthy',
+        };
+      }
 
       if (!Number.isFinite(ageMs) || ageMs > STALENESS_LIMIT_MS) {
         return {
