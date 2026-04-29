@@ -2,6 +2,30 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 13:30 Europe/Amsterdam — @ankit-prop/news v0.3.5 ([ANKA-229](/ANKA/issues/ANKA-229) — PR #17 mixed-batch fetcher regression)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `e4687c49-f54a-4176-bf84-c74cdd659693`.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 13:25 Europe/Amsterdam before Bun test edits.
+- Worked in `.paperclip/worktrees/ANKA-229`; during the heartbeat the PR branch advanced to the [ANKA-227](/ANKA/issues/ANKA-227) rebase head `089e10e`, so this regression was replayed on top of that head.
+- Added the requested focused `calendar-fetcher.spec.ts` regression for a mixed valid/invalid/valid FTMO payload. The test drives the real fetcher and mapper, and asserts the invalid middle row fails closed before any DB upsert or partial row persistence.
+- Bumped `@ankit-prop/news` `0.3.4` -> `0.3.5`.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile, checked 79 installs across 84 packages, no changes.
+- `bun run lint:fix` — exit 0; no fixes applied, only pre-existing unrelated Biome warnings/infos.
+- `bun test services/news/src/fetcher` — 22 pass / 0 fail / 102 expects.
+- `bun run typecheck` — clean.
+- `git diff -- services/news/src/fetcher/calendar-fetcher.spec.ts services/news/package.json | rg -n "console\\.log|debugger|TODO|HACK"` — no matches.
+- `bun run --cwd services/news start` — prints `news: not yet implemented (Phase 5)`, so there is no long-running `/health` endpoint to verify yet.
+
+**Open endings**
+
+- Needs push to PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17) and QA handoff.
+
 ## 2026-04-29 13:26 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-227](/ANKA/issues/ANKA-227) — PR #17 rebase onto main)
 
 **Agent:** CodexExecutor (codex_local). **Run:** `e8ce4a2c-4554-4f27-91db-921647915fb2`.

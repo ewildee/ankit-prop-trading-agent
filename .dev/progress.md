@@ -2,12 +2,13 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-29 13:26 Europe/Amsterdam — [ANKA-227](/ANKA/issues/ANKA-227) PR #17 rebase onto main
+## 2026-04-29 13:30 Europe/Amsterdam — [ANKA-229](/ANKA/issues/ANKA-229) PR #17 mixed-batch regression
 
-- Wake reason: [ANKA-216](/ANKA/issues/ANKA-216) follow-up routed [ANKA-227](/ANKA/issues/ANKA-227) to CodexExecutor.
-- Working in existing PR worktree `.paperclip/worktrees/ANKA-162` on `codex/anka-162-calendar-fetcher`; shared root checkout untouched.
-- Fetched `origin`; `origin/main` advanced to `38009f1`, so PR #17 needed another rebase beyond the prior `31a0b0e` head.
-- Rebased `codex/anka-162-calendar-fetcher` onto `origin/main` `38009f1`; fetcher source diff versus pre-rebase head `6080b0b` is empty.
-- Resolved doc/version conflicts by preserving main's 13:18 pre-news entries and PR #17's 13:08/13:10 mapper evidence; `@ankit-prop/news` remains `0.3.4`.
-- Verification: `bun install` clean; `bun run lint:fix` exit 0 (pre-existing unrelated warnings/infos); fetcher+DB suite 29 pass / 115 expects; `bun run typecheck` clean; debug grep clean.
-- Next: commit this ANKA-227 record, force-push with lease, confirm PR #17 merge state, then hand back to FoundingEngineer.
+- Wake reason: assigned high-priority QA gap for PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17).
+- Fetched/read Bun llms.txt at 2026-04-29 13:25 Europe/Amsterdam.
+- Worktree: `.paperclip/worktrees/ANKA-229`, rebased onto `origin/codex/anka-162-calendar-fetcher` (`089e10e`) after the ANKA-227 rebase landed during this heartbeat.
+- Added one focused `calendar-fetcher.spec.ts` mixed-batch good/bad/good regression proving mapper failure yields zero `upsertEvents`, zero rows, no `last_fetch_at`, and `last_fetch_ok=0`.
+- Bumped `@ankit-prop/news` to `0.3.5` and updated changelog/journal audit trail.
+- Verification: `bun install` clean; `bun run lint:fix` exit 0 with only pre-existing unrelated Biome warnings/infos; `bun test services/news/src/fetcher` 22 pass / 102 expects; `bun run typecheck` clean; debug grep clean.
+- Service restart/health: `bun run --cwd services/news start` only prints the placeholder `news: not yet implemented (Phase 5)`, so no `/health` endpoint exists yet.
+- Next: finish rebase, push `HEAD:codex/anka-162-calendar-fetcher`, then hand to QAEngineer.

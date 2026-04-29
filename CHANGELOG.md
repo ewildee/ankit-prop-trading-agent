@@ -2,6 +2,24 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/news@0.3.5 — 2026-04-29 13:30 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-229](/ANKA/issues/ANKA-229) — QA checklist gap from [ANKA-224](/ANKA/issues/ANKA-224) on PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17).
+
+**Changed** — `svc:news/calendar-fetcher`
+
+- `services/news/src/fetcher/calendar-fetcher.spec.ts` — add mixed-batch (good/bad/good) no-partial-persistence regression spec ([ANKA-229](/ANKA/issues/ANKA-229), closes QA gap from [ANKA-224](/ANKA/issues/ANKA-224)).
+- `services/news/package.json` — `@ankit-prop/news` `0.3.4` → `0.3.5`.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile, checked 79 installs across 84 packages, no changes.
+- `bun run lint:fix` — exit 0; no fixes applied, only pre-existing unrelated Biome warnings/infos.
+- `bun test services/news/src/fetcher` — 22 pass / 0 fail / 102 expects.
+- `bun run typecheck` — clean.
+- `git diff -- services/news/src/fetcher/calendar-fetcher.spec.ts services/news/package.json | rg -n "console\\.log|debugger|TODO|HACK"` — no matches.
+- Service restart/health: `bun run --cwd services/news start` prints `news: not yet implemented (Phase 5)`, so there is no long-running news service or `/health` endpoint to verify yet.
+
 ## 0.4.39 — 2026-04-29 13:18 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-217](/ANKA/issues/ANKA-217) after CEO / FoundingEngineer unblocked the ADR numbering conflict.
