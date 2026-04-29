@@ -2,6 +2,37 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 13:18 Europe/Amsterdam — v0.4.39 ([ANKA-217](/ANKA/issues/ANKA-217) — ADR-0006 no public CI)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped Paperclip resume after CEO / FoundingEngineer unblock.
+
+**What was done**
+
+- Acknowledged the amended scope: no-public-CI lands as ADR-0006, preserving existing ADR-0005 for Elysia + Eden/Treaty and marking ADR-0004 superseded.
+- Fetched and read `https://bun.com/llms.txt` at 13:17 Europe/Amsterdam before the Bun verification gate.
+- Created `.paperclip/worktrees/ANKA-217` from `origin/main` on `codex/anka-217-no-public-ci`.
+- Deleted `.github/workflows/ci.yml.disabled`; the now-empty `.github/workflows/` and `.github/` directories are untracked and absent from the commit.
+- Appended ADR-0006 to `.dev/decisions.md`, updated BLUEPRINT §0.2 with the local-gate cross-link, and removed stale [ANKA-137](/ANKA/issues/ANKA-137) / [ANKA-138](/ANKA/issues/ANKA-138) public-CI assumptions from the project-root `AGENTS.md` merge protocol while preserving the rebase-only rule.
+- Bumped root `ankit-prop-umbrella` 0.4.38 → 0.4.39 and updated CHANGELOG, progress, and TODOS.
+- FoundingEngineer rebased onto `origin/main` after [ANKA-214](/ANKA/issues/ANKA-214) PR #20 landed; CHANGELOG/journal preserve both 13:18 entries newest-first; progress.md follows the §0.2 replace rule for the current session.
+
+**Findings**
+
+- Current `origin/main` was already v0.4.38, so the stale issue text's `0.4.36 → 0.4.37` bump became `0.4.38 → 0.4.39`.
+- No `BLUEPRINT.md` Appendix A / ADR index exists; the ADR record lives in `.dev/decisions.md`.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; no files changed, Biome reported only pre-existing warnings/infos.
+- `bun run lint` — exit 0; same pre-existing warnings/infos.
+- Initial `bun run typecheck` in the fresh worktree failed because dependencies were not installed; ran `bun install --frozen-lockfile`, which installed dependencies cleanly without a `bun.lock` diff.
+- `bun run typecheck` — clean after install.
+- `bun test` — 403 pass / 0 fail / 2207 expects.
+
+**Open endings**
+
+- Route the pushed branch to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) for the lightweight docs/ADR + workflow-file deletion pass requested on [ANKA-217](/ANKA/issues/ANKA-217).
+
 ## 2026-04-29 13:18 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-214](/ANKA/issues/ANKA-214) PR #20 merged onto main)
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped Paperclip wake on [ANKA-222](/ANKA/issues/ANKA-222) after QAEngineer PASS verdict.

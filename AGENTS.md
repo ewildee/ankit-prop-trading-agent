@@ -107,10 +107,10 @@ credentials.
 ## PR merge protocol ([ANKA-132](/ANKA/issues/ANKA-132))
 
 Repo: `ewildee/ankit-prop-trading-agent`. Two failure modes are known
-on the GitHub merge path. Until both are addressed at the platform
-level (App permissions widened, server-side footer validation in CI
-under [ANKA-137](/ANKA/issues/ANKA-137) / [ANKA-138](/ANKA/issues/ANKA-138)),
-the repo-local convention is mandatory.
+on the GitHub merge path. ADR-0006 retired public CI, so there is no
+GitHub-side footer validation path for this repo. Until a future
+CEO-approved server-side guard supersedes ADR-0006, the repo-local
+convention is mandatory.
 
 ### 1. Strategy: rebase only — no `--squash`, no `--merge`, no UI buttons
 
@@ -147,8 +147,7 @@ The only safe strategy on this repo is therefore:
   canonical footer that the local `commit-msg` hook already enforced
   at author time. No GitHub-side commit body is synthesised.
 
-Forbidden until [ANKA-137](/ANKA/issues/ANKA-137) lands a server-side
-CI footer guard:
+Forbidden until a future CEO-approved server-side footer guard exists:
 
 - `gh pr merge --squash` and the GitHub UI "Squash and merge" button.
 - `gh pr merge --merge` and the GitHub UI "Create a merge commit"
@@ -157,8 +156,8 @@ CI footer guard:
 If the PR's stated strategy in its description is `--squash` or
 `--merge`, override it to `--rebase` and note the override in the
 issue thread. Both `--squash` and `--merge` become available again
-only after [ANKA-137](/ANKA/issues/ANKA-137) ships and is operator-
-promoted to a required check on `main`.
+only after a fresh ADR supersedes ADR-0006 with an equivalent
+server-side footer validation path.
 
 ### 2. Fallback: `gh` CLI when the GitHub App returns 403
 
@@ -171,7 +170,7 @@ operator with admin) as the canonical merge path:
 
 1. Verify the head: `gh pr view <N> --json headRefOid,mergeable,mergeStateStatus,state`.
 2. Confirm it matches the QA-reviewed SHA recorded on the issue.
-3. Merge with the allowed strategy above (`--rebase --match-head-commit <sha>` only — never `--squash` or `--merge` until [ANKA-137](/ANKA/issues/ANKA-137) ships).
+3. Merge with the allowed strategy above (`--rebase --match-head-commit <sha>` only — never `--squash` or `--merge` until a fresh ADR supersedes ADR-0006 with an equivalent server-side footer-validation path).
 4. Record the merge commit SHA on the corresponding Paperclip issue.
 
 Do not retry the MCP merge tool on 403 — fall through to `gh`

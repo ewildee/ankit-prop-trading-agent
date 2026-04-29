@@ -2,6 +2,17 @@
 
 _Append-only, newest first. Each ADR captures: context, decision, alternatives, consequences._
 
+## ADR-0006 — No public CI
+
+- **Date:** 2026-04-29 13:18 Europe/Amsterdam
+- **Status:** Accepted (supersedes ADR-0004)
+- **Context:** CEO directive on [ANKA-147](/ANKA/issues/ANKA-147) comment `4d83598b` retired public CI for this repo. The package graph is intentionally private: `npm-registry-mirror.triplon.io` and `npm-registry.triplon.io` are internal Triplon hosts, are not sustainable public-runner dependencies, and the project does not plan to publish packages publicly. ADR-0004's GitHub Actions re-enable path is therefore dead; keeping the disabled workflow file would imply public CI remains a dormant option.
+- **Decision:** Do not use GitHub Actions, third-party hosted CI, or automated public-runner pipelines for this repo. Delete the inert `.github/workflows/ci.yml.disabled` file instead of preserving a one-line re-enable path. The verification gate is BLUEPRINT §0.2 local checks (`bun run lint`, `bun run typecheck`, `bun test`) run by the appropriate agent for the change and pasted into the issue thread before sign-off. The repo-local `.githooks/commit-msg` Paperclip-footer guard stays in place; it is a local hook, not public CI.
+- **Alternatives considered:**
+  - _Keep ADR-0004 dormant._ Rejected because a disabled workflow file and accepted re-enable ADR imply public CI remains a future option, contrary to CEO policy.
+  - _Use a self-hosted runner inside the Triplon network._ Rejected for the current phase because it adds operational surface for no current benefit. Reintroducing any automated runner requires a fresh ADR that supersedes this one.
+- **Consequences:** §0.2 local-check evidence is the only automated gate before merge. CodexExecutor, CodeReviewer, QAEngineer, and FoundingEngineer sign-offs must include actual command output for their role's check. Any future proposal to reintroduce public CI must explicitly supersede ADR-0006 and address the private-registry and credential-surface constraints.
+
 ## ADR-0005 — Adopt Elysia + Eden/Treaty as the workspace HTTP foundation
 
 - **Date:** 2026-04-29 07:43 Europe/Amsterdam
@@ -17,7 +28,7 @@ _Append-only, newest first. Each ADR captures: context, decision, alternatives, 
 ## ADR-0004 — Re-enable the existing GitHub Actions lint/test/typecheck workflow as-is
 
 - **Date:** 2026-04-29 05:12 Europe/Amsterdam
-- **Status:** Accepted (implementation deferred to [CodexExecutor](/ANKA/agents/codexexecutor) child issue under [ANKA-138](/ANKA/issues/ANKA-138))
+- **Status:** Superseded by ADR-0006 (2026-04-29)
 - **Context:** Commit `70ceb6c` (`chore(infra:ci): ANKA-107 disable github actions workflow`) renamed `.github/workflows/ci.yml` → `.github/workflows/ci.yml.disabled`. GitHub Actions only schedules `*.yml`/`*.yaml`, so `origin/main` has had **no active CI gate** for lint, typecheck, or `bun test` since 2026-04-28 17:37 Europe/Amsterdam. The original ANKA-107 rationale was "local agent commands per BLUEPRINT §0.2 (`bun run lint:fix` / `bun run typecheck` / `bun test`) remain the gating signal pre-production." [ANKA-127](/ANKA/issues/ANKA-127) (CodeReviewer 12-h critical review, 2026-04-28 23:08 Europe/Amsterdam) flagged this as a **major finding**: with multiple agents (FE, CodexExecutor, Debugger, QAEngineer) writing to a shared `main` and PR #1 already merged, the operator-only contract relies on per-heartbeat discipline that has empirically slipped at least once already (footer audit trail in [ANKA-101](/ANKA/issues/ANKA-101)). [ANKA-132](/ANKA/issues/ANKA-132) split the follow-up into the commit-footer guard ([ANKA-137](/ANKA/issues/ANKA-137)) and this CI re-enable ([ANKA-138](/ANKA/issues/ANKA-138)); they must not be bundled. The disabled workflow file (`.github/workflows/ci.yml.disabled`) is 30 lines: `actions/checkout@v4` → `oven-sh/setup-bun@v2` (`bun-version: 1.3.13`) → `bun install --frozen-lockfile` → `bun run lint` → `bun run typecheck` → `bun test`. It uses zero forbidden-list (§5.3) packages, adds no new npm dependency surface, and exactly mirrors the §0.2 local gate.
 - **Decision:** Re-enable the workflow **as-is** by renaming `.github/workflows/ci.yml.disabled` → `.github/workflows/ci.yml`. No content changes. Triggers stay `push: [main]` and `pull_request:`. Implementation routes to [CodexExecutor](/ANKA/agents/codexexecutor) as a single-commit diff that (a) performs the rename, (b) adds the §22 cross-link in `BLUEPRINT.md` operational section pointing at this ADR and at [ANKA-138](/ANKA/issues/ANKA-138), (c) bumps root + appends CHANGELOG + journal under FE-curated wording, (d) opens a docs-only smoke-test PR against `main` to confirm the workflow runs ≤ 5 minutes on a clean `bun install --frozen-lockfile`, and (e) closes [ANKA-138](/ANKA/issues/ANKA-138) only after CodeReviewer signs the diff and the smoke-test PR's `lint + typecheck + test` job is green. Branch-protection rules that elevate this CI gate to "required" are out of scope per the issue (operator-owned, escalate to CEO if/when desired).
 - **Alternatives considered:**
