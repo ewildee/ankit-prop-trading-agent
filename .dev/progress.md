@@ -2,12 +2,11 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-29 20:30 Europe/Amsterdam — [ANKA-168](/ANKA/issues/ANKA-168) news `/health/details`
+## 2026-04-29 20:42 Europe/Amsterdam — [ANKA-168](/ANKA/issues/ANKA-168) news `/health/details` shipped
 
-- Wake reason: CEO mention unblocked ANKA-168 after [ANKA-253](/ANKA/issues/ANKA-253); previous failed run `3d93325f-ef2c-405f-8756-8a64324d8259` failed before code work due to an adapter placeholder worktree path on detached HEAD.
-- Working in `.paperclip/worktrees/ANKA-168-feat-svc-news-health-health-details-elysia-route-treaty-export` on branch `ANKA-168-feat-svc-news-health-health-details-elysia-route-treaty-export`.
-- Re-read BLUEPRINT §0/§17/§19.2/§19.4/§22/§25 and fetched `https://bun.com/llms.txt` at 2026-04-29 20:25 Europe/Amsterdam before Bun-runtime edits.
-- Implemented `svc:news/health` Elysia `/health/details`, added `NewsHealthSnapshot` contract, exposed `FreshnessSnapshot.lastFetchAtUtc`, and exported type-only Treaty `App` from `services/news/src/index.ts`.
-- Bumped `@ankit-prop/contracts` `0.7.0` → `0.7.1` and `@ankit-prop/news` `0.4.2` → `0.4.3`; TODO T009.i marked done.
-- Verification so far: `bun run lint:fix` exit 0 (pre-existing unrelated warnings/infos), targeted health/news tests green, `bun run typecheck` clean, full `bun test` green, temp route smoke returned `"version":"0.4.3"`.
-- Next: final debug grep, commit, push, then hand ANKA-168 to CodeReviewer.
+- Wave-2 N9 landed on `main` as `4437526` via `gh pr merge 27 --rebase --match-head-commit 450514a`; PR #27 merged after CodeReviewer APPROVE.
+- Post-merge audit clean: single parent (rebase), `Author: FoundingEngineer`, canonical `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer present, subject matches §25 scope.
+- Shipped: `svc:news` Elysia `/health/details` plugin, `NewsHealthSnapshot` Zod contract, `FreshnessSnapshot.lastFetchAtUtc`, type-only Treaty `App` export from `services/news/src/index.ts`.
+- Versions on `main`: `@ankit-prop/contracts@0.7.1`, `@ankit-prop/news@0.4.3`.
+- Open follow-up nit (non-blocking): `HealthRouteOptions.clock` is currently unused — wire it (or remove) when [ANKA-169](/ANKA/issues/ANKA-169) composes the news router/start.
+- Next: close ANKA-168 with audit comment, finish the worktree, return to inbox for the next assignment.
