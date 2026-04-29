@@ -47,6 +47,34 @@ describe('mapCalendarItemToEvent', () => {
     }
   });
 
+  test('rejects offsetless ISO-8601 dates as schema drift (no host-timezone parse)', () => {
+    const date = '2026-04-03T14:30:00';
+
+    expect(() => mapCalendarItemToEvent(calendarItem({ date }))).toThrow(CalendarItemMapError);
+
+    try {
+      mapCalendarItemToEvent(calendarItem({ date }));
+    } catch (error) {
+      expect(error).toBeInstanceOf(CalendarItemMapError);
+      expect((error as CalendarItemMapError).field).toBe('date');
+      expect((error as Error).message).toContain(date);
+    }
+  });
+
+  test('rejects impossible calendar dates instead of silently rolling over', () => {
+    const date = '2026-02-31T14:30:00+01:00';
+
+    expect(() => mapCalendarItemToEvent(calendarItem({ date }))).toThrow(CalendarItemMapError);
+
+    try {
+      mapCalendarItemToEvent(calendarItem({ date }));
+    } catch (error) {
+      expect(error).toBeInstanceOf(CalendarItemMapError);
+      expect((error as CalendarItemMapError).field).toBe('date');
+      expect((error as Error).message).toContain(date);
+    }
+  });
+
   test('generates a deterministic id for identical input', () => {
     const item = calendarItem();
 

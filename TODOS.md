@@ -43,6 +43,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
   - [x] **T009.e** `svc:news/calendar-db` Bun SQLite store + `init.sql` — _ANKA-161_.
   - [x] **T009.f** `svc:news/calendar-fetcher` Zod validation + 3-attempt 5xx retry + 30-minute cadence + CalendarItem→CalendarEvent persistence mapping — _[ANKA-162](/ANKA/issues/ANKA-162)_, _[ANKA-220](/ANKA/issues/ANKA-220)_.
     - [x] **T009.f.1** Map validated FTMO `CalendarItem` payloads to persisted `CalendarEvent` rows before DB upsert — _[ANKA-220](/ANKA/issues/ANKA-220)_.
+    - [x] **T009.f.2** Reject offsetless and impossible `CalendarItem.date` values before deriving `eventTsUtc` — _[ANKA-231](/ANKA/issues/ANKA-231)_.
   - [ ] **T009.c** Lift `SymbolTagMap` schema into `@ankit-prop/contracts/config` once the config package surface exists.
 
 ## Phase 6 — `dashboard`
