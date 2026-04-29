@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 import { CachedFixtureProvider, MarketDataNotAvailable } from '@ankit-prop/market-data';
 import { snapshotFromEvalResult } from './replay-cli.ts';
-import { type ReplayInput, replayWithProvider } from './replay-driver.ts';
+import { type ReplayInput, ReplaySymbolMetaMissing, replayWithProvider } from './replay-driver.ts';
 import { OPEN_HOLD_CLOSE_V1 } from './replay-strategies.ts';
 import type { AccountConfig, Bar, BarStrategy, SymbolMeta } from './types.ts';
 
@@ -192,8 +192,70 @@ describe('replayWithProvider', () => {
     }
   });
 
+  test('rejects when symbolMetas is empty for a requested symbol', async () => {
+    const provider = await fixtureProvider();
+    const alwaysOpen: BarStrategy = {
+      name: 'always-open',
+      onBar(bar) {
+        return [
+          {
+            kind: 'open',
+            side: 'long',
+            symbol: bar.symbol,
+            sizeLots: 1,
+            stopLoss: bar.close * 0.99,
+          },
+        ];
+      },
+    };
+    await expect(
+      replayWithProvider({
+        strategyVersion: alwaysOpen.name,
+        account: ACCOUNT,
+        provider,
+        symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+        window: SMOKE_WINDOW,
+        symbolMetas: [],
+        strategy: alwaysOpen,
+      }),
+    ).rejects.toBeInstanceOf(ReplaySymbolMetaMissing);
+  });
+
+  test('rejects when symbolMetas omits one of several requested symbols', async () => {
+    const provider = await fixtureProvider();
+    let caught: ReplaySymbolMetaMissing | undefined;
+    try {
+      await replayWithProvider({
+        strategyVersion: 'noop',
+        account: ACCOUNT,
+        provider,
+        symbols: [
+          { symbol: 'XAUUSD', timeframe: '5m' },
+          { symbol: 'NAS100', timeframe: '5m' },
+        ],
+        window: SMOKE_WINDOW,
+        symbolMetas: await symbolMetas(provider, ['XAUUSD']),
+        strategy: { name: 'noop', onBar: () => [] },
+      });
+    } catch (e) {
+      caught = e as ReplaySymbolMetaMissing;
+    }
+    expect(caught).toBeInstanceOf(ReplaySymbolMetaMissing);
+    expect(caught?.missingSymbols).toEqual(['NAS100']);
+  });
+
   test('passes provider availability errors through', async () => {
     const provider = await fixtureProvider();
+    // Caller supplies a synthetic SymbolMeta for EURUSD to satisfy the
+    // fail-closed coverage check, so this test specifically exercises the
+    // provider-error path (no fixture for EURUSD) instead of the upstream
+    // metadata-coverage path.
+    const eurusdMeta: SymbolMeta = {
+      symbol: 'EURUSD',
+      pipSize: 0.0001,
+      contractSize: 100_000,
+      typicalSpreadPips: 1,
+    };
     await expect(
       replayWithProvider({
         strategyVersion: 'unknown-symbol',
@@ -201,7 +263,7 @@ describe('replayWithProvider', () => {
         provider,
         symbols: [{ symbol: 'EURUSD', timeframe: '5m' }],
         window: SMOKE_WINDOW,
-        symbolMetas: await symbolMetas(provider, ['XAUUSD']),
+        symbolMetas: [eurusdMeta],
         strategy: { name: 'noop', onBar: () => [] },
       }),
     ).rejects.toThrow(MarketDataNotAvailable);

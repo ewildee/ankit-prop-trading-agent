@@ -12,11 +12,26 @@ export type ReplayInput = {
   strategy: BarStrategy;
 };
 
+// Thrown when a requested symbol has no matching SymbolMeta. The simulator
+// silently skips bars whose symbol is absent from the metas map, which would
+// fail-open: a caller asking for XAUUSD with `symbolMetas: []` would get a
+// clean zero-trade EvalResult instead of an error. Replay must fail closed.
+export class ReplaySymbolMetaMissing extends Error {
+  readonly missingSymbols: ReadonlyArray<string>;
+  constructor(missingSymbols: ReadonlyArray<string>) {
+    super(`replay-driver: missing SymbolMeta for requested symbols: ${missingSymbols.join(', ')}`);
+    this.name = 'ReplaySymbolMetaMissing';
+    this.missingSymbols = missingSymbols;
+  }
+}
+
 type ReplayPreparedStrategy = BarStrategy & {
   prepareReplay?: (bars: ReadonlyArray<Bar>) => BarStrategy;
 };
 
 export async function replayWithProvider(input: ReplayInput): Promise<EvalResult> {
+  assertSymbolMetaCoverage(input);
+
   const barSets = await Promise.all(
     input.symbols.map(async (s) => ({
       symbol: s.symbol,
@@ -44,6 +59,18 @@ export async function replayWithProvider(input: ReplayInput): Promise<EvalResult
     events,
     strategy,
   });
+}
+
+function assertSymbolMetaCoverage(input: ReplayInput): void {
+  const metas = new Set(input.symbolMetas.map((m) => m.symbol));
+  const missing: string[] = [];
+  const seen = new Set<string>();
+  for (const s of input.symbols) {
+    if (seen.has(s.symbol)) continue;
+    seen.add(s.symbol);
+    if (!metas.has(s.symbol)) missing.push(s.symbol);
+  }
+  if (missing.length > 0) throw new ReplaySymbolMetaMissing(missing);
 }
 
 function mergeBars(

@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 00:35 Europe/Amsterdam — [ANKA-280](/ANKA/issues/ANKA-280) CHANGES_REQUESTED follow-up (replay-driver fail-closed + cwd-independent baselines)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_comment_mentioned` wake on [ANKA-281](/ANKA/issues/ANKA-281) which surfaced [ANKA-280](/ANKA/issues/ANKA-280) routing back to FE with `CHANGES_REQUESTED` from CodeReviewer (comment `3122cb0b`).
+
+**What was done**
+
+- Reproduced the reviewer's fail-open: with `symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }]` and `symbolMetas: []`, `replayWithProvider()` previously returned a clean `{tradeCount:0, breaches:0}` `EvalResult`. Root cause: `sim-engine.runBarSimulation` skips any bar whose symbol is absent from the metas map; the replay path passed caller metas straight through without verifying coverage.
+- Added `assertSymbolMetaCoverage(input)` in `packages/eval-harness/src/replay-driver.ts`, run before `backtest()`. Builds a `Set` of supplied meta symbols, walks the requested symbols once, and throws a typed `ReplaySymbolMetaMissing` error (with `missingSymbols` array) listing every uncovered symbol. Exported the class from `replay-driver.ts` and re-exported it from `src/index.ts` so callers (trader, autoresearch) can pattern-match on it.
+- Added two `.spec.ts` cases in `replay-driver.spec.ts`: empty-metas rejection and partial-metas rejection (with `missingSymbols` payload assertion). Repaired the existing `passes provider availability errors through` test by supplying a synthetic `EURUSD` `SymbolMeta`, so it still exercises the provider-error path (no fixture for EURUSD) instead of the new upstream coverage check.
+- Repaired `replay-baseline.spec.ts` cwd dependence: pinned both the baseline directory (`join(import.meta.dir, '..', 'baselines')`) and `FIXTURE_ROOT` (`join(import.meta.dir, '..', '..', '..', 'data/market-data/twelvedata/v1.0.0-2026-04-28')`) via `import.meta.dir`. `(cd packages/eval-harness && bun test src/replay-baseline.spec.ts)` now passes 2/2; previously it was failing with `ENOENT ... packages/eval-harness/packages/eval-harness/baselines/...`.
+- No version bump (same in-flight branch / same release window: `0.4.48` / eval-harness `0.2.0`).
+
+**Findings**
+
+- `runReplaySnapshot()` already calls `resolveSymbolMetas(provider, symbols)` (replay-cli.ts:82) which raises if any requested symbol is missing in the provider's `listSymbols()`, so the new coverage assertion is a no-op for the CLI path. CLI byte-stability check confirmed: `cmp -s` against the committed baseline still reports byte-identical.
+- Initially `loadManifest` looked cwd-dependent too, but it's a pure function over `fixtureRoot`; the cwd-dep was upstream in the spec's `FIXTURE_ROOT` literal. Fixing the spec was the correct seam.
+- The new validation does not double up on `resolveSymbolMetas` semantics: the spec wants public-API fail-closed, not just CLI fail-closed. Direct `replayWithProvider()` callers (downstream packages) now get the same guarantee.
+
+**Verification**
+
+- `bun run lint` → exit 0 (27 pre-existing warnings, 37 infos).
+- `bun run config:codegen --check && bun run packages/triplon-config/src/codegen/run.ts --check` → clean.
+- `bun run typecheck` → clean.
+- `bun test packages/eval-harness/src/replay-driver.spec.ts packages/eval-harness/src/replay-baseline.spec.ts packages/eval-harness/src/golden.spec.ts packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/backtest.spec.ts` → 28 pass / 0 fail / 8128 expects.
+- `(cd packages/eval-harness && bun test src/replay-baseline.spec.ts)` → 2 pass / 0 fail.
+- CLI byte-stability `cmp -s` → byte-identical.
+
+**Next**
+
+- Commit + push to `origin/ANKA-70-replay-harness-wired-to-eval-harness-td-fixtures`.
+- Route [ANKA-280](/ANKA/issues/ANKA-280) back to CodeReviewer for re-review (`assigneeAgentId` + `status: 'in_review'` in same PATCH per the sharpened handoff convention).
+
 ## 2026-04-29 23:56 Europe/Amsterdam — v0.4.48 / @ankit-prop/eval-harness v0.2.0 ([ANKA-280](/ANKA/issues/ANKA-280))
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-280](/ANKA/issues/ANKA-280) in inherited [ANKA-70](/ANKA/issues/ANKA-70) worktree.
