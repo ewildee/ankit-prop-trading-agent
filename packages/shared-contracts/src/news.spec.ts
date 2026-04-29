@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  CalendarEvent,
   CalendarImpact,
   CalendarItem,
   CalendarResponse,
@@ -22,6 +23,24 @@ const minimalCalendarItem = {
   articleLink: null,
 } as const;
 
+const minimalCalendarEvent = {
+  id: 'ftmo-event-123',
+  eventTsUtc: '2026-04-28T12:30:00.000Z',
+  currency: 'USD',
+  date: '2026-04-28T14:30:00+02:00',
+  title: 'US Non-Farm Payrolls',
+  impact: 'high',
+  instrument: 'USD + US Indices + XAUUSD + DXY',
+  instrumentTags: ['USD', 'US Indices', 'XAUUSD', 'DXY'],
+  restricted: true,
+  eventType: 'normal',
+  forecast: null,
+  previous: null,
+  actual: null,
+  youtubeLink: null,
+  articleLink: null,
+} as const;
+
 describe('news calendar contracts', () => {
   test('CalendarItem parses the minimal valid FTMO calendar item', () => {
     const parsed = CalendarItem.parse(minimalCalendarItem);
@@ -36,6 +55,24 @@ describe('news calendar contracts', () => {
 
     expect(parsed.items).toHaveLength(1);
     expect(parsed.items[0]?.impact).toBe('medium');
+  });
+
+  test('CalendarEvent parses the normalized store event shape', () => {
+    const parsed = CalendarEvent.parse(minimalCalendarEvent);
+
+    expect(parsed.id).toBe('ftmo-event-123');
+    expect(parsed.eventTsUtc).toBe('2026-04-28T12:30:00.000Z');
+    expect(parsed.currency).toBe('USD');
+    expect(parsed.instrumentTags).toEqual(['USD', 'US Indices', 'XAUUSD', 'DXY']);
+  });
+
+  test('CalendarEvent fails closed on non-UTC event timestamps', () => {
+    expect(() =>
+      CalendarEvent.parse({
+        ...minimalCalendarEvent,
+        eventTsUtc: '2026-04-28T14:30:00+02:00',
+      }),
+    ).toThrow();
   });
 
   test('eventType accepts unknown strings for runtime metric handling', () => {

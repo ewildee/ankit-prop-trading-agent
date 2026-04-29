@@ -38,6 +38,7 @@ export {
   SUPERVISOR_SERVICE_STATES,
 } from './health.ts';
 export {
+  CalendarEvent,
   CalendarImpact,
   CalendarItem,
   CalendarResponse,
