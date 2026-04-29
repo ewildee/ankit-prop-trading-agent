@@ -2,6 +2,35 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.34 / @ankit-prop/news@0.2.1 — 2026-04-29 09:24 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-163](/ANKA/issues/ANKA-163) — `svc:news/restricted-window-evaluator` ±5 min tier-1 gate.
+
+**Why:** Wave-2 N5 of [ANKA-75](/ANKA/issues/ANKA-75) needs a pure evaluator before Elysia route wiring. The evaluator keeps calendar access, symbol-tag mapping, and time sources injected so the later server issue can reuse it without pulling config or DB globals into the rule logic.
+
+**Added** — `svc:news/restricted-window-evaluator`
+
+- `services/news/src/evaluator/restricted-window.ts` — exports `evaluateRestricted({ db, mapper, clock }, { atUtc, instruments })`, queries the inclusive ±5 min UTC window, filters tier-1 events (`impact === 'high' || restriction`), checks mapper-resolved affected symbols, validates the canonical `RestrictedReply`, and passes `pragueDayBucket`-derived day buckets to the DB seam for DST-safe store integration.
+- `services/news/src/evaluator/restricted-window.spec.ts` — covers +0/+4/+5/+6 minute boundaries, tier-2/3 ignore, `restriction: true` low-impact inclusion, multi-tag `XAUUSD` matching, Prague spring/fall DST bucket crossings, no-match, and empty instruments.
+- `services/news/src/evaluator/index.ts` — barrel export for the evaluator and DI types.
+
+**Changed** — workspace/package metadata
+
+- `services/news/package.json` — `@ankit-prop/news` `0.2.0` → `0.2.1`; adds direct workspace dependency on `@ankit-prop/contracts` for `RestrictedReply` and Prague helpers.
+- Root `package.json` — `0.4.33` → `0.4.34`; `bun.lock` refreshed by Bun 1.3.13.
+- `TODOS.md` — records [ANKA-163](/ANKA/issues/ANKA-163) as completed under Phase 5.
+
+**Contract note**
+
+- [ANKA-163](/ANKA/issues/ANKA-163) text mentions `rule: 'restricted_window'` plus `eventId` / `instrument` / `tag` / `eventTimeUtc`, but [ANKA-78](/ANKA/issues/ANKA-78), [ANKA-80](/ANKA/issues/ANKA-80), BLUEPRINT §11.4, and BLUEPRINT §19.2 pin the current canonical shape to `{ event, eta_seconds, rule }` with `rule: 'blackout_pm5'` for this endpoint. This implementation follows the shipped contract.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile with the new workspace edge.
+- `bun run lint:fix` — exit 0; Biome formatted the new evaluator files and reported only pre-existing warnings/infos in unrelated packages.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts services/news/src/symbol-tag-mapper.spec.ts packages/shared-contracts/src/news.spec.ts packages/shared-contracts/src/time.spec.ts` — 30 pass / 0 fail / 60 expects.
+- `bun run typecheck` — clean.
+
 ## 0.4.33 / @ankit-prop/contracts@0.6.0 / @ankit-prop/eval-harness@0.1.4 — 2026-04-29 09:03 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer (claude_local), executing [ANKA-158](/ANKA/issues/ANKA-158) — CodeReviewer APPROVE rebase + merge for [ANKA-129](/ANKA/issues/ANKA-129) (F1 of [ANKA-85](/ANKA/issues/ANKA-85)).
