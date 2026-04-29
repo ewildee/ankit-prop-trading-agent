@@ -4,7 +4,12 @@ import { calendarFetchBackoffDelayMs } from './backoff.ts';
 
 export type CalendarEvent = CalendarItem;
 
-export type CalendarFetchFailureReason = 'persistent_5xx' | 'http_4xx' | 'schema_mismatch';
+export type CalendarFetchFailureReason =
+  | 'persistent_5xx'
+  | 'http_4xx'
+  | 'schema_mismatch'
+  | 'fetch_error'
+  | 'persist_error';
 
 export type CalendarFetchResult =
   | { ok: true; events: CalendarEvent[]; fetchedAt: string }
@@ -46,11 +51,24 @@ export interface CalendarFetcher {
   stop(): void;
 }
 
-export const DEFAULT_FTMO_CALENDAR_URL =
-  'https://gw2.ftmo.com/public-api/v1/economic-calendar?timezone=Europe%2FPrague';
+export const DEFAULT_FTMO_CALENDAR_URL = 'https://gw2.ftmo.com/public-api/v1/economic-calendar';
 export const CALENDAR_FETCH_INTERVAL_MS = 30 * 60 * 1_000;
 
 const MAX_HTTP_ATTEMPTS = 3;
+const CALENDAR_WINDOW_MS = 14 * 24 * 60 * 60 * 1_000;
+const PRAGUE_TZ = 'Europe/Prague';
+
+const PRAGUE_DATE_TIME = new Intl.DateTimeFormat('en-CA', {
+  timeZone: PRAGUE_TZ,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hourCycle: 'h23',
+  timeZoneName: 'longOffset',
+});
 
 const defaultClock: CalendarFetcherClock = {
   nowUtc: () => new Date().toISOString(),
@@ -61,9 +79,25 @@ const silentLogger: CalendarFetcherLogger = {
   warn() {},
 };
 
-function calendarUrl(baseUrl: string): string {
+function formatPragueDateTime(tsMs: number): string {
+  const parts = PRAGUE_DATE_TIME.formatToParts(new Date(tsMs));
+  const get = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((part) => part.type === type)?.value ?? '';
+  const offset = get('timeZoneName').replace('GMT', '') || '+00:00';
+  return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}:${get(
+    'second',
+  )}${offset}`;
+}
+
+function calendarUrl(baseUrl: string, nowUtc: string): string {
+  const nowMs = Date.parse(nowUtc);
+  if (!Number.isFinite(nowMs)) {
+    throw new Error(`invalid nowUtc: ${nowUtc}`);
+  }
   const url = new URL(baseUrl);
-  url.searchParams.set('timezone', 'Europe/Prague');
+  url.searchParams.set('dateFrom', formatPragueDateTime(nowMs));
+  url.searchParams.set('dateTo', formatPragueDateTime(nowMs + CALENDAR_WINDOW_MS));
+  url.searchParams.set('timezone', PRAGUE_TZ);
   return url.toString();
 }
 
@@ -79,17 +113,44 @@ async function markFetchFailed(db: CalendarFetcherDb): Promise<void> {
   await db.setMeta('last_fetch_ok', '0');
 }
 
+async function markFetchFailedBestEffort(
+  db: CalendarFetcherDb,
+  logger: CalendarFetcherLogger,
+): Promise<void> {
+  try {
+    await markFetchFailed(db);
+  } catch (error) {
+    logger.error?.({ event: 'fetcher.mark_failed_error', error }, 'fetcher.mark_failed_error');
+  }
+}
+
 export function createCalendarFetcher(opts: CreateCalendarFetcherOptions): CalendarFetcher {
   const fetchImpl: CalendarFetcherFetch = opts.fetch ?? ((input, init) => Bun.fetch(input, init));
   const clock = opts.clock ?? defaultClock;
   const logger = opts.logger ?? silentLogger;
-  const url = calendarUrl(opts.baseUrl ?? DEFAULT_FTMO_CALENDAR_URL);
+  const baseUrl = opts.baseUrl ?? DEFAULT_FTMO_CALENDAR_URL;
 
   let intervalHandle: unknown = null;
 
   async function fetchOnce(): Promise<CalendarFetchResult> {
+    let url: string;
+    try {
+      url = calendarUrl(baseUrl, clock.nowUtc());
+    } catch (error) {
+      await markFetchFailedBestEffort(opts.db, logger);
+      logger.warn({ event: 'fetcher.fetch_error', error }, 'fetcher.fetch_error');
+      return { ok: false, reason: 'fetch_error' };
+    }
+
     for (let attempt = 1; attempt <= MAX_HTTP_ATTEMPTS; attempt += 1) {
-      const response = await fetchImpl(url);
+      let response: Response;
+      try {
+        response = await fetchImpl(url);
+      } catch (error) {
+        await markFetchFailedBestEffort(opts.db, logger);
+        logger.warn({ event: 'fetcher.fetch_error', error }, 'fetcher.fetch_error');
+        return { ok: false, reason: 'fetch_error' };
+      }
 
       if (response.status >= 500) {
         if (attempt >= MAX_HTTP_ATTEMPTS) {
@@ -137,9 +198,15 @@ export function createCalendarFetcher(opts: CreateCalendarFetcherOptions): Calen
       }
 
       const fetchedAt = clock.nowUtc();
-      await opts.db.upsertEvents(parsed.data.items, fetchedAt);
-      await opts.db.setMeta('last_fetch_at', fetchedAt);
-      await opts.db.setMeta('last_fetch_ok', '1');
+      try {
+        await opts.db.upsertEvents(parsed.data.items, fetchedAt);
+        await opts.db.setMeta('last_fetch_at', fetchedAt);
+        await opts.db.setMeta('last_fetch_ok', '1');
+      } catch (error) {
+        await markFetchFailedBestEffort(opts.db, logger);
+        logger.warn({ event: 'fetcher.persist_error', error }, 'fetcher.persist_error');
+        return { ok: false, reason: 'persist_error' };
+      }
       return { ok: true, events: parsed.data.items, fetchedAt };
     }
 
