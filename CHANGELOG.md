@@ -2,6 +2,34 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/ctrader-gateway@0.3.0 — 2026-04-29 08:04 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-133](/ANKA/issues/ANKA-133) — F4 gateway `/health` dogfood migration from [ANKA-85](/ANKA/issues/ANKA-85).
+
+**Why:** [ANKA-131](/ANKA/issues/ANKA-131) landed the workspace Elysia + Eden/Treaty foundation. The gateway health endpoint is the first service endpoint to adopt it while preserving the existing `HealthSnapshot` JSON shape and HTTP status behavior.
+
+**Changed** — `svc:gateway/health`
+
+- `services/ctrader-gateway/src/health-snapshot.ts` — split pure `buildHealthSnapshot(deps)` and health dependency types out of the transport module.
+- `services/ctrader-gateway/src/health-server.ts` — replaced the hand-rolled `Bun.serve` fetch router with `buildHealthApp(deps)` on Elysia; `startHealthServer(opts)` still returns the underlying Bun server for the existing `start.ts` shutdown path.
+- `services/ctrader-gateway/src/index.ts` — exports a type-only Treaty `App` alias from the Elysia health app.
+- `services/ctrader-gateway/package.json` — version `0.2.12` → `0.3.0`; declares the direct `elysia@1.4.28` dependency already approved in the workspace foundation.
+
+**Tests**
+
+- `services/ctrader-gateway/src/health-snapshot.spec.ts` — pure snapshot tests for degraded default, connected healthy state, and explicit unhealthy dependency state.
+- `services/ctrader-gateway/src/health-server.spec.ts` — Elysia `app.handle(new Request(...))` round-trips for `GET /health` 200, unhealthy → 503, and unknown path 404.
+- `services/ctrader-gateway/src/index.spec.ts` — `assertExportsTreaty` source smoke for the type-only `App` export.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean.
+- `bun run lint:fix` — exit 0; Biome reported pre-existing warnings/infos in unrelated files and made no final changes.
+- `bun test services/ctrader-gateway` — 110 pass / 0 fail / 611 expects.
+- `bun test` — 364 pass / 0 fail / 2132 expects.
+- `bun run typecheck` — clean.
+- Runtime smoke: restarted the old gateway process on `:9201`; `curl http://127.0.0.1:9201/health` returned `version: "0.3.0"` from the Elysia server.
+
 ## 0.4.32 / @ankit-prop/contracts@0.5.0 — 2026-04-29 07:43 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-131](/ANKA/issues/ANKA-131) — F3 Elysia + Eden/Treaty workspace HTTP foundation from [ANKA-85](/ANKA/issues/ANKA-85).
