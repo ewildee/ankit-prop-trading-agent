@@ -31,7 +31,7 @@
     },
     "packages/market-data-twelvedata": {
       "name": "@ankit-prop/market-data-twelvedata",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "bin": {
         "td-fetch": "src/cli.ts",
       },
@@ -59,13 +59,20 @@
         "zod": "4.3.6",
       },
     },
+    "packages/triplon-config": {
+      "name": "@triplon/config",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "4.3.6",
+      },
+    },
     "services/autoresearch": {
       "name": "@ankit-prop/autoresearch",
       "version": "0.0.1",
     },
     "services/ctrader-gateway": {
       "name": "@ankit-prop/ctrader-gateway",
-      "version": "0.2.10",
+      "version": "0.2.12",
       "dependencies": {
         "@ankit-prop/contracts": "workspace:*",
         "zod": "4.3.6",
@@ -147,7 +154,7 @@
 
     "@protobufjs/utf8": ["@protobufjs/utf8@1.1.0", "https://npm-registry-mirror.triplon.io/@protobufjs/utf8/-/utf8-1.1.0.tgz", {}, "sha512-Vvn3zZrhQZkkBE8LSuW3em98c0FwgO4nxzv6OdSxPKJIEKY2bGbHn+mhGIPerzI4twdxaP8/0+06HBpwf345Lw=="],
 
-    "@triplon/config": ["@triplon/config@0.1.0", "https://npm-registry.triplon.io/@triplon/config/-/config-0.1.0.tgz", { "dependencies": { "zod": "^4.3.6" }, "bin": { "render-config-schema": "bin/render-config-schema.ts" } }, "sha512-zbQdxEh2oApFsZs84qkA8Jt85d+YL4EN7blKabDt07OUKfVJqBZrStk1hi5jLBWosP0K40ZpQ2PnFuuZVyg2qg=="],
+    "@triplon/config": ["@triplon/config@workspace:packages/triplon-config"],
 
     "@triplon/proc-supervisor": ["@triplon/proc-supervisor@workspace:packages/proc-supervisor"],
 

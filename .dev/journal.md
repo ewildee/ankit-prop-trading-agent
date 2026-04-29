@@ -2,6 +2,31 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 06:17 Europe/Amsterdam — v0.4.36 ([ANKA-137](/ANKA/issues/ANKA-137) — PR #7 merge-conflict resolution)
+
+**What was done**
+
+- Followed the `issue_children_completed` wake after [ANKA-144](/ANKA/issues/ANKA-144), [ANKA-145](/ANKA/issues/ANKA-145), [ANKA-146](/ANKA/issues/ANKA-146), [ANKA-150](/ANKA/issues/ANKA-150), and [ANKA-151](/ANKA/issues/ANKA-151) reached done.
+- Fast-forwarded `.paperclip/worktrees/ANKA-137` to PR #7 head `bae9d80` and confirmed GitHub still reported the PR as conflicting.
+- Merged `origin/main` into the feature branch. Conflicts were metadata-only: `.dev/journal.md`, `.dev/progress.md`, `CHANGELOG.md`, `TODOS.md`, and root `package.json`.
+- Preserved both append-only lineages in journal/changelog, kept the approved footer workflow files intact, and bumped root `ankit-prop-umbrella` to 0.4.36.
+
+**Findings**
+
+- Source conflicts did not touch the approved footer workflow/checker/test files; mainline changes were the `@triplon/config` package and related news/config tests.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean; no lockfile changes.
+- `bash .github/workflows/__tests__/commit-footer-check.sh` — 14 pass.
+- `bun run lint:fix` — exit 0 with existing warnings/no fixes.
+- `bun test` — 354 pass / 0 fail / 2116 expects.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- Merge commit, push, and PR #7 check re-evaluation are next in this heartbeat.
+
 ## 2026-04-29 06:11 Europe/Amsterdam — v0.4.35 ([ANKA-150](/ANKA/issues/ANKA-150) — multi-commit forged merge regression)
 
 **What was done**
@@ -164,6 +189,85 @@ _Append-only, newest first. Never edit past entries._
 
 - [ANKA-137](/ANKA/issues/ANKA-137) still requires CodeReviewer and SecurityReviewer approval, plus a real GitHub PR smoke that demonstrates red on lowercase and green on the canonical trailer.
 
+## 2026-04-29 06:08 Europe/Amsterdam — docs-only ([ANKA-140](/ANKA/issues/ANKA-140) — PR #5 merge)
+
+**What was done**
+
+- Scoped Paperclip wake on [ANKA-140](/ANKA/issues/ANKA-140) following [CodeReviewer's APPROVE](/ANKA/issues/ANKA-140#comment-313abc99-36d4-4060-b4ae-2a85917346dc) on PR #5 head `24153fec8ad2c3f052afa6e380f143eb9a7c376f` (zero blocking, zero major, zero minor findings).
+- Verified PR mergeability via `gh pr view 5` — `MERGEABLE`/`CLEAN`. PR was still in draft, so promoted with `gh pr ready 5` then merged via `gh pr merge 5 --rebase --delete-branch` per the [ANKA-132](/ANKA/issues/ANKA-132) merge protocol (rebase only — server-side merge commits strip the canonical `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer).
+- `origin/main` advanced `733c53e..9dab3ee` (`9dab3ee5a91895ef854927462e6f5aa24c42976d`). Local `.paperclip/worktrees/ANKA-130` worktree removed; remote branch `anka-130-triplon-config` deleted by `--delete-branch`.
+- Closed [ANKA-140](/ANKA/issues/ANKA-140) (own issue, in_review → done) and [ANKA-130](/ANKA/issues/ANKA-130) (parent, owned by CodexExecutor) with chain-of-command PATCH per the reviewer's hand-back.
+- Authored this docs-only journal/progress entry on a fresh worktree at `.paperclip/worktrees/ANKA-140` off `origin/main` (branch `anka-140-merge-journal`) rather than committing on the orphaned `anka-121-dashboard-shell` shared-root branch — keeps merge-action housekeeping out of unrelated feature scope.
+
+**Findings**
+
+- Local branch deletion blocked by Safety Net (`git branch -D` rejected without merge check) because rebase-merge produced a new SHA on `origin/main`, so the local branch tip looked unmerged. Remote branch is already deleted — left the stale local ref in place; harmless and will get pruned manually by Étienne. No protocol drift.
+- PR #5 was a draft when the review came in. Filed as a one-off observation: future Codex-authored PRs that go straight to review should be marked ready at push time so the reviewer doesn't need an extra `gh pr ready` round-trip in the merge handoff. Not worth a process change yet — single occurrence.
+- Chain-of-command PATCH on [ANKA-130](/ANKA/issues/ANKA-130) succeeded even though the issue was assigned to CodexExecutor (`5e6c5e8b-...`) — confirms FE has direct close authority over reports' issues without needing a checkout reassign.
+
+**Decisions**
+
+- Not creating a follow-up child issue for the stale local branch ref — single-host artefact, no operational impact, and the user's manual `git branch -D` is the cheapest fix. Logged here for traceability instead.
+- Not bumping any package version — no production code changed; this is a `.dev/` journal-only commit. Per AGENTS.md trivial docs-only row of the review-gate matrix, no reviewer required; closing self.
+
+**Open endings**
+
+- F2 of [ANKA-85](/ANKA/issues/ANKA-85) (`@triplon/config` scaffold) is now landed on `main`. Wave-2 of [ANKA-75](/ANKA/issues/ANKA-75) (additional config consumers — agent-config, broker-config, news-config tables in §17) is unblocked; sequencing waits on the next CEO-prioritised heartbeat.
+- The orphaned `anka-121-dashboard-shell` branch in the shared root remains the active dashboard-shell scope; not touched by this entry.
+
+## 2026-04-29 05:49 Europe/Amsterdam — @triplon/config v0.1.2 ([ANKA-149](/ANKA/issues/ANKA-149) — [ANKA-140](/ANKA/issues/ANKA-140) BLOCK fix)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-149](/ANKA/issues/ANKA-149); no pending comments, so work proceeded from the issue description.
+- Created `.paperclip/worktrees/ANKA-149` from `origin/anka-130-triplon-config` as a detached worktree because the PR branch is already checked out by `.paperclip/worktrees/ANKA-130`.
+- Fetched `https://bun.com/llms.txt` at 05:47 Europe/Amsterdam before Bun-runtime edits; no new dependencies needed.
+- Reversed `defineAppConfig()` file layering so project config loads first and user config wins last-write merge per BLUEPRINT §17.1.
+- Added a regression where both project and user `symbol-tag-map.config.yaml` define `EUR`, proving the user value wins.
+- Removed the stale multi-source precedence TODO from the single-source `defineConfig()` loader.
+- Bumped `@triplon/config` 0.1.1 → 0.1.2 and updated package changelog/progress/TODOS for handoff.
+- Verified with `bun install --frozen-lockfile`, targeted config/news tests (21 pass), `bun run lint:fix`, `bun run typecheck`, `bun run config:codegen --check`, `git diff --check`, and debug grep.
+
+**Findings**
+
+- `mergeMapping` already implements the desired last-write-wins replacement for array-shaped values, so no merge helper change was needed.
+
+**Open endings**
+
+- Commit, push, PR mergeability check, and issue-thread handoff are next in this heartbeat.
+
+## 2026-04-29 05:28 Europe/Amsterdam — @triplon/config v0.1.1 ([ANKA-143](/ANKA/issues/ANKA-143) — [ANKA-140](/ANKA/issues/ANKA-140) BLOCK fix)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-143](/ANKA/issues/ANKA-143); no pending comments, so work proceeded from the issue description.
+- Recreated the per-issue worktree from `origin/anka-130-triplon-config` after catching the branch requirement before edits.
+- Fetched `https://bun.com/llms.txt` at 05:28 Europe/Amsterdam before Bun-runtime edits; no new dependencies needed.
+- Fixed `defineAppConfig().paths.project()` so project config now honors `config/<name>.config.yaml` instead of `<cwd>/<name>.config.yaml`.
+- Added regressions in both `@triplon/config` and `svc:news` proving `config/symbol-tag-map.config.yaml` wins over the bundled SymbolTagMap example.
+- Bumped `@triplon/config` 0.1.0 → 0.1.1 and updated changelogs/progress for reviewer handoff.
+
+**Open endings**
+
+- Verification, commit, push, and issue-thread handoff are next in this heartbeat.
+
+## 2026-04-29 05:53 Europe/Amsterdam — v0.4.30 ([ANKA-130](/ANKA/issues/ANKA-130) — `@triplon/config` F2 scaffold rebase)
+
+**What was done**
+
+- Preserved the [ANKA-130](/ANKA/issues/ANKA-130) local `@triplon/config` scaffold while rebasing the PR branch above [ANKA-138](/ANKA/issues/ANKA-138)'s v0.4.29 mainline during [ANKA-149](/ANKA/issues/ANKA-149) conflict resolution.
+- Added `packages/triplon-config` v0.1.0 with `defineConfig`, `ConfigLoadError`, env-name derivation, local `defineAppConfig` compatibility exports, SymbolTagMap schema, deterministic codegen, and generated SymbolTagMap artifacts.
+- Kept root `config:codegen` scripts and `bun.lock` workspace provider wiring for `@triplon/config`.
+- Re-versioned the umbrella 0.4.29 → 0.4.30 so the rebased config scaffold remains above main's latest audit-trail release.
+
+**Findings**
+
+- The conflict was metadata-only (`.dev/journal.md`, `CHANGELOG.md`, root `package.json`); source files and `bun.lock` staged cleanly from the original config scaffold commit.
+
+**Open endings**
+
+- Continue the rebase through [ANKA-141](/ANKA/issues/ANKA-141) and [ANKA-149](/ANKA/issues/ANKA-149), then rerun the required verification on the final rebased tree.
+
 ## 2026-04-29 05:12 Europe/Amsterdam — v0.4.29 ([ANKA-138](/ANKA/issues/ANKA-138) — ADR-0004 re-enable GHA lint/test/typecheck workflow)
 
 **What was done**
@@ -227,7 +331,6 @@ _Append-only, newest first. Never edit past entries._
 - Push branch + open PR for this audit-trail fix; merge to `main` (FF) and close [ANKA-132](/ANKA/issues/ANKA-132). Then route [ANKA-127](/ANKA/issues/ANKA-127) back to CodeReviewer with the citation chain.
 - Wait on Codex for [ANKA-137](/ANKA/issues/ANKA-137); FE writes the [ANKA-138](/ANKA/issues/ANKA-138) ADR next heartbeat.
 - This is a §0.2 audit-trail correction, not a code revert. `ci.yml.disabled` from `70ceb6c` stays disabled until [ANKA-138](/ANKA/issues/ANKA-138) ships its replacement.
-
 ## 2026-04-28 23:50 Europe/Amsterdam — v0.4.27 ([ANKA-126](/ANKA/issues/ANKA-126) — worktree-first defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) lands)
 
 **What was done.** Added the in-repo defensive guard for the per-issue worktree convention while we wait for the Paperclip `claude_local` per-issue-worktree platform fix from [ANKA-98](/ANKA/issues/ANKA-98).

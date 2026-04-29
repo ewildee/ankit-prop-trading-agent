@@ -2,6 +2,30 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.36 — 2026-04-29 06:17 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), resolving [ANKA-137](/ANKA/issues/ANKA-137) PR #7 merge conflicts after [ANKA-150](/ANKA/issues/ANKA-150) and [ANKA-151](/ANKA/issues/ANKA-151) completed.
+
+**Why:** `origin/main` advanced with the `@triplon/config` scaffold and follow-up fixes while PR #7 was under security/code review. The branch needed a metadata merge and fresh root version so GitHub can re-evaluate mergeability and checks.
+
+**Changed** — `infra:ci/commit-footer-check` merge integration
+
+- Merged `origin/main` into `anka-137-commit-footer-check`, preserving the approved event-gated footer workflow/checker/test behaviour from PR #7 head `bae9d80`.
+- Resolved append-only `.dev/` and `CHANGELOG.md` conflicts by preserving both ANKA-137/150 and `@triplon/config` mainline entries.
+- Resolved `TODOS.md` cross-cutting entries so the GitHub footer guard and `@triplon/config` tasks are both represented.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.35 → 0.4.36.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean; no lockfile changes.
+- `bash .github/workflows/__tests__/commit-footer-check.sh` — 14 pass.
+- `bun run lint:fix` — exit 0 with existing warnings/no fixes.
+- `bun test` — 354 pass / 0 fail / 2116 expects.
+- `bun run typecheck` — clean.
+
 ## 0.4.35 — 2026-04-29 06:11 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), following up on [ANKA-150](/ANKA/issues/ANKA-150) reviewer convergence for [ANKA-137](/ANKA/issues/ANKA-137) / PR #7 — `infra:ci` GitHub PR/merge-path Paperclip footer guard.
@@ -130,6 +154,43 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bun test` — 342 pass / 0 fail / 2092 expects.
 - `bun run typecheck` — clean.
 
+## @triplon/config@0.1.1 — 2026-04-29 05:28 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-143](/ANKA/issues/ANKA-143) — [ANKA-140](/ANKA/issues/ANKA-140) BLOCK fix for project config lookup.
+
+**Fixed** — `infra:config`
+
+- `packages/triplon-config/src/app-config.ts` — `defineAppConfig().paths.project()` now resolves `config/<name>.config.yaml`, matching BLUEPRINT §17 and the checked-in `config/*.example.yaml` layout.
+- `packages/triplon-config/src/define-config.spec.ts` — regression coverage proves a cwd-local `config/symbol-tag-map.config.yaml` is loaded through `defineAppConfig` when the user layer is empty.
+- `services/news/src/symbol-tag-mapper.spec.ts` — operator-facing regression proves `loadSymbolTagMap()` reads the project file before falling back to the bundled example.
+
+## 0.4.30 — 2026-04-29 05:53 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-130](/ANKA/issues/ANKA-130) — `infra:config` scaffold for `@triplon/config`, rebased above [ANKA-138](/ANKA/issues/ANKA-138)'s v0.4.29 mainline.
+
+**Why:** F2 of [ANKA-85](/ANKA/issues/ANKA-85) needs a local Bun-native config foundation before Wave-2 consumers can standardize on one loader and one generated schema artifact path. Scope stayed minimum-viable: SymbolTagMap only, no multi-source precedence beyond the compatibility loader already needed by `svc:news`.
+
+**Added** — `@triplon/config` v0.1.0
+
+- `packages/triplon-config/src/define-config.ts` — `defineConfig({ schema, sourceFile })`, synchronous `Bun.YAML.parse` loader, Zod validation, and `ConfigLoadError.path` for the first failing Zod path.
+- `packages/triplon-config/src/env-derivation.ts` — `deriveEnvName` / `pathToEnvName` deterministic path-to-`SCREAMING_SNAKE` helper.
+- `packages/triplon-config/src/schemas/symbol-tag-map.ts` — worked `SymbolTagMapSchema` example for `config/symbol-tag-map.example.yaml`.
+- `packages/triplon-config/src/codegen/*` — Bun `Glob`-based codegen over registered `config/*.example.yaml` schemas, deterministic JSON Schema / TypeScript type emission, and `--check` freshness mode.
+- `packages/triplon-config/src/generated/` — committed `symbol-tag-map.schema.json` and `symbol-tag-map.types.ts`.
+- Compatibility exports for existing `svc:news` usage of `@triplon/config` (`defineAppConfig`, `ConfigError`, `z`) so the local workspace package replaces the registry tarball cleanly.
+
+**Changed** — workspace tooling
+
+- Root `package.json` — version `0.4.29` → `0.4.30`; added `config:codegen`; wired `config:codegen --check` into `lint` and `config:codegen` into `lint:fix`.
+- `bun.lock` — records `packages/triplon-config` as the workspace provider for `@triplon/config`.
+
+**Verification**
+
+- `bun test packages/triplon-config`
+- `bun test services/news/src/symbol-tag-mapper.spec.ts`
+- `bun run config:codegen --check`
+- Final lint/test/typecheck gate recorded in [ANKA-130](/ANKA/issues/ANKA-130) issue comment.
+
 ## 0.4.29 — 2026-04-29 05:12 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-138](/ANKA/issues/ANKA-138) — `infra:ci` re-enable / replace / keep-off decision (follow-up to [ANKA-127](/ANKA/issues/ANKA-127) major finding and [ANKA-132](/ANKA/issues/ANKA-132) split).
@@ -176,7 +237,6 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 **Notes**
 
 - This is a §0.2 audit-trail correction, not a code revert. The `ci.yml.disabled` rename from `70ceb6c` stays as-is on `main`. Until [ANKA-138](/ANKA/issues/ANKA-138) lands the replacement gating workflow, BLUEPRINT §0.2 local agent commands remain the only gate.
-
 ## 0.4.27 — 2026-04-28 23:50 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, executing [ANKA-126](/ANKA/issues/ANKA-126) — `infra:tooling` worktree-first directive (defensive guard until [ANKA-98](/ANKA/issues/ANKA-98) platform fix lands).

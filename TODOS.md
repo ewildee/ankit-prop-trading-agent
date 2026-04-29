@@ -54,6 +54,8 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 ## Cross-cutting
 
 - [x] **T014** Enforce Paperclip co-author footer with repo-local `commit-msg` hook — _ANKA-102_.
-- [~] **T015** Enforce Paperclip co-author footer on GitHub PR/merge paths — _ANKA-137_; [ANKA-150](/ANKA/issues/ANKA-150) / [ANKA-151](/ANKA/issues/ANKA-151) reconcile the GitHub merge exception so it is allowed only with trusted `push` event context and includes the multi-commit PR forged-merge regression; still needs SecurityReviewer/CodeReviewer re-review plus GitHub red/green smoke.
+- [~] **T015** Enforce Paperclip co-author footer on GitHub PR/merge paths — _ANKA-137_; [ANKA-150](/ANKA/issues/ANKA-150) / [ANKA-151](/ANKA/issues/ANKA-151) reconcile the GitHub merge exception so it is allowed only with trusted `push` event context and includes the multi-commit PR forged-merge regression; SecurityReviewer and CodeReviewer approved, GitHub PR #7 red/green smoke and mergeability check still pending.
+- [x] **T016** Scaffold `@triplon/config` with Bun-native YAML loading, env-name derivation, SymbolTagMap schema/codegen artifacts, and freshness checks — _Closes [ANKA-130](/ANKA/issues/ANKA-130)_.
+- [x] **I003** Reverse `defineAppConfig` user/project precedence and add regression coverage — _[ANKA-149](/ANKA/issues/ANKA-149)_.
 - [~] **Q001** Choose cTrader Open API app credentials path (operator action — folded into ANKA-5 onboarding interaction).
 - [ ] **IDEA-001** Backlog of trading-lab ideas tracked in BLUEPRINT §13.7 (decision CC).
