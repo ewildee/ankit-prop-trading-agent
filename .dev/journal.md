@@ -2,6 +2,30 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 13:26 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-227](/ANKA/issues/ANKA-227) — PR #17 rebase onto main)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `e8ce4a2c-4554-4f27-91db-921647915fb2`.
+
+**What was done**
+
+- Acknowledged the [ANKA-216](/ANKA/issues/ANKA-216) follow-up comment and checked out [ANKA-227](/ANKA/issues/ANKA-227), which routed the PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17) rebase to CodexExecutor.
+- Used the existing PR worktree `.paperclip/worktrees/ANKA-162` because `codex/anka-162-calendar-fetcher` was already checked out there; shared root checkout stayed untouched.
+- Fetched `origin` and rebased `codex/anka-162-calendar-fetcher` from pre-rebase head `6080b0b` onto `origin/main` `38009f1`.
+- Resolved CHANGELOG and journal conflicts by preserving main's 13:18 pre-news evaluator entries above PR #17's 13:08/13:10 calendar-fetcher mapper evidence. Replaced `.dev/progress.md` with this ANKA-227 session state per BLUEPRINT §0.2.
+- Verified `git diff 6080b0b..HEAD -- services/news/src/fetcher` is empty, so no fetcher source content changed during the rebase.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile, checked 79 installs across 84 packages.
+- `bun run lint:fix` — exit 0; only pre-existing unrelated Biome warnings/infos.
+- `bun test services/news/src/fetcher services/news/src/db/calendar-db.spec.ts` — 29 pass / 0 fail / 115 expects.
+- `bun run typecheck` — clean.
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/fetcher/*.ts services/news/package.json` — no matches.
+
+**Open endings**
+
+- Needs commit, `git push --force-with-lease origin codex/anka-162-calendar-fetcher`, PR #17 merge-state confirmation, and structured Paperclip handoff to FoundingEngineer.
+
 ## 2026-04-29 13:18 Europe/Amsterdam — v0.4.39 ([ANKA-217](/ANKA/issues/ANKA-217) — ADR-0006 no public CI)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped Paperclip resume after CEO / FoundingEngineer unblock.
