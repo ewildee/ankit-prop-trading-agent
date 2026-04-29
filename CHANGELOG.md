@@ -2,6 +2,32 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.33 / @ankit-prop/contracts@0.6.0 / @ankit-prop/eval-harness@0.1.4 — 2026-04-29 09:03 Europe/Amsterdam
+
+**Initiated by:** FoundingEngineer (claude_local), executing [ANKA-158](/ANKA/issues/ANKA-158) — CodeReviewer APPROVE rebase + merge for [ANKA-129](/ANKA/issues/ANKA-129) (F1 of [ANKA-85](/ANKA/issues/ANKA-85)).
+
+**Why:** PR [#4](https://github.com/ewildee/ankit-prop-trading-agent/pull/4) was authored on top of `0.4.27` (contracts `0.4.0`) but `main` advanced to `0.4.32` / contracts `0.5.0` while it was queued. CodeReviewer APPROVE on head `ccecc67` was clean, so this slot rebases the verbatim Prague day-bucket extraction onto current `main`, resolving the version-slot collision (contracts `0.5.0` is taken by [ANKA-131](/ANKA/issues/ANKA-131)) by promoting contracts to `0.6.0` — same shape, next-minor, because the new public `time` sub-module remains additive on top of the now-shipped Treaty client.
+
+**Added** — `@ankit-prop/contracts` v0.5.0 → v0.6.0
+
+- `packages/shared-contracts/src/time.ts` — `pragueDayBucket` and `pragueParts` helpers, moved verbatim from `packages/eval-harness/src/prague-day.ts` (no rename, no behaviour change). BLUEPRINT §13 Prague TZ canon.
+- `packages/shared-contracts/src/time.spec.ts` — DST regression coverage moved verbatim (CET, CEST, spring DST, fall DST, midnight `pragueParts`).
+- `packages/shared-contracts/src/index.ts` — re-exports `pragueDayBucket`, `pragueParts`, and the `PragueParts` type alongside the existing Treaty client surface.
+
+**Changed** — `@ankit-prop/eval-harness` v0.1.3 → v0.1.4
+
+- `packages/eval-harness/src/sim-engine.ts` and `packages/eval-harness/src/ftmo-rules.ts` — switched the Prague helper import from the local module to `@ankit-prop/contracts`. Internal-only refactor; no public surface change.
+- Removed `packages/eval-harness/src/prague-day.ts` and `packages/eval-harness/src/prague-day.spec.ts` (relocated to contracts).
+
+**Verification**
+
+- `bun install` — clean (workspace re-link only).
+- `bun test packages/shared-contracts/src/time.spec.ts packages/eval-harness/src/sim-engine.spec.ts packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/ftmo-rules.props.spec.ts` — 30 pass / 0 fail / 974 expects.
+- `bun test` — 342 pass / 0 fail / 2092 expects.
+- `bun run typecheck` — clean.
+- `bun run lint` — exit 0; only pre-existing Biome warnings/infos remain.
+- Pre-rebase reviewer evidence: [ANKA-158](/ANKA/issues/ANKA-158) CodeReviewer APPROVE on PR head `ccecc67`.
+
 ## @ankit-prop/ctrader-gateway@0.3.0 — 2026-04-29 08:04 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-133](/ANKA/issues/ANKA-133) — F4 gateway `/health` dogfood migration from [ANKA-85](/ANKA/issues/ANKA-85).

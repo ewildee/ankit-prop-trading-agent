@@ -1,7 +1,7 @@
 // Europe/Prague day-bucket helpers. FTMO rule semantics (daily-loss reset, EA
 // throttle reset, daily-PnL grouping for consistency) all key off the FTMO
 // server clock = Europe/Prague (BLUEPRINT §0 timezone matrix). Using UTC
-// instead causes rollovers to drift by 1–2 hours and can mask same-day
+// instead causes rollovers to drift by 1-2 hours and can mask same-day
 // breaches into the next bucket. Implemented with built-in Intl to keep zero
 // extra deps (BLUEPRINT §0.2 Bun-built-in-first rule).
 
@@ -46,7 +46,7 @@ export function pragueParts(tsMs: number): PragueParts {
 }
 
 // Stable per-Prague-calendar-day key. Returns the UTC ms of the Prague Y-M-D
-// represented as if it were UTC midnight — unique per Prague day, monotonic
+// represented as if it were UTC midnight: unique per Prague day, monotonic
 // across days, and DST-safe because the bucket carries no offset semantics.
 export function pragueDayBucket(tsMs: number): number {
   const p = pragueParts(tsMs);
