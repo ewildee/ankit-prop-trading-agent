@@ -63,6 +63,30 @@ _Append-only, newest first. Never edit past entries._
 - Close [ANKA-222](/ANKA/issues/ANKA-222) and [ANKA-214](/ANKA/issues/ANKA-214) once PR #20 is closed (we land via the consolidated merge branch, then close PR #20 with a comment pointing to the merge commit).
 - Stale `feat/anka-164-pre-news` and `refactor/anka-214-pre-news-all-sentinel` remote branches can be pruned by operator after merge.
 
+## 2026-04-29 13:18 Europe/Amsterdam — [ANKA-162](/ANKA/issues/ANKA-162) PR #17 child-complete rebase
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_children_completed` wake.
+
+**What was done**
+
+- Resumed [ANKA-162](/ANKA/issues/ANKA-162) after child issues completed. [ANKA-220](/ANKA/issues/ANKA-220) had landed the real `CalendarItem` → `CalendarEvent` mapper on `codex/anka-162-calendar-fetcher`, and PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17) was again `CONFLICTING` / `DIRTY`.
+- Checked out the parent issue, fetched `origin/main` and the PR branch, then rebased `codex/anka-162-calendar-fetcher` onto current `origin/main` (`03cf960`).
+- Resolved package/docs/lock conflicts by keeping current mainline AGENTS/progress records, preserving ANKA-220 `@ankit-prop/news@0.3.4` changelog/journal evidence, and retaining the v0.3.4 lockfile/package state.
+- No new fetcher behavior was added in this heartbeat; the code change is the rebased ANKA-220 mapper/fetcher/spec work.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile, checked 79 installs across 84 packages.
+- `bun run lint:fix` — exit 0; no fixes applied, pre-existing unrelated Biome warnings/infos remain.
+- `bun test services/news/src/fetcher` — 21 pass / 0 fail / 96 expects.
+- `bun test services/news/src/db/calendar-db.spec.ts` — 8 pass / 0 fail / 19 expects.
+- `bun run typecheck` — clean.
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/fetcher/*.ts services/news/package.json` — no matches.
+
+**Open endings**
+
+- Needs force-push, PR #17 mergeability confirmation, and Paperclip handoff for review. No service restart expected because `services/news` still has only the placeholder `start` script and no `/health` runtime.
+
 ## 2026-04-29 13:10 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-220](/ANKA/issues/ANKA-220) — resumed from ANKA-216 QA handoff)
 
 **Agent:** CodexExecutor (codex_local). **Run:** `e8ce4a2c-4554-4f27-91db-921647915fb2`.
