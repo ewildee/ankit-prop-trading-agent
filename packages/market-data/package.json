@@ -1,6 +1,6 @@
 {
   "name": "@ankit-prop/market-data",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "description": "Provider-agnostic market-data interface and CachedFixtureProvider. Defines the seam between historical fetchers (TwelveData), live feeds (cTrader), and consumers (eval-harness, trader). Owns the JSONL.gz fixture schema produced by the TD fetcher and replayed by the harness.",

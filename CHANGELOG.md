@@ -2,6 +2,7 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+<<<<<<< HEAD
 ## @ankit-prop/dashboard@0.1.3 — 2026-04-29 22:05 Europe/Amsterdam
 
 **Initiated by:** FoundingEngineer, addressing the Designer visual-truth gate `CHANGES_REQUESTED` from [ANKA-277](/ANKA/issues/ANKA-277) on the [ANKA-121](/ANKA/issues/ANKA-121) banner contract.
@@ -24,7 +25,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
   - `GET :9204/api/version-matrix` → 5 rows: dashboard `state:"current"` at `0.1.3`, four offline peers `state:"unreachable"` (the exact scenario Designer's blocker covered).
   - `GET :9204/assets/main.css` → bundle contains all three distinct selectors `.version-chip-current`, `.version-chip-stale`, `.version-chip-unreachable` (Tailwind v4's `@import "tailwindcss"` did not strip the new component rules).
 
-## 0.4.47 / @ankit-prop/market-data@0.1.1 / @ankit-prop/market-data-twelvedata@0.1.3 / @ankit-prop/eval-harness@0.1.5 — 2026-04-29 22:10 Europe/Amsterdam
+## 0.4.47 / @ankit-prop/market-data@0.1.2 / @ankit-prop/market-data-twelvedata@0.1.3 / @ankit-prop/eval-harness@0.1.5 — 2026-04-29 22:10 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (implementation), CodeReviewer (verdict APPROVE), QAEngineer (verdict APPROVE for QA coverage), and FoundingEngineer (rebase onto current `main` and merge) — closing [ANKA-236](/ANKA/issues/ANKA-236) and porting the [ANKA-69](/ANKA/issues/ANKA-69) market-data contract WIP forward from `stash@{7}`.
 

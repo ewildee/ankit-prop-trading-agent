@@ -437,6 +437,49 @@ describe('CachedFixtureProvider', () => {
     expect(closure?.impact).toBe('high');
   });
 
+  test('real fixture getEvents filters news by eventTsMs, not pre-window startMs', async () => {
+    const provider2 = new CachedFixtureProvider({
+      rootPath: REAL_FIXTURE_ROOT,
+      instrumentSpecs: SPECS,
+    });
+    const events = await provider2.getEvents({
+      fromMs: Date.parse('2026-04-03T13:25:00Z'),
+      toMs: Date.parse('2026-04-03T13:35:00Z'),
+    });
+
+    expect(events.map((e) => e.id)).toContain('nfp-2026-04-03');
+    const event = events.find((e) => e.id === 'nfp-2026-04-03');
+    if (!event) throw new Error('missing fixture event nfp-2026-04-03');
+    expect(event.timestamp).toBe(Date.parse('2026-04-03T13:30:00Z'));
+
+    const eventInput = {
+      tsMs: event.timestamp,
+      symbols: event.symbols,
+      restricted: event.restricted,
+      impact: event.impact,
+    };
+    expect(buildBlackoutWindows([eventInput], 5 * 60_000)).toEqual([
+      {
+        symbols: new Set(event.symbols),
+        startMs: Date.parse('2026-04-03T13:25:00Z'),
+        endMs: Date.parse('2026-04-03T13:35:00Z'),
+      },
+    ]);
+    expect(buildPreNewsWindows([eventInput], 120 * 60_000)).toEqual([
+      {
+        symbols: new Set(event.symbols),
+        startMs: Date.parse('2026-04-03T11:30:00Z'),
+        endMs: Date.parse('2026-04-03T13:30:00Z'),
+      },
+    ]);
+
+    const preWindowOnly = await provider2.getEvents({
+      fromMs: Date.parse('2026-04-03T13:00:00Z'),
+      toMs: Date.parse('2026-04-03T13:25:00Z'),
+    });
+    expect(preWindowOnly.map((e) => e.id)).not.toContain('nfp-2026-04-03');
+  });
+
   test('real fixture bar shard passes manifest integrity validation and loads unchanged', async () => {
     const provider2 = new CachedFixtureProvider({
       rootPath: REAL_FIXTURE_ROOT,
