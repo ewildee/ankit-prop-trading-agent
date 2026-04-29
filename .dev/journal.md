@@ -2,6 +2,34 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 17:18 Europe/Amsterdam — v0.4.31 ([ANKA-84](/ANKA/issues/ANKA-84) — `svc:news/health`)
+
+**What was done**
+
+- Followed scoped Paperclip wake for [ANKA-84](/ANKA/issues/ANKA-84) after CodeReviewer blocked the existing `anka-84-news-start` SHA for missing canonical `/health`.
+- Fetched `https://bun.com/llms.txt` at 17:18 Europe/Amsterdam before Bun-runtime edits and recorded it in `.dev/progress.md`.
+- Re-read BLUEPRINT §0-§0.2, §5, §11.4-§11.8, §17.2, §19.0, §22, and §25 plus the CodeReviewer/FoundingEngineer fix brief.
+- Added `services/news/src/health-snapshot.ts`, a pure `HealthSnapshot` builder for the news service with DB/fetch freshness details and fail-closed status mapping.
+- Added `services/news/src/health-snapshot.spec.ts` and extended `start.spec.ts` / `server.spec.ts` so `/health` is covered by unit and boot-level tests.
+- Wired `GET /health` before `/health/details` in `services/news/src/server.ts`; `/health/details` remains unchanged for existing callers.
+- Threaded `startedAtMs` from `start()` into `createServer()` and bumped root `0.4.30 → 0.4.31`, `@ankit-prop/news 0.4.0 → 0.4.1`.
+
+**Findings**
+
+- The prior implementation already captured `startedAtMs`; it only needed to be passed through to the server health snapshot.
+- The supervisor contract requires HTTP 200 with the `HealthSnapshot` body even when news status is `degraded` or `unhealthy`, so route status stays 200 and the status field carries service health.
+
+**Decisions**
+
+- Kept the existing `/health/details` response untouched and added the canonical `/health` as a sibling route to avoid breaking downstream dashboard/server specs.
+- Shared freshness evaluation by moving `isCalendarFresh()` into the health snapshot module and importing it from the server route code.
+
+**Open endings**
+
+- Verification: `bun run lint:fix` exit 0 with pre-existing unsafe suggestions; `bun test services/news/src` 56 pass / 0 fail / 137 expects; `bun run typecheck` clean.
+- Standalone smoke on port 9324 returned canonical `/health` HTTP 200 with `version: "0.4.1"`, `service: "news"`, `status: "degraded"`, `dbOk: true`, and `details.blueprint_section: "19.0"`, then shut down on SIGINT.
+- Still need commit, push, and Paperclip issue handoff.
+
 ## 2026-04-29 05:28 Europe/Amsterdam — v0.4.30 ([ANKA-84](/ANKA/issues/ANKA-84) — `svc:news/start`)
 
 **What was done**

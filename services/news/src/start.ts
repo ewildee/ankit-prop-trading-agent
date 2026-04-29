@@ -104,6 +104,7 @@ export async function start(opts: StartOptions = {}): Promise<NewsProcess> {
       port: opts.port ?? cfg.port,
       logger,
       version,
+      startedAtMs,
     });
   } catch (err) {
     fetcher.stop();

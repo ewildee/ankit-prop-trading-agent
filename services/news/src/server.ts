@@ -7,6 +7,7 @@ import {
 } from '@ankit-prop/contracts/news';
 import { z } from 'zod';
 import { queryRange as queryCalendarRange } from './calendar-db.ts';
+import { buildNewsHealthSnapshot, isCalendarFresh } from './health-snapshot.ts';
 import {
   resolveAffectedSymbols,
   type SymbolTagMap,
@@ -14,7 +15,6 @@ import {
 } from './symbol-tag-mapper.ts';
 
 const DEFAULT_PORT = 9203;
-const STALE_AFTER_SECONDS = 2 * 60 * 60;
 const BLACKOUT_WINDOW_MS = 5 * 60 * 1000;
 const PRE_NEWS_WINDOW_MS = 2 * 60 * 60 * 1000;
 const QUERY_RANGE_END_PADDING_MS = 1;
@@ -70,6 +70,7 @@ export interface NewsLogger {
 export interface CreateServerOptions {
   readonly db: CalendarDbHandle;
   readonly fetcherHealth: FetcherHealth | (() => FetcherHealth);
+  readonly startedAtMs: number;
   readonly port?: number;
   readonly logger?: NewsLogger;
   readonly queryRange?: CalendarQueryFn;
@@ -95,6 +96,16 @@ export function createServer(opts: CreateServerOptions): NewsServer {
 
       if (req.method !== 'GET') {
         return json({ ok: false, error: { code: 'method_not_allowed' } }, 405);
+      }
+
+      if (url.pathname === '/health') {
+        return json(
+          buildNewsHealthSnapshot({
+            version,
+            startedAtMs: opts.startedAtMs,
+            fetcherHealth: opts.fetcherHealth,
+          }),
+        );
       }
 
       if (url.pathname === '/health/details') {
@@ -189,10 +200,6 @@ function invalidQuery(error: z.ZodError): Response {
 
 function getHealth(health: FetcherHealth | (() => FetcherHealth)): FetcherHealth {
   return typeof health === 'function' ? health() : health;
-}
-
-function isCalendarFresh(health: FetcherHealth): boolean {
-  return health.dbOk && health.ageSeconds !== null && health.ageSeconds <= STALE_AFTER_SECONDS;
 }
 
 function queryEvents(

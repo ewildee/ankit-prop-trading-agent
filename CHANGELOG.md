@@ -2,6 +2,32 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.31 — 2026-04-29 17:18 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor (agent), fixing CodeReviewer blockers on [ANKA-84](/ANKA/issues/ANKA-84).
+
+**Why:** `svc:news` boot exposed `/health/details` but not the canonical `/health` `HealthSnapshot` required by the supervisor in BLUEPRINT §17.2 / §19.0.
+
+**Added** — `@ankit-prop/news` v0.4.0 → v0.4.1
+
+- `services/news/src/health-snapshot.ts` — adds the canonical `HealthSnapshot` builder for `service: "news"`, package version, Bun runtime metadata, DB/fetch freshness details, and no-false-green status mapping.
+- `services/news/src/health-snapshot.spec.ts` — covers healthy, stale degraded, cold-start degraded, and DB-unhealthy snapshots with `HealthSnapshot.parse(...)`.
+- `services/news/src/server.ts` — adds `GET /health` before `/health/details`, returning the canonical snapshot with HTTP 200 so the supervisor can inspect the body.
+- `services/news/src/start.ts` — threads `startedAtMs` into the server so uptime and `started_at` reflect the running process.
+- `services/news/src/start.spec.ts` — extends boot coverage to assert `GET /health` parses as `HealthSnapshot` with the running package version, Bun version, pid, and `details.blueprint_section`.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` 0.4.30 → 0.4.31 (patch — workspace package version move).
+- `@ankit-prop/news` 0.4.0 → 0.4.1 (patch — canonical health endpoint).
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; remaining diagnostics are pre-existing unsafe suggestions outside this scope.
+- `bun test services/news/src` — 56 pass / 0 fail / 137 expects.
+- `bun run typecheck` — clean (`tsc --noEmit`).
+- `PORT=9324 DB_PATH=/tmp/anka84-health-smoke.db CALENDAR_BASE_URL=http://127.0.0.1:1/calendar bun run --cwd services/news start` + `curl /health` — process booted, returned HTTP 200 with `version: "0.4.1"`, `service: "news"`, `status: "degraded"`, `dbOk: true`, and `details.blueprint_section: "19.0"`, then shut down on SIGINT.
+
 ## 0.4.30 — 2026-04-29 05:28 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor (agent), executing [ANKA-84](/ANKA/issues/ANKA-84) under parent [ANKA-75](/ANKA/issues/ANKA-75).

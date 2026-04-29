@@ -2,6 +2,7 @@ import { afterEach, describe, expect, test } from 'bun:test';
 import { mkdir, mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { HealthSnapshot, loadVersionFromPkgJson } from '@ankit-prop/contracts';
 import pkgJson from '../package.json' with { type: 'json' };
 import { CalendarDbOpenError } from './calendar-db.ts';
 import { type NewsProcess, start } from './start.ts';
@@ -47,6 +48,15 @@ describe('news start', () => {
         expect(body.dbOk).toBe(true);
         expect(body.version).toBe(pkgJson.version);
       });
+
+      const healthRes = await fetch(`http://localhost:${handle.port}/health`);
+      expect(healthRes.status).toBe(200);
+      const health = HealthSnapshot.parse(await healthRes.json());
+      expect(health.service).toBe('news');
+      expect(health.version).toBe(loadVersionFromPkgJson(pkgJson));
+      expect(health.details.blueprint_section).toBe('19.0');
+      expect(health.bun_version).toBe(Bun.version);
+      expect(health.pid).toBe(process.pid);
     });
   });
 

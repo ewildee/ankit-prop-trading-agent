@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { HealthSnapshot } from '@ankit-prop/contracts';
 import type { CalendarItem } from '@ankit-prop/contracts/news';
 import { closeCalendarDb, openCalendarDb, upsertItems } from './calendar-db.ts';
 import { createServer, type FetcherHealth } from './server.ts';
@@ -23,7 +24,12 @@ const BASE_ITEM: CalendarItem = {
 describe('news server', () => {
   test('/calendar/restricted returns restricted inside a known restriction window', async () => {
     await withDb([BASE_ITEM], async (db) => {
-      const server = createServer({ db, fetcherHealth: healthy(), version: '0.3.0-test' });
+      const server = createServer({
+        db,
+        fetcherHealth: healthy(),
+        version: '0.3.0-test',
+        startedAtMs: STARTED_AT_MS,
+      });
 
       const res = await server.fetch(
         req('/calendar/restricted?at=2026-04-28T12:32:00Z&instruments[]=XAUUSD'),
@@ -39,7 +45,7 @@ describe('news server', () => {
 
   test('/calendar/restricted maps FTMO tags to tracked symbols', async () => {
     await withDb([{ ...BASE_ITEM, instrument: 'USD' }], async (db) => {
-      const server = createServer({ db, fetcherHealth: healthy() });
+      const server = createServer({ db, fetcherHealth: healthy(), startedAtMs: STARTED_AT_MS });
 
       const res = await server.fetch(
         req('/calendar/restricted?at=2026-04-28T12:32:00Z&instruments[]=XAUUSD'),
@@ -63,7 +69,7 @@ describe('news server', () => {
         },
       ],
       async (db) => {
-        const server = createServer({ db, fetcherHealth: healthy() });
+        const server = createServer({ db, fetcherHealth: healthy(), startedAtMs: STARTED_AT_MS });
 
         const res = await server.fetch(
           req('/calendar/restricted?at=2026-07-15T22:02:00Z&instruments[]=XAUUSD'),
@@ -82,7 +88,7 @@ describe('news server', () => {
 
   test('/calendar/restricted returns unrestricted outside any window', async () => {
     await withDb([BASE_ITEM], async (db) => {
-      const server = createServer({ db, fetcherHealth: healthy() });
+      const server = createServer({ db, fetcherHealth: healthy(), startedAtMs: STARTED_AT_MS });
 
       const res = await server.fetch(
         req('/calendar/restricted?at=2026-04-28T13:00:00Z&instruments[]=XAUUSD'),
@@ -95,7 +101,7 @@ describe('news server', () => {
 
   test('/calendar/pre-news-2h restricts tier-1 events in the pre-news window', async () => {
     await withDb([BASE_ITEM], async (db) => {
-      const server = createServer({ db, fetcherHealth: healthy() });
+      const server = createServer({ db, fetcherHealth: healthy(), startedAtMs: STARTED_AT_MS });
 
       const res = await server.fetch(
         req('/calendar/pre-news-2h?at=2026-04-28T11:00:00Z&instruments[]=XAUUSD'),
@@ -111,7 +117,7 @@ describe('news server', () => {
 
   test('/calendar/pre-news-2h maps FTMO tags to tracked symbols', async () => {
     await withDb([{ ...BASE_ITEM, instrument: 'USD' }], async (db) => {
-      const server = createServer({ db, fetcherHealth: healthy() });
+      const server = createServer({ db, fetcherHealth: healthy(), startedAtMs: STARTED_AT_MS });
 
       const res = await server.fetch(
         req('/calendar/pre-news-2h?at=2026-04-28T11:00:00Z&instruments[]=NAS100'),
@@ -127,7 +133,7 @@ describe('news server', () => {
 
   test('/calendar/pre-news-2h treats high-impact non-restricted events as tier-1', async () => {
     await withDb([{ ...BASE_ITEM, restriction: false, title: 'FOMC Statement' }], async (db) => {
-      const server = createServer({ db, fetcherHealth: healthy() });
+      const server = createServer({ db, fetcherHealth: healthy(), startedAtMs: STARTED_AT_MS });
 
       const res = await server.fetch(
         req('/calendar/pre-news-2h?at=2026-04-28T11:00:00Z&instruments[]=XAUUSD'),
@@ -143,7 +149,11 @@ describe('news server', () => {
 
   test('ageSeconds = 7201 fails closed regardless of DB content', async () => {
     await withDb([], async (db) => {
-      const server = createServer({ db, fetcherHealth: { ...healthy(), ageSeconds: 7201 } });
+      const server = createServer({
+        db,
+        fetcherHealth: { ...healthy(), ageSeconds: 7201 },
+        startedAtMs: STARTED_AT_MS,
+      });
 
       const res = await server.fetch(
         req('/calendar/restricted?at=2026-04-28T13:00:00Z&instruments[]=XAUUSD'),
@@ -156,7 +166,11 @@ describe('news server', () => {
 
   test('ageSeconds = null fails closed regardless of DB content', async () => {
     await withDb([], async (db) => {
-      const server = createServer({ db, fetcherHealth: { ...healthy(), ageSeconds: null } });
+      const server = createServer({
+        db,
+        fetcherHealth: { ...healthy(), ageSeconds: null },
+        startedAtMs: STARTED_AT_MS,
+      });
 
       const res = await server.fetch(
         req('/calendar/restricted?at=2026-04-28T13:00:00Z&instruments[]=XAUUSD'),
@@ -169,7 +183,11 @@ describe('news server', () => {
 
   test('db unhealthy fails closed regardless of DB content', async () => {
     await withDb([], async (db) => {
-      const server = createServer({ db, fetcherHealth: { ...healthy(), dbOk: false } });
+      const server = createServer({
+        db,
+        fetcherHealth: { ...healthy(), dbOk: false },
+        startedAtMs: STARTED_AT_MS,
+      });
 
       const res = await server.fetch(
         req('/calendar/pre-news-2h?at=2026-04-28T13:00:00Z&instruments[]=XAUUSD'),
@@ -185,6 +203,7 @@ describe('news server', () => {
       const server = createServer({
         db,
         fetcherHealth: healthy(),
+        startedAtMs: STARTED_AT_MS,
         queryRange: () => {
           throw new Error('calendar unavailable');
         },
@@ -201,7 +220,7 @@ describe('news server', () => {
 
   test('rejects missing at with structured 400', async () => {
     await withDb([], async (db) => {
-      const server = createServer({ db, fetcherHealth: healthy() });
+      const server = createServer({ db, fetcherHealth: healthy(), startedAtMs: STARTED_AT_MS });
 
       const res = await server.fetch(req('/calendar/restricted?instruments[]=XAUUSD'));
       const body = await res.json();
@@ -214,7 +233,7 @@ describe('news server', () => {
 
   test('rejects offsetless at with structured 400', async () => {
     await withDb([], async (db) => {
-      const server = createServer({ db, fetcherHealth: healthy() });
+      const server = createServer({ db, fetcherHealth: healthy(), startedAtMs: STARTED_AT_MS });
 
       const res = await server.fetch(
         req('/calendar/restricted?at=2026-04-28T12:30:00&instruments[]=XAUUSD'),
@@ -229,7 +248,7 @@ describe('news server', () => {
 
   test('rejects malformed instruments[] with structured 400', async () => {
     await withDb([], async (db) => {
-      const server = createServer({ db, fetcherHealth: healthy() });
+      const server = createServer({ db, fetcherHealth: healthy(), startedAtMs: STARTED_AT_MS });
 
       const res = await server.fetch(
         req('/calendar/restricted?at=2026-04-28T12:30:00Z&instruments[]='),
@@ -248,6 +267,7 @@ describe('news server', () => {
         db,
         fetcherHealth: healthy(),
         version: '0.3.0-test',
+        startedAtMs: STARTED_AT_MS,
       });
 
       const res = await server.fetch(req('/health/details'));
@@ -262,7 +282,29 @@ describe('news server', () => {
       });
     });
   });
+
+  test('/health returns the canonical HealthSnapshot', async () => {
+    await withDb([], async (db) => {
+      const server = createServer({
+        db,
+        fetcherHealth: healthy(),
+        version: '0.4.1-test',
+        startedAtMs: STARTED_AT_MS,
+      });
+
+      const res = await server.fetch(req('/health'));
+
+      expect(res.status).toBe(200);
+      const body = HealthSnapshot.parse(await res.json());
+      expect(body.service).toBe('news');
+      expect(body.status).toBe('healthy');
+      expect(body.version).toBe('0.4.1-test');
+      expect(body.details.blueprint_section).toBe('19.0');
+    });
+  });
 });
+
+const STARTED_AT_MS = Date.UTC(2026, 3, 29, 12, 0, 0);
 
 async function withDb(
   items: readonly CalendarItem[],
