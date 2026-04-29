@@ -33,6 +33,29 @@ describe('evaluateRestricted', () => {
     expect(db.calls[0]?.toUtc).toBe('2026-04-28T12:05:00.000Z');
   });
 
+  test('applies the inclusive ±5 minute restricted window on both sides', () => {
+    const db = dbWithEvents([
+      event({ title: 'Minus six', date: '2026-04-28T11:54:00Z', restriction: true }),
+      event({ title: 'Minus five', date: '2026-04-28T11:55:00Z', restriction: true }),
+      event({ title: 'Minus four', date: '2026-04-28T11:56:00Z', restriction: true }),
+      event({ title: 'At now', date: '2026-04-28T12:00:00Z', restriction: true }),
+      event({ title: 'Plus four', date: '2026-04-28T12:04:00Z', restriction: true }),
+      event({ title: 'Plus five', date: '2026-04-28T12:05:00Z', restriction: true }),
+      event({ title: 'Plus six', date: '2026-04-28T12:06:00Z', restriction: true }),
+    ]);
+
+    expect(evaluateRestricted(deps(db), { atUtc: AT_UTC, instruments: ['XAUUSD'] })).toEqual({
+      restricted: true,
+      reasons: [
+        { event: 'Minus five', eta_seconds: -300, rule: 'blackout_pm5' },
+        { event: 'Minus four', eta_seconds: -240, rule: 'blackout_pm5' },
+        { event: 'At now', eta_seconds: 0, rule: 'blackout_pm5' },
+        { event: 'Plus four', eta_seconds: 240, rule: 'blackout_pm5' },
+        { event: 'Plus five', eta_seconds: 300, rule: 'blackout_pm5' },
+      ],
+    });
+  });
+
   test('ignores high-impact, tier-2, and tier-3 events unless FTMO marks them restricted', () => {
     const db = dbWithEvents([
       event({
@@ -83,6 +106,17 @@ describe('evaluateRestricted', () => {
     });
   });
 
+  test('excludes restricted events whose mapped symbols do not affect the requested instrument', () => {
+    const db = dbWithEvents([
+      event({ title: 'Indices only', instrument: 'US Indices', restriction: true }),
+    ]);
+
+    expect(evaluateRestricted(deps(db), { atUtc: AT_UTC, instruments: ['XAUUSD'] })).toEqual({
+      restricted: false,
+      reasons: [],
+    });
+  });
+
   test('computes Prague day buckets across the spring DST boundary', () => {
     const db = dbWithEvents([event({ date: '2026-03-29T21:59:00Z', restriction: true })]);
 
@@ -116,6 +150,16 @@ describe('evaluateRestricted', () => {
       restricted: false,
       reasons: [],
     });
+  });
+
+  test('returns unrestricted for empty instruments without querying the DB', () => {
+    const db = dbWithEvents([event({ restriction: true })]);
+
+    expect(evaluateRestricted(deps(db), { atUtc: AT_UTC, instruments: [] })).toEqual({
+      restricted: false,
+      reasons: [],
+    });
+    expect(db.calls).toHaveLength(0);
   });
 });
 

@@ -2,6 +2,33 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 10:16 Europe/Amsterdam — v0.4.36 / @ankit-prop/news v0.2.3 ([ANKA-207](/ANKA/issues/ANKA-207) PR #16 restricted-window QA gaps)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-207](/ANKA/issues/ANKA-207).
+
+**What was done**
+
+- Created `.paperclip/worktrees/ANKA-207` as a detached worktree from `origin/feat/anka-163-restricted-window` at PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16) head `bba98c4`; shared root checkout untouched.
+- Fetched and read `https://bun.com/llms.txt` at 10:16 Europe/Amsterdam before Bun-runtime edits.
+- Added the three QA-requested restricted-window evaluator specs: two-sided inclusive ±5 minutes, mapper mismatch with `restriction: true`, and empty-instrument DB skip.
+- Bumped root/news versions and updated CHANGELOG, progress, and TODOS.
+
+**Findings**
+
+- The existing `dbWithEvents` fake already records `db.calls`, so the empty-instrument no-query assertion stayed entirely inside the spec file.
+- The first targeted test run failed before install because the fresh worktree had no workspace dependencies linked; `bun install` fixed module resolution without production changes.
+
+**Verification**
+
+- `bun install` — clean; linked workspaces in the fresh worktree, with no final `bun.lock` diff.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 10 pass / 0 fail / 15 expects.
+- `bun run lint:fix services/news/src/evaluator/restricted-window.spec.ts` — exit 0; formatted the restricted-window spec and reported only pre-existing unrelated Biome diagnostics.
+- `bun run typecheck` — clean.
+
+**Open endings**
+
+- Commit with the canonical Paperclip footer and push `HEAD:feat/anka-163-restricted-window`. No service restart is available because `services/news` still has only the placeholder `start` script and no `/health` runtime.
+
 ## 2026-04-29 10:01 Europe/Amsterdam — v0.4.35 / @ankit-prop/news v0.2.2 ([ANKA-194](/ANKA/issues/ANKA-194) PR #16 restricted-window corrections)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped continuation wake on [ANKA-194](/ANKA/issues/ANKA-194).

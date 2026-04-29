@@ -2,6 +2,23 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.36 / @ankit-prop/news@0.2.3 — 2026-04-29 10:16 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-207](/ANKA/issues/ANKA-207) — close QA gaps on PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16).
+
+**Changed** — `svc:news/restricted-window-evaluator`
+
+- `services/news/src/evaluator/restricted-window.spec.ts` — adds QA-requested regressions for the inclusive two-sided ±5 minute window, restricted events whose mapped symbols miss the requested instrument, and empty-instrument requests skipping the DB seam.
+- `services/news/package.json` — `@ankit-prop/news` `0.2.2` → `0.2.3`.
+- Root `package.json` — `0.4.35` → `0.4.36`.
+
+**Verification**
+
+- `bun install` — clean; linked workspaces in the fresh worktree, with no final `bun.lock` diff.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 10 pass / 0 fail / 15 expects.
+- `bun run lint:fix services/news/src/evaluator/restricted-window.spec.ts` — exit 0; formatted the restricted-window spec and reported only pre-existing unrelated Biome diagnostics.
+- `bun run typecheck` — clean.
+
 ## 0.4.35 / @ankit-prop/news@0.2.2 — 2026-04-29 10:01 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-194](/ANKA/issues/ANKA-194) — reviewer-required corrections for PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16).
