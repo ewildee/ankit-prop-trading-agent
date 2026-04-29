@@ -2,6 +2,74 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 12:52 Europe/Amsterdam — @ankit-prop/news v0.3.3 ([ANKA-213](/ANKA/issues/ANKA-213) PR #14 rebase)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-213](/ANKA/issues/ANKA-213).
+
+**What was done**
+
+- Acknowledged the wake payload: no pending comments, and the required action was a pure rebase of `feat/anka-164-pre-news` for PR [#14](https://github.com/ewildee/ankit-prop-trading-agent/pull/14).
+- Fetched and read `https://bun.com/llms.txt` at 12:48 Europe/Amsterdam before Bun-runtime reconciliation.
+- Created `.paperclip/worktrees/ANKA-213` as a detached worktree at PR head `371c3dd`; the branch itself was already checked out by `.paperclip/worktrees/ANKA-164`, so the shared root checkout stayed untouched.
+- Rebased the PR commits onto freshly fetched `origin/main` `70eebae`, which was newer than the `7107a46` SHA recorded in the issue brief.
+- Resolved the `services/news/src/evaluator/index.ts` add/add conflict by retaining both the restricted-window evaluator exports and the pre-news evaluator exports.
+- Left `services/news/src/evaluator/pre-news.ts` runtime semantics unchanged by the reconciliation commit, including the `instrument === 'ALL'` branch called out for a follow-up child issue.
+- Preserved the PR-side `@ankit-prop/news` `0.3.0..0.3.2` changelog history and bumped the post-rebase package slot to `0.3.3`.
+- Force-pushed PR [#14](https://github.com/ewildee/ankit-prop-trading-agent/pull/14) with `--force-with-lease` and confirmed GitHub reports `MERGEABLE` / `CLEAN`.
+
+**Findings**
+
+- `origin/main` had advanced from the issue brief's `7107a46` to `70eebae` before this heartbeat. Rebasing to the actual GitHub base is required for PR mergeability.
+- Bun 1.3.13 left no final `bun.lock` diff for the workspace-only `@ankit-prop/news@0.3.3` bump, even after `bun install`, `bun install --lockfile-only`, and `bun install --force`; `bun install --frozen-lockfile` still passed cleanly.
+
+**Verification**
+
+- `bun install` — clean; lockfile save attempted.
+- `bun install --frozen-lockfile` — clean; checked 79 installs across 84 packages.
+- `bun run lint:fix` — exit 0; Biome formatted the evaluator barrel and reported only pre-existing unrelated warnings/infos.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 16 pass / 0 fail / 21 expects.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 10 pass / 0 fail / 15 expects.
+- `bun run typecheck` — clean.
+- `bun run --cwd services/news start` — prints `news: not yet implemented (Phase 5)`; no `/health` endpoint exists yet to restart/verify.
+
+**Open endings**
+
+- [ANKA-213](/ANKA/issues/ANKA-213) is ready for FoundingEngineer to route PR [#14](https://github.com/ewildee/ankit-prop-trading-agent/pull/14) back to CodeReviewer. QAEngineer is not required for this pure rebase.
+
+## 2026-04-29 12:37 Europe/Amsterdam — @ankit-prop/news v0.3.2 ([ANKA-164](/ANKA/issues/ANKA-164) CodeReviewer fail-closed follow-up)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_children_completed` wake after [ANKA-172](/ANKA/issues/ANKA-172) and [ANKA-175](/ANKA/issues/ANKA-175) completed.
+
+**What was done**
+
+- Consumed child results: [CodeReviewer](/ANKA/agents/codereviewer) requested fixes for omitted time source and malformed event-date fail-open behavior; [QAEngineer](/ANKA/agents/qaengineer) added regression commit `dbe2800`.
+- Pulled `.paperclip/worktrees/ANKA-164` from `4375808` to `dbe2800`.
+- Re-read BLUEPRINT §0.2 and §11.4/§11.5; fetched `https://bun.com/llms.txt` at 12:37 Europe/Amsterdam before Bun-runtime edits.
+- Updated `evaluatePreNews` so missing/malformed `atUtc ?? clock.nowUtc()` returns a fail-closed `stale_calendar` reason instead of raising `RangeError`.
+- Updated `evaluatePreNews` so malformed calendar rows and malformed relevant tier-1 event dates fail closed instead of filtering out as unrestricted.
+- Added regressions for `clock.nowUtc()` fallback, omitted time source, malformed `atUtc`, and malformed relevant event dates.
+- Bumped `@ankit-prop/news` `0.3.1` → `0.3.2` and refreshed `bun.lock` / `CHANGELOG.md`.
+
+**Findings**
+
+- `CalendarItem` validates `date` as a string only; date parseability must be checked by evaluator code that reasons over time windows.
+
+**Decisions**
+
+- Used the existing `RestrictedReply` `stale_calendar` rule for evaluator uncertainty. That keeps the pure helper fail-closed without adding a new contract discriminator.
+
+**Verification**
+
+- `bun install` — clean, lockfile saved.
+- `bun run lint:fix` — exit 0; pre-existing unrelated warnings/infos remained.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 16 pass / 0 fail / 21 expects.
+- `bun run typecheck` — clean.
+- `bun run --cwd services/news start` — exits with `news: not yet implemented (Phase 5)`; no `/health` endpoint exists yet to restart/verify.
+
+**Open endings**
+
+- Commit/push the follow-up, then re-request CodeReviewer review on PR #14.
+
 ## 2026-04-29 12:33 Europe/Amsterdam — v0.4.37 / @ankit-prop/contracts v0.7.0 / @ankit-prop/news v0.3.0 ([ANKA-161](/ANKA/issues/ANKA-161) — PR #15 CodeReviewer follow-up)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped Paperclip resume after child reviews completed.
@@ -29,6 +97,28 @@ _Append-only, newest first. Never edit past entries._
 **Open endings**
 
 - Still needs amend/force-push, PR update, and Paperclip review handoff update. No service restart expected because `services/news` still has only the placeholder `start` script and no `/health` runtime.
+
+## 2026-04-29 12:30 Europe/Amsterdam — @ankit-prop/news v0.3.1 ([ANKA-175](/ANKA/issues/ANKA-175) QA pre-news boundary regression)
+
+**Agent:** QAEngineer (codex_local). **Run:** scoped Paperclip wake on [ANKA-175](/ANKA/issues/ANKA-175), blocker-clearing handoff comment `57331234-e241-444a-9c93-f4ecd8fb560e`.
+
+**What was done**
+
+- Re-read BLUEPRINT §0.2/§5/§9/§11.5/§13/§13.5/§22/§25 and fetched `https://bun.com/llms.txt` at 12:28 Europe/Amsterdam before Bun test edits.
+- Created `.paperclip/worktrees/ANKA-175` detached at PR #14 head `4375808`, leaving the shared root checkout untouched.
+- Confirmed the existing PR #14 spec already covered the handoff's individual cases: `atUtc + 0`, `+1h59m`, exclusive `+2h`, `atUtc - 1m`, tier-2/3 exclusion, and Prague DST forward/backward UTC range assertions.
+- Added a QA-owned mixed-boundary regression in `services/news/src/evaluator/pre-news.spec.ts` proving the exact ordinary UTC query range and combined filtering of outside-window, tier-2/3, and unmapped rows.
+- Bumped `@ankit-prop/news` `0.3.0` → `0.3.1`, updated `bun.lock`, and updated `CHANGELOG.md`.
+
+**Verification**
+
+- `bun install` — clean, lockfile saved.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 12 pass / 0 fail / 16 expects.
+- Deliberate regression check: temporarily changed the evaluator's exclusive end comparator from `< toMs` to `<= toMs`; the focused spec failed 10 pass / 2 fail / 16 expects on the new mixed-boundary case and the existing exclusive-`+2h` case, then the comparator was restored.
+- `bun run lint:fix` — exit 0; Biome fixed the new spec formatting and reported pre-existing unrelated warnings/infos.
+- `bun test` — 379 pass / 0 fail / 2163 expects.
+- `bun run typecheck` — clean.
+- `bun run --cwd services/news start` — exits with `news: not yet implemented (Phase 5)`; no `/health` endpoint exists yet to restart/verify.
 
 ## 2026-04-29 10:16 Europe/Amsterdam — v0.4.36 / @ankit-prop/news v0.2.3 ([ANKA-207](/ANKA/issues/ANKA-207) PR #16 restricted-window QA gaps)
 
@@ -85,6 +175,41 @@ _Append-only, newest first. Never edit past entries._
 **Open endings**
 
 - Commit and push the existing PR branch; no service restart expected because `services/news` still has no live `start` implementation.
+
+## 2026-04-29 09:25 Europe/Amsterdam — @ankit-prop/news v0.3.0 ([ANKA-164](/ANKA/issues/ANKA-164) pre-news evaluator)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped Paperclip wake on [ANKA-164](/ANKA/issues/ANKA-164), no pending comments in the wake payload.
+
+**What was done**
+
+- Re-read BLUEPRINT §0/§0.2/§5/§9/§11.4/§19.2/§25 and fetched `https://bun.com/llms.txt` at 09:18 Europe/Amsterdam before Bun-runtime edits.
+- Created `.paperclip/worktrees/ANKA-164` on `feat/anka-164-pre-news` from `origin/main` per [ANKA-126](/ANKA/issues/ANKA-126).
+- Added `services/news/src/evaluator/pre-news.ts` and `index.ts`: pure `evaluatePreNews` with `[atUtc, atUtc + 2h)` UTC query semantics, tier-1 filter (`impact === 'high' || restriction === true`), existing symbol-tag matching, and canonical `RestrictedReply` output.
+- Added `services/news/src/evaluator/pre-news.spec.ts` with boundary, tier, tag-match, empty-input, and Prague DST forward/backward coverage.
+- Bumped `@ankit-prop/news` `0.2.0` → `0.3.0`, added the local `@ankit-prop/contracts` workspace dependency, and refreshed `bun.lock`.
+
+**Findings**
+
+- `main` has the shared news contracts and mapper but not the older unmerged DB/server branch. This evaluator therefore uses a tiny `PreNewsDb.queryRange(fromUtc, toUtc)` dependency so N10 can wire the real DB/router later without dragging unmerged service branches into [ANKA-164](/ANKA/issues/ANKA-164).
+
+**Contradictions**
+
+- BLUEPRINT §11.5 describes the conceptual kill-switch as inclusive through the event time, while [ANKA-164](/ANKA/issues/ANKA-164) explicitly requires `[atUtc, atUtc + 2h)` to avoid double-firing with N5 at event time. The issue-specific boundary is implemented and documented on the public function.
+
+**Decisions**
+
+- Kept the evaluator pure and dependency-injected instead of importing a concrete calendar DB, because N2/N10 are separate Wave-2 units and no DB API is present on `main`.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; pre-existing unrelated warnings/infos remained, no final fixes applied on the second run.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 11 pass / 0 fail / 14 expects.
+- `bun run typecheck` — clean.
+- `bun run --cwd services/news start` — exits with `news: not yet implemented (Phase 5)`; no `/health` endpoint exists on current `main` to restart/verify.
+
+**Open endings**
+
+- Wire `evaluatePreNews` into the Elysia `/calendar/pre-news-2h` route in the later N10 router issue.
 
 ## 2026-04-29 09:24 Europe/Amsterdam — v0.4.34 / @ankit-prop/news v0.2.1 ([ANKA-163](/ANKA/issues/ANKA-163) restricted-window evaluator)
 

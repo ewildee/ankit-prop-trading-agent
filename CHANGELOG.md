@@ -2,6 +2,49 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/news@0.3.3 — 2026-04-29 12:52 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-213](/ANKA/issues/ANKA-213) — rebase PR [#14](https://github.com/ewildee/ankit-prop-trading-agent/pull/14) / `feat/anka-164-pre-news` onto current `origin/main`.
+
+**Why:** PR [#14](https://github.com/ewildee/ankit-prop-trading-agent/pull/14) was authored before the restricted-window evaluator and calendar DB branches landed on `main`. This reconciliation keeps the pre-news evaluator behavior unchanged while making the PR branch mergeable on current `origin/main` (`70eebae`).
+
+**Changed** — `svc:news/pre-news-evaluator`
+
+- `services/news/src/evaluator/index.ts` — reconciles the add/add barrel export conflict so the restricted-window and pre-news evaluator surfaces are both exported.
+- `services/news/package.json` — bumps `@ankit-prop/news` `0.3.2` → `0.3.3` for the rebase reconciliation slot.
+- `CHANGELOG.md`, `.dev/journal.md`, and `.dev/progress.md` — preserve the PR-side `0.3.0..0.3.2` bookkeeping alongside the newer mainline entries and record this rebase.
+
+**Verification**
+
+- `bun install` — clean; lockfile save attempted after the package bump. Bun 1.3.13 left no final `bun.lock` diff for the workspace-only `0.3.3` version slot.
+- `bun install --frozen-lockfile` — clean; checked 79 installs across 84 packages.
+- `bun run lint:fix` — exit 0; Biome formatted the evaluator barrel and reported only pre-existing unrelated warnings/infos.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 16 pass / 0 fail / 21 expects.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 10 pass / 0 fail / 15 expects.
+- `bun run typecheck` — clean.
+- Service restart/health: `bun run --cwd services/news start` prints `news: not yet implemented (Phase 5)`, so there is no long-running news service or `/health` endpoint to verify yet.
+
+## @ankit-prop/news@0.3.2 — 2026-04-29 12:37 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, addressing [CodeReviewer](/ANKA/agents/codereviewer) feedback from [ANKA-172](/ANKA/issues/ANKA-172) on PR #14 / [ANKA-164](/ANKA/issues/ANKA-164).
+
+**Why:** CodeReviewer found two fail-open edges in the pure pre-news evaluator: omitted time sources raised `RangeError: Invalid Date`, and malformed relevant event dates could be filtered out as unrestricted. Both now fail closed through the canonical `stale_calendar` restricted reply.
+
+**Changed** — `svc:news/pre-news-evaluator`
+
+- `services/news/src/evaluator/pre-news.ts` — validates `atUtc ?? clock.nowUtc()` before querying. Missing or malformed evaluation time returns `{ restricted: true, reasons: [{ event: 'invalid_pre_news_time', eta_seconds: 0, rule: 'stale_calendar' }] }`.
+- `services/news/src/evaluator/pre-news.ts` — parses candidate calendar rows with `CalendarItem.safeParse`; malformed rows fail closed. Relevant tier-1 matching rows with malformed `date` now return `stale_calendar` instead of silently disappearing from the unrestricted result.
+- `services/news/src/evaluator/pre-news.spec.ts` — adds regressions for `clock.nowUtc()` fallback, omitted time source, malformed `atUtc`, and malformed relevant event dates.
+- `services/news/package.json` — version `0.3.1` → `0.3.2`; `bun.lock` records the bump.
+
+**Verification**
+
+- `bun install` — clean, lockfile saved.
+- `bun run lint:fix` — exit 0; pre-existing unrelated warnings/infos remained.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 16 pass / 0 fail / 21 expects.
+- `bun run typecheck` — clean.
+- Service restart/health: `bun run --cwd services/news start` still prints `news: not yet implemented (Phase 5)`, so there is no long-running news service or `/health` endpoint to restart/verify yet.
+
 ## 0.4.37 / @ankit-prop/contracts@0.7.0 / @ankit-prop/news@0.3.0 — 2026-04-29 12:33 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-161](/ANKA/issues/ANKA-161) — `svc:news/calendar-db` Bun SQLite store + PR [#15](https://github.com/ewildee/ankit-prop-trading-agent/pull/15) CodeReviewer follow-up.
@@ -29,6 +72,31 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bun run typecheck` — clean.
 - `bun test --coverage services/news/src/db/calendar-db.spec.ts` — 8 pass / 0 fail / 19 expects.
 - Debug grep over changed source/package files found no `console.log`, `debugger`, `TODO`, or `HACK`.
+
+## @ankit-prop/news@0.3.1 — 2026-04-29 12:30 Europe/Amsterdam
+
+**Initiated by:** QAEngineer (codex_local), executing [ANKA-175](/ANKA/issues/ANKA-175) — QA boundary/DST check for PR #14 / [ANKA-164](/ANKA/issues/ANKA-164).
+
+**Why:** PR #14 already covered the requested individual `pre-news-2h` boundaries and Prague DST transitions. QA adds a mixed-boundary regression that proves the exact ordinary UTC query range and the combined filter behaviour in one fixture.
+
+**Added** — `svc:news/pre-news-evaluator`
+
+- `services/news/src/evaluator/pre-news.spec.ts` — adds a mixed `[atUtc, atUtc + 2h)` regression with `atUtc - 1m`, `atUtc + 0`, `+1h59m`, exclusive `+2h`, tier-2/3 rows, and an unmapped instrument row, while asserting the DB query range is exactly `12:00:00.000Z` through `14:00:00.000Z`.
+
+**Changed** — `@ankit-prop/news`
+
+- `services/news/package.json` — version `0.3.0` → `0.3.1` for the QA regression coverage bump.
+- `bun.lock` — records the `@ankit-prop/news` version bump.
+
+**Verification**
+
+- `bun install` — clean, lockfile saved.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 12 pass / 0 fail / 16 expects.
+- Deliberate regression check: temporarily changed the `+2h` comparator from `< toMs` to `<= toMs`; the focused spec failed 10 pass / 2 fail / 16 expects on the new mixed-boundary case and the existing exclusive-`+2h` case, then the comparator was restored.
+- `bun run lint:fix` — exit 0; Biome fixed the new spec formatting and reported pre-existing unrelated warnings/infos.
+- `bun test` — 379 pass / 0 fail / 2163 expects.
+- `bun run typecheck` — clean.
+- Service restart/health: `bun run --cwd services/news start` still prints `news: not yet implemented (Phase 5)`, so there is no long-running news service or `/health` endpoint to restart/verify yet.
 
 ## 0.4.36 / @ankit-prop/news@0.2.3 — 2026-04-29 10:16 Europe/Amsterdam
 
@@ -66,6 +134,31 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bun run lint:fix` — exit 0; no repo files changed by formatting, pre-existing unrelated warnings/infos remain.
 - `bun test` — 374 pass / 0 fail / 2158 expects.
 - `bun run typecheck` — clean.
+
+## @ankit-prop/news@0.3.0 — 2026-04-29 09:25 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-164](/ANKA/issues/ANKA-164) — Wave-2 N6 `svc:news/pre-news-evaluator`.
+
+**Why:** The news service needs the pure `/calendar/pre-news-2h` evaluator contract before the Elysia router can wire the endpoint. This adds the 2 h tier-1 lookahead with explicit forward-window and DST boundary coverage.
+
+**Added** — `svc:news/pre-news-evaluator`
+
+- `services/news/src/evaluator/pre-news.ts` — exports `evaluatePreNews({ db, mapper, clock }, { atUtc, instruments })`, querying `[atUtc, atUtc + 2h)` in UTC, filtering tier-1 events (`impact === 'high' || restriction === true`), matching requested tracked instruments through the existing symbol-tag mapper, and returning canonical `RestrictedReply` reasons with `rule: 'pre_news_2h'`.
+- `services/news/src/evaluator/pre-news.spec.ts` — covers empty instruments, inclusive `atUtc`, `+1h59m`, exclusive `+2h`, forward-only exclusion, tier-2/3 exclusion, restriction=true tier-1 handling, FTMO tag mapping, unmatched instruments, and Prague DST forward/backward two-hour UTC arithmetic.
+- `services/news/src/evaluator/index.ts` — re-exports the evaluator and dependency/request types for the future router.
+
+**Changed** — `@ankit-prop/news`
+
+- `services/news/package.json` — version `0.2.0` → `0.3.0` and declares the local `@ankit-prop/contracts` workspace dependency used for `CalendarItem` / `RestrictedReply` schema parsing.
+- `bun.lock` — records the `@ankit-prop/news` version and workspace dependency update.
+
+**Verification**
+
+- `bun install` — clean, lockfile saved.
+- `bun run lint:fix` — exit 0; Biome fixed only the new evaluator files and reported pre-existing warnings/infos in unrelated files.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 11 pass / 0 fail / 14 expects.
+- `bun run typecheck` — clean.
+- Service restart/health: `bun run --cwd services/news start` still prints `news: not yet implemented (Phase 5)` on current `main`, so there is no long-running news service or `/health` endpoint to restart/verify yet.
 
 ## 0.4.34 / @ankit-prop/news@0.2.1 — 2026-04-29 09:24 Europe/Amsterdam
 
