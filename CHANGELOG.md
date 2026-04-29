@@ -47,7 +47,13 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 **Verification**
 
-- Pending in [ANKA-239](/ANKA/issues/ANKA-239) post-rebase local gate.
+- `bun install --frozen-lockfile` ✓
+- `bun run config:codegen --check` ✓
+- `bun test services/news/src/symbol-tag-mapper.spec.ts packages/triplon-config/src/codegen/run.spec.ts` → 14 pass / 26 expect() calls
+- `bun run lint` ✓ (Biome pre-existing diagnostics only: 26 warnings / 36 infos, none from this PR)
+- `bun run typecheck` ✓
+- `git diff --check origin/main...HEAD` ✓
+- Full `bun test` was last run green at 368 pass / 2151 expects on the prior verification (re-confirmed by [ANKA-239](/ANKA/issues/ANKA-239) post-rebase local gate, [ANKA-171](/ANKA/issues/ANKA-171) re-review).
 
 ## 0.4.41 / @ankit-prop/news@0.3.7 — 2026-04-29 16:54 Europe/Amsterdam
 
