@@ -2,13 +2,15 @@
 
 _Replace this section every session — keep ≤ 20 lines._
 
-## 2026-04-29 12:52 Europe/Amsterdam — [ANKA-213](/ANKA/issues/ANKA-213) PR #14 rebase
+## 2026-04-29 13:05 Europe/Amsterdam — [ANKA-214](/ANKA/issues/ANKA-214) pre-news ALL mapper routing
 
-- Wake payload had no pending comments; scoped action was to rebase `feat/anka-164-pre-news` for PR [#14](https://github.com/ewildee/ankit-prop-trading-agent/pull/14).
-- Fetched and read `https://bun.com/llms.txt` at 12:48 Europe/Amsterdam before Bun-runtime reconciliation; no dependency surface changes.
-- Created `.paperclip/worktrees/ANKA-213` detached at PR head `371c3dd`; the named branch was already checked out in `.paperclip/worktrees/ANKA-164`, so the shared root stayed untouched.
-- Rebased onto freshly fetched `origin/main` `70eebae` (newer than the stale `7107a46` in the issue brief); resolved the evaluator barrel conflict as restricted-window + pre-news exports.
-- Preserved the PR-side `@ankit-prop/news` `0.3.0..0.3.2` changelog history, bumped `services/news/package.json` to `0.3.3`, and recorded this rebase.
-- Verification: `bun install --frozen-lockfile` clean; `bun run lint:fix` exit 0 (pre-existing unrelated warnings/infos); pre-news spec 16 pass / 21 expects; restricted-window spec 10 pass / 15 expects; `bun run typecheck` clean.
-- Service restart check: not applicable; `services/news` still has only the placeholder start script and no long-running `/health` endpoint.
-- PR [#14](https://github.com/ewildee/ankit-prop-trading-agent/pull/14) force-pushed and confirmed `MERGEABLE` / `CLEAN` at head `9f9fa78`; next is FoundingEngineer re-review routing.
+- Wake payload reported blockers resolved: [ANKA-213](/ANKA/issues/ANKA-213) is done, so this issue is actionable.
+- Fetched and read `https://bun.com/llms.txt` at 13:00 Europe/Amsterdam before Bun-runtime edits; no dependency surface changes.
+- Created `.paperclip/worktrees/ANKA-214` on `refactor/anka-214-pre-news-all-sentinel`, based on `origin/feat/anka-164-pre-news` head `47398c4`.
+- Re-read BLUEPRINT §0/§0.2/§5/§11.3/§17/§22/§25 and scoped implementation to `svc:news/pre-news-evaluator`.
+- Removed the `ALL` global sentinel from `services/news/src/evaluator/pre-news.ts`; all pre-news instrument matching now routes through `resolveAffectedSymbols`.
+- Added two pre-news regressions: unmapped `ALL` does not restrict, mapped `ALL` does restrict mapped instruments.
+- Bumped `@ankit-prop/news` `0.3.3` → `0.3.4`.
+- Verification so far: `bun install` clean; pre-news spec 18 pass / 23 expects; restricted-window spec 10 pass / 15 expects; `bun run lint:fix` exit 0 with pre-existing unrelated diagnostics; `bun run typecheck` clean.
+- Service restart check: `services/news` still has only the placeholder start script and no long-running `/health` endpoint.
+- Commit, push, and review handoff remain in progress.

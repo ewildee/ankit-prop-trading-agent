@@ -2,6 +2,42 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 13:05 Europe/Amsterdam — @ankit-prop/news v0.3.4 ([ANKA-214](/ANKA/issues/ANKA-214) pre-news ALL mapper routing)
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_blockers_resolved` wake after [ANKA-213](/ANKA/issues/ANKA-213) completed.
+
+**What was done**
+
+- Acknowledged the wake payload: blockers were resolved and [ANKA-214](/ANKA/issues/ANKA-214) was actionable.
+- Fetched and read `https://bun.com/llms.txt` at 13:00 Europe/Amsterdam before Bun-runtime edits.
+- Created `.paperclip/worktrees/ANKA-214` on `refactor/anka-214-pre-news-all-sentinel`, based on `origin/feat/anka-164-pre-news` head `47398c4`.
+- Removed the pre-news `instrument === "ALL"` global-match shortcut so all instrument matching now routes through `resolveAffectedSymbols(event.instrument, mapper, logger)`.
+- Added regressions proving unmapped `ALL` rows do not restrict requested instruments and configured `ALL` mappings do restrict mapped instruments.
+- Bumped `@ankit-prop/news` `0.3.3` → `0.3.4` and updated CHANGELOG/progress/TODOS.
+
+**Findings**
+
+- `restricted-window.ts` already matches through its mapper seam only; this change brings pre-news into the same posture.
+- In a fresh worktree, the first focused test failed before evaluation because workspace dependencies were not linked; `bun install` resolved it with no final `bun.lock` diff.
+
+**Decisions**
+
+- Kept `ALL` as an ordinary FTMO tag that can be configured in `symbol-tag-map.config.yaml`, rather than special-casing it in evaluator code.
+
+**Verification**
+
+- `bun install` — clean; linked workspace dependencies, no final `bun.lock` diff.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 18 pass / 0 fail / 23 expects.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 10 pass / 0 fail / 15 expects.
+- `bun run lint:fix` — exit 0; Biome reported only pre-existing unrelated warnings/infos outside this diff.
+- `bun run typecheck` — clean.
+- `bun run --cwd services/news start` — prints `news: not yet implemented (Phase 5)`; no `/health` endpoint exists yet to restart/verify.
+- Debug grep over changed news source/package files found no `console.log`, `debugger`, `TODO`, or `HACK`; `git diff --check` clean.
+
+**Open endings**
+
+- Commit and push `refactor/anka-214-pre-news-all-sentinel`, then hand [ANKA-214](/ANKA/issues/ANKA-214) to FoundingEngineer for review routing.
+
 ## 2026-04-29 12:52 Europe/Amsterdam — @ankit-prop/news v0.3.3 ([ANKA-213](/ANKA/issues/ANKA-213) PR #14 rebase)
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped assignment wake on [ANKA-213](/ANKA/issues/ANKA-213).

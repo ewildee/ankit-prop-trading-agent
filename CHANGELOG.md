@@ -2,6 +2,28 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/news@0.3.4 — 2026-04-29 13:05 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-214](/ANKA/issues/ANKA-214) — route pre-news `ALL` rows through `symbol-tag-mapper`.
+
+**Why:** CodeReviewer flagged that `services/news/src/evaluator/pre-news.ts` still treated `instrument: "ALL"` as a global sentinel even after the restricted-window evaluator was aligned to BLUEPRINT §11.3 / §17.3. Pre-news matching now uses the configured symbol tag map for `ALL` the same way it does for every other FTMO instrument tag.
+
+**Changed** — `svc:news/pre-news-evaluator`
+
+- `services/news/src/evaluator/pre-news.ts` — removes the `event.instrument === "ALL"` unconditional match path; affected symbols now come only from `resolveAffectedSymbols(event.instrument, mapper, logger)`.
+- `services/news/src/evaluator/pre-news.spec.ts` — adds regressions proving an unmapped `ALL` row does not restrict requested instruments, while a configured `ALL` mapping does restrict mapped instruments.
+- `services/news/package.json` — bumps `@ankit-prop/news` `0.3.3` → `0.3.4`.
+
+**Verification**
+
+- `bun install` — clean; linked fresh worktree dependencies and saved lockfile with no final `bun.lock` diff.
+- `bun test services/news/src/evaluator/pre-news.spec.ts` — 18 pass / 0 fail / 23 expects.
+- `bun test services/news/src/evaluator/restricted-window.spec.ts` — 10 pass / 0 fail / 15 expects.
+- `bun run lint:fix` — exit 0; Biome reported only pre-existing unrelated warnings/infos outside this diff.
+- `bun run typecheck` — clean.
+- `bun run --cwd services/news start` — prints `news: not yet implemented (Phase 5)`; no long-running news service or `/health` endpoint exists yet to restart/verify.
+- Debug grep over changed news source/package files found no `console.log`, `debugger`, `TODO`, or `HACK`; `git diff --check` clean.
+
 ## @ankit-prop/news@0.3.3 — 2026-04-29 12:52 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-213](/ANKA/issues/ANKA-213) — rebase PR [#14](https://github.com/ewildee/ankit-prop-trading-agent/pull/14) / `feat/anka-164-pre-news` onto current `origin/main`.

@@ -103,7 +103,6 @@ function affectsAnyInstrument(
   mapper: SymbolTagMap,
   logger?: SymbolTagMapLogger,
 ): boolean {
-  if (event.instrument === 'ALL') return true;
   const affectedSymbols = resolveAffectedSymbols(event.instrument, mapper, logger);
   return instruments.some((instrument) => affectedSymbols.includes(instrument));
 }

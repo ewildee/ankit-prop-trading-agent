@@ -238,6 +238,32 @@ describe('evaluatePreNews', () => {
     expect(reply).toEqual({ restricted: false, reasons: [] });
   });
 
+  test('does not treat ALL as a global instrument sentinel', () => {
+    const reply = evaluatePreNews(
+      { db: db([event({ instrument: 'ALL', title: 'All-market calendar row' })]), mapper: MAP },
+      { atUtc: '2026-04-28T11:00:00Z', instruments: ['XAUUSD'] },
+    );
+
+    expect(reply).toEqual({ restricted: false, reasons: [] });
+  });
+
+  test('matches ALL only when the symbol-tag map affects the requested instrument', () => {
+    const reply = evaluatePreNews(
+      {
+        db: db([event({ instrument: 'ALL', title: 'Mapped all-market calendar row' })]),
+        mapper: { mappings: { ...MAP.mappings, ALL: { affects: ['NAS100'] } } },
+      },
+      { atUtc: '2026-04-28T11:00:00Z', instruments: ['NAS100'] },
+    );
+
+    expect(reply).toEqual({
+      restricted: true,
+      reasons: [
+        { event: 'Mapped all-market calendar row', eta_seconds: 3600, rule: 'pre_news_2h' },
+      ],
+    });
+  });
+
   test('queries a UTC two-hour range across Prague DST spring-forward without shrinking', () => {
     const observed: string[][] = [];
     const reply = evaluatePreNews(
