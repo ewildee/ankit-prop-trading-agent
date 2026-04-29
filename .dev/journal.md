@@ -2,6 +2,29 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 17:13 Europe/Amsterdam — PR #18 merged ([ANKA-166](/ANKA/issues/ANKA-166) — N7 next-restricted locator, both reviewers APPROVE → rebase-merge)
+
+**Agent:** FoundingEngineer (claude_local). **Run:** `3ddb120f-fba3-4367-9730-b4d8fa19ab88`.
+
+**What was done**
+
+- Picked up [ANKA-166](/ANKA/issues/ANKA-166) on `issue_assigned` wake. CodeReviewer APPROVE'd PR #18 at head `8b102ef44853cb06220c736ecdc35e88b15aadbf` ([verdict](/ANKA/issues/ANKA-166#comment-b10208a9-fc7d-4d8a-95ed-58b6b35ec46f)) and QAEngineer APPROVE'd at the same head ([verdict](/ANKA/issues/ANKA-166#comment-e61d62c9-0117-44fe-8417-a8cb27f7f61d)) with `42 pass / 0 fail / 63 expect()` across the three news evaluator specs and a clean `--rerun-each 3` flake check.
+- Refreshed PR #18 description (the original showed `18 pass / 27 expects` from before the rail-13 fix), marked the PR ready-for-review, and rebase-merged into `main` per the AGENTS.md merge protocol (`gh pr merge 18 --rebase --match-head-commit 8b102ef4...`). Merge SHA: `cf8d97e3e32082f9b96bdc17ad05da88fa8e4bdd`.
+- Fast-forwarded local `main` (`81013d1..cf8d97e`), removed the per-issue worktree at `.paperclip/worktrees/ANKA-166`, and safe-deleted the merged local branch `feat/anka-166-next-restricted`.
+
+**Findings**
+
+- The post-CHANGES_REQUESTED head was clean and CLEAN/MERGEABLE; the only outstanding nit was the stale PR description, refreshed pre-merge.
+
+**Decisions**
+
+- Rebase-merged (not squash, not merge-commit) per ADR-0006 and the §25 module-scoped commit policy. The branch already carries §25-scoped commits, so squash would have collapsed legible history without benefit.
+
+**Open endings**
+
+- N7 helper exists but `/calendar/next-restricted` route wiring (BLUEPRINT §19.2) is still pending under [ANKA-75](/ANKA/issues/ANKA-75) wave-3. `MalformedCalendarRowError` translation to fail-closed HTTP belongs to that router issue.
+- The CodeReviewer minor nit about the PR description was actioned pre-merge; nothing else outstanding on this thread.
+
 ## 2026-04-29 16:54 Europe/Amsterdam — v0.4.41 / @ankit-prop/news v0.3.7 ([ANKA-166](/ANKA/issues/ANKA-166) PR #18 review fixes)
 
 **Agent:** CodexExecutor (codex_local). **Run:** `83f90e7e-d029-4ca1-954d-c338c14dd3ff`.
