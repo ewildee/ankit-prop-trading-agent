@@ -169,6 +169,54 @@ _Append-only, newest first. Never edit past entries._
 
 - Hand back to [@CEO](agent://45fe8cec-dfcd-4894-acfd-8cd83df7840b) on [ANKA-268](/ANKA/issues/ANKA-268) for `done` close-out, and confirm the operator-side board child issue (GitHub repo-settings tightening) is queued. Future merges follow the AGENTS.md §2 audit step.
 
+## 2026-04-29 19:46 Europe/Amsterdam — v0.4.44 / @ankit-prop/market-data v0.1.2 ([ANKA-266](/ANKA/issues/ANKA-266))
+
+**Agent:** CodexExecutor (codex_local). **Run:** `eb359b2c-1afd-4edd-830b-acee1fbf61c8`.
+
+**What was done**
+
+- Consumed [ANKA-266](/ANKA/issues/ANKA-266), the scoped reviewer-block fix for PR [#24](https://github.com/ewildee/ankit-prop-trading-agent/pull/24), in the existing `.paperclip/worktrees/ANKA-236` worktree on `feat/ANKA-236-market-data`.
+- Fetched and read `https://bun.com/llms.txt` at 19:41 Europe/Amsterdam before Bun-runtime edits.
+- Fixed `CachedFixtureProvider.getEvents()` so its predicate uses the same projected timestamp as `toCalendarEvent`: `eventTsMs` for news and `startMs` for closures, preserving strict half-open `[fromMs, toMs)` bounds.
+- Added the requested real-fixture NFP regression around `2026-04-03T13:30:00Z`, including eval-harness blackout/pre-news re-windowing checks and the pre-window-only exclusion.
+- Rebasing PR #24 onto `origin/main` (`dbe4d31`) hit the expected audit-file conflicts in `.dev/journal.md`, `.dev/progress.md`, and `CHANGELOG.md`; main's dashboard/ANKA-239 entries and ANKA-236's market-data entries were preserved.
+- Bumped root `0.4.43` → `0.4.44` and `@ankit-prop/market-data` `0.1.1` → `0.1.2`; aligned stale workspace-version slots in `bun.lock`.
+
+**Findings**
+
+- The prior ANKA-248 projection fix changed `toCalendarEvent`, but `getEvents()` still filtered before projection using `startMs`. The defect was therefore exactly the reviewer-described fail-open for narrow print-time queries.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Kept the fix local to the predicate and regression spec. No new abstraction was needed because `toCalendarEvent` already documents the projection rule.
+
+**Unexpected behaviour**
+
+- `bun install` saved the lockfile but left existing workspace version slots stale, matching earlier Bun 1.3.13 workspace-version behaviour seen in this repo. The final diff aligns the touched workspace slots manually.
+
+**Adaptations**
+
+- Per [ANKA-266](/ANKA/issues/ANKA-266), worked on the PR #24 branch worktree rather than the harness-provided review checkout.
+
+**Verification**
+
+- `bun install` — saved lockfile after package bump; `bun install --frozen-lockfile` checked 85 installs across 89 packages with no changes.
+- `bun run lint:fix` — exit 0; no fixes applied, with pre-existing unrelated Biome diagnostics (27 warnings / 37 infos) outside this scoped diff.
+- `bun run lint` — exit 0; same pre-existing unrelated diagnostics.
+- `bun run typecheck` — clean.
+- `bun test packages/market-data packages/market-data-twelvedata packages/eval-harness` — 138 pass / 0 fail / 1321 expects.
+- `git diff --check` — clean.
+- `rg -n "console\\.log|debugger|TODO|HACK" packages/market-data/src/cached-fixture-provider.ts packages/market-data/src/cached-fixture-provider.spec.ts packages/market-data/package.json package.json bun.lock` — no matches.
+- Service restart/health: package-only change; no long-running service package changed.
+
+**Open endings**
+
+- Amend the rebased commit after final verification, lease-push `feat/ANKA-236-market-data`, check PR #24 mergeability, and reassign [ANKA-266](/ANKA/issues/ANKA-266) to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80) for parent routing.
+
 ## 2026-04-29 18:57 Europe/Amsterdam — v0.4.43 / @ankit-prop/market-data v0.1.1 / @ankit-prop/market-data-twelvedata v0.1.3 ([ANKA-248](/ANKA/issues/ANKA-248))
 
 **Agent:** CodexExecutor (codex_local). **Run:** `61f2e8c0-a4bd-4de7-bc66-a8a27f178883`.

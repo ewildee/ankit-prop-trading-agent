@@ -97,7 +97,10 @@ export class CachedFixtureProvider implements IMarketDataProvider {
     if (!this.adversarial) return [];
     if (args.toMs <= args.fromMs) return [];
     return this.adversarial
-      .filter((w) => w.startMs >= args.fromMs && w.startMs < args.toMs)
+      .filter((w) => {
+        const tsMs = w.kind === 'news' ? w.eventTsMs : w.startMs;
+        return tsMs >= args.fromMs && tsMs < args.toMs;
+      })
       .map(toCalendarEvent);
   }
 
