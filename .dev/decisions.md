@@ -2,6 +2,18 @@
 
 _Append-only, newest first. Each ADR captures: context, decision, alternatives, consequences._
 
+## ADR-0005 — Adopt Elysia + Eden/Treaty as the workspace HTTP foundation
+
+- **Date:** 2026-04-29 07:43 Europe/Amsterdam
+- **Status:** Accepted (implemented by [ANKA-131](/ANKA/issues/ANKA-131))
+- **Context:** CEO Q-A on [ANKA-75](/ANKA/issues/ANKA-75) selected Elysia as the workspace HTTP framework and Eden/Treaty as the typed client. BLUEPRINT §3.3 and §19 expect local HTTP/SSE via Elysia and shared schemas/contracts through `packages/shared-contracts`. [ANKA-134](/ANKA/issues/ANKA-134) pinned `elysia@1.4.28` and `@elysiajs/eden@1.4.9`; [ANKA-135](/ANKA/issues/ANKA-135) constrained the shape to a thin Treaty helper plus static local service catalog; [ANKA-136](/ANKA/issues/ANKA-136) conditionally approved the supply-chain risk for exact pins only.
+- **Decision:** Add the exact approved root dependencies and introduce `pkg:contracts/treaty-client` with `createTreatyClient<App>(baseUrl)` as a direct wrapper over Eden/Treaty's `treaty<App>(baseUrl)`, a static BLUEPRINT §19 `SERVICES` catalog, and a source-convention `assertExportsTreaty(source)` guard for type-only service `App` exports. Keep runtime concerns (timeouts, retries, auth, observability, config-derived URLs, service orchestration) out of the shared helper.
+- **Alternatives considered:**
+  - _Use current-docs `@elysia/eden@1.4.10` instead of `@elysiajs/eden@1.4.9`._ Rejected for this issue: the DocumentSpecialist and SecurityReviewer approvals were explicitly for `@elysiajs/eden@1.4.9`; changing package names would require a fresh security pass or CTO scope change.
+  - _Build a richer service client layer with retries/timeouts/config loading._ Rejected per [ANKA-135](/ANKA/issues/ANKA-135); generic retry/normalization would blur fail-closed ownership for gateway rails and turn `pkg:contracts` into orchestration infrastructure.
+  - _Runtime-assert a service module exports `App`._ Rejected because `export type { App }` is erased by TypeScript. The guard checks source convention and service migrations must still rely on `tsc` for type-level validation.
+- **Consequences:** Services get a shared Treaty client entry point and canonical local defaults without a service migration in this ticket. Future service migrations can re-export type-only `App` and call `createTreatyClient<App>(resolvedBaseUrl)`. Any auth/cookie/CORS/upload/OpenAPI/order-path Elysia usage needs separate SecurityReviewer review.
+
 ## ADR-0004 — Re-enable the existing GitHub Actions lint/test/typecheck workflow as-is
 
 - **Date:** 2026-04-29 05:12 Europe/Amsterdam
