@@ -2,7 +2,6 @@ import { describe, expect, test } from 'bun:test';
 
 import cassette from '../../test/cassettes/ftmo-2026-03-23-week.json';
 import {
-  CALENDAR_FETCH_INTERVAL_MS,
   type CalendarEvent,
   type CalendarFetcherDb,
   type CalendarFetcherLogger,
@@ -236,7 +235,7 @@ describe('createCalendarFetcher.start/stop', () => {
     fetcher.start();
     expect(calls).toBe(1);
     expect(intervals).toHaveLength(1);
-    expect(intervals[0]?.ms).toBe(CALENDAR_FETCH_INTERVAL_MS);
+    expect(intervals[0]?.ms).toBe(30 * 60 * 1_000);
 
     intervals[0]?.callback();
     expect(calls).toBe(2);
