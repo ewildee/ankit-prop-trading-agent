@@ -2,6 +2,57 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-29 13:51 Europe/Amsterdam — @ankit-prop/news v0.3.6 ([ANKA-231](/ANKA/issues/ANKA-231) — PR #17 mapper date fail-closed BLOCK)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `0e110087-3f43-4c4c-b177-8bb44239b761`.
+
+**What was done**
+
+- Used the scoped [ANKA-231](/ANKA/issues/ANKA-231) wake payload, then fetched heartbeat context because `origin/main` did not contain `services/news/src/fetcher/map-event.ts`. The issue explicitly said to work on PR #17's `origin/codex/anka-162-calendar-fetcher` head, not `main`.
+- Created `.paperclip/worktrees/ANKA-231` from `origin/codex/anka-162-calendar-fetcher` and left the rebase-to-main work to [ANKA-227](/ANKA/issues/ANKA-227), per issue constraints.
+- Re-read BLUEPRINT §0/§0.1/§0.2, §5, §11.3, §17, §22, and §25; fetched `https://bun.com/llms.txt` at 13:47 Europe/Amsterdam before Bun-runtime edits.
+- Tightened `mapCalendarItemToEvent` so `item.date` must match an explicit-offset ISO datetime before native parsing, impossible local calendar components are rejected, and the native `Date.parse` result must match the expected UTC instant from the captured offset.
+- Added mapper regressions for offsetless and impossible dates, plus a fetcher-level mixed-batch regression proving a single offsetless item returns `schema_mismatch`, writes `last_fetch_ok = 0`, and skips `db.upsertEvents`.
+- Bumped `@ankit-prop/news` 0.3.5 → 0.3.6 and updated CHANGELOG / progress / TODOS.
+
+**Findings**
+
+- The existing fetcher error path already converted `CalendarItemMapError` into `schema_mismatch`; the production fix belongs entirely in `map-event.ts`.
+- A fresh worktree needed `bun install --frozen-lockfile` before workspace package links resolved for `@ankit-prop/contracts`.
+
+**Contradictions**
+
+- The initial worktree from `origin/main` followed the generic base default but contradicted the issue's branch instruction. Recreated the per-issue worktree from `origin/codex/anka-162-calendar-fetcher` before editing.
+
+**Decisions**
+
+- Kept the mapper error text as `invalid date: <value>` for all invalid date cases so existing fetcher logging remains stable while still including the offending FTMO value.
+
+**Unexpected behaviour**
+
+- `bun install` saved the lockfile but did not produce a final `bun.lock` diff for the workspace-only package version bump.
+
+**Adaptations**
+
+- Added the new fetcher regression alongside the existing mixed-batch no-partial-persistence test instead of changing the older `not-a-date` coverage, preserving both drift shapes.
+
+**Verification**
+
+- `bun install --frozen-lockfile` — clean; installed fresh worktree dependencies.
+- `bun test services/news/src/fetcher` — 25 pass / 0 fail / 116 expects after dependency install.
+- `bun install` — clean; saved lockfile, checked 79 installs across 84 packages, no changes.
+- `bun run lint:fix` — exit 0; no fixes applied, only pre-existing unrelated Biome warnings/infos.
+- `bun run lint` — exit 0; same pre-existing unrelated Biome warnings/infos.
+- `bun run typecheck` — clean.
+- `bun test services/news/src/fetcher services/news/src/db/calendar-db.spec.ts` — 33 pass / 0 fail / 135 expects.
+- `git diff --check` — clean.
+- `rg -n "console\\.log|debugger|TODO|HACK" services/news/src/fetcher/map-event.ts services/news/src/fetcher/map-event.spec.ts services/news/src/fetcher/calendar-fetcher.spec.ts services/news/package.json` — no matches.
+- `bun run --cwd services/news start` — prints `news: not yet implemented (Phase 5)`, so there is no long-running `/health` endpoint to verify yet.
+
+**Open endings**
+
+- Commit and push the fix branch, then hand [ANKA-231](/ANKA/issues/ANKA-231) back to FoundingEngineer for the requested fresh CodeReviewer routing on PR #17.
+
 ## 2026-04-29 13:32 Europe/Amsterdam — @ankit-prop/news v0.3.5 ([ANKA-230](/ANKA/issues/ANKA-230) — PR #17 version collision reslot)
 
 **Agent:** CodexExecutor (codex_local). **Run:** `6e3588c3-0194-4d88-aff4-bf5113d9e2cc`.

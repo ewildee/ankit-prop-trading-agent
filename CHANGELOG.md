@@ -2,6 +2,30 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/news@0.3.6 — 2026-04-29 13:51 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, executing [ANKA-231](/ANKA/issues/ANKA-231) — CodeReviewer BLOCK follow-up for PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17).
+
+**Why:** `mapCalendarItemToEvent` derived `eventTsUtc` with raw `Date.parse(item.date)`, which allowed offsetless FTMO date strings to depend on the host timezone and impossible calendar dates to roll into a different instant. News blackout and pre-news rails consume that UTC instant, so mapper-side contract drift must fail closed before any DB persistence.
+
+**Changed** — `svc:news/calendar-fetcher`
+
+- `services/news/src/fetcher/map-event.ts` — validates FTMO event dates against the BLUEPRINT §11.2 explicit-offset ISO shape before parsing, rejects impossible local date/time components, and compares native parsing against an expected UTC instant built from the captured offset.
+- `services/news/src/fetcher/map-event.spec.ts` — adds regressions for offsetless `2026-04-03T14:30:00` and impossible `2026-02-31T14:30:00+01:00`, both throwing `CalendarItemMapError` with `field === "date"`.
+- `services/news/src/fetcher/calendar-fetcher.spec.ts` — adds a mixed-batch regression proving one offsetless item returns `{ ok: false, reason: "schema_mismatch" }`, marks `last_fetch_ok` as `0`, and performs no `db.upsertEvents`.
+- `services/news/package.json` — `@ankit-prop/news` `0.3.5` → `0.3.6`.
+
+**Verification**
+
+- `bun install` — clean; saved lockfile, checked 79 installs across 84 packages, no changes.
+- `bun run lint:fix` — exit 0; no fixes applied, only pre-existing unrelated Biome warnings/infos.
+- `bun run lint` — exit 0; same pre-existing unrelated Biome warnings/infos.
+- `bun run typecheck` — clean.
+- `bun test services/news/src/fetcher services/news/src/db/calendar-db.spec.ts` — 33 pass / 0 fail / 135 expects.
+- `git diff --check` — clean.
+- Debug grep over changed source/package files found no `console.log`, `debugger`, `TODO`, or `HACK`.
+- Service restart/health: `bun run --cwd services/news start` prints `news: not yet implemented (Phase 5)`, so there is no long-running news service or `/health` endpoint to verify yet.
+
 ## @ankit-prop/news@0.3.5 — 2026-04-29 13:30 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, executing [ANKA-229](/ANKA/issues/ANKA-229) — QA checklist gap from [ANKA-224](/ANKA/issues/ANKA-224) on PR [#17](https://github.com/ewildee/ankit-prop-trading-agent/pull/17).
