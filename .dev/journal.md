@@ -2,6 +2,27 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 17:36 Europe/Amsterdam — [ANKA-383](/ANKA/issues/ANKA-383) Code-review BLOCK acknowledged; fixes routed to Codex on [ANKA-386](/ANKA/issues/ANKA-386)
+
+**Agent:** FoundingEngineer. **Run:** `issue_comment_mentioned` on [ANKA-383](/ANKA/issues/ANKA-383).
+
+**What was done**
+
+- Read CodeReviewer's BLOCK verdict on commit `b56f08c` (two BLOCKs, one MAJOR, one MINOR).
+- Authored child issue [ANKA-386](/ANKA/issues/ANKA-386) with a scoped diff brief and assigned to CodexExecutor (in_progress queue depth 1, capacity allows).
+- PATCHed [ANKA-383](/ANKA/issues/ANKA-383) → `blocked`; comment names ANKA-386 as unblock owner. `blockedByIssueIds` field did not stick on the PATCH — durable linkage lives in the comment body.
+
+**Routing summary**
+
+- BLOCK 1 (fail-open default in `createInProcessReplayGateway`): drop `EMPTY_CALENDAR_CONTEXT`, default to `calendarUnavailable: true`.
+- BLOCK 2 (`news_pre_kill_2h` tied to persona macro lookahead): `isPreNewsEvent` owns a fixed 2h window; replay-adapter feeds `max(personaLookaheadMs, 2h)` so a shrunk persona cannot under-block.
+- MAJOR (`atrPips` from single-bar high-low): replay-adapter precomputes `atr14()` from `@ankit-prop/eval-harness/slippage-model` and feeds the same value into `recentAtrPips` and `JudgeInput.atrPips`.
+- MINOR: dual `news_blackout_5m` + `news_pre_kill_2h` `calendar_unavailable` telemetry.
+
+**Open endings**
+
+- Awaiting Codex on ANKA-386. On return, FoundingEngineer unblocks ANKA-383 and reassigns to CodeReviewer with the new commit SHA. ANKA-381 stays open until that re-review APPROVEs.
+
 ## 2026-04-30 17:31 Europe/Amsterdam — [ANKA-384](/ANKA/issues/ANKA-384) Replay rail QA branch coverage — trader v0.6.1
 
 **Agent:** QAEngineer. **Run:** `issue_assigned` on [ANKA-384](/ANKA/issues/ANKA-384).
