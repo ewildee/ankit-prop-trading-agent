@@ -2,6 +2,45 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 20:24 Europe/Amsterdam — [ANKA-398](/ANKA/issues/ANKA-398) Analyst wrapper-key parse guard — trader v0.9.5
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-398](/ANKA/issues/ANKA-398).
+
+**What was done**
+
+- Fetched/read `https://bun.com/llms.txt` before editing Bun-runtime TypeScript.
+- Added a runtime generation-boundary guard that strips only the known wrapper context keys `personaId`, `instrument`, `timeframe`, and `decidedAt` before strict `AnalystGenerationOutput.safeParse`.
+- Added warn-level structured output when wrapper keys are dropped, and updated the in-code Analyst wrapper instruction to tell the model not to include wrapper/context fields.
+- Added Analyst spec coverage for wrapper-key acceptance/drop, warning evidence, prompt copy, and kept the arbitrary unknown-key rejection test intact.
+- Bumped `@ankit-prop/trader` `0.9.4` -> `0.9.5`, updated root `CHANGELOG.md`, refreshed `.dev/progress.md`, and recorded `TODOS.md` `T008.e.7` complete.
+
+**Findings**
+
+- Codebase retrieval returned HTTP 429 once; targeted reads of the issue brief, BLUEPRINT, and Analyst source/spec supplied the scoped context.
+- The issue brief still names `services/trader/CHANGELOG.md`, but this branch has no service-local changelog. Existing trader entries live in root `CHANGELOG.md`, so the release entry followed that convention.
+- The smoke replay no longer reproduces the `unrecognized_keys` crash through 18 active-window Analyst calls.
+
+**Decisions**
+
+- Used the tighter Option A+C variant: strip the four observed wrapper keys only, rather than making the generation schema broadly loose. This keeps canonical `AnalystOutput` strictness and arbitrary provider drift rejection intact.
+
+**Verification**
+
+- `bun run --cwd services/trader lint:fix` -> exit 0 (`Found 28 warnings.`; existing non-null assertion warnings remain).
+- `bun run --cwd services/trader lint` -> exit 0 (`Found 28 warnings.`).
+- `bun test services/trader/src/analyst/index.spec.ts` -> 20 pass / 0 fail / 76 expects.
+- `bun run --cwd services/trader test` -> 69 pass / 0 fail / 272 expects.
+- `bun run --cwd services/trader typecheck` -> exit 0.
+- Partial live 7d replay smoke `anka398-codex-20260430T182012Z` intentionally stopped after 161 decisions through `2026-04-21T13:25:00.000Z`; 18 active-window Analyst calls; 2 submitted actions (`OPEN` at `12:05`, `CLOSE` at `12:30`); 152 HOLD / neutral-bias rejects; 5 judge-rejected OPEN attempts; 0 rail breach entries; no `unrecognized_keys` schema throw.
+- Persona-path numeric literal review on the changed TS diff found only structural constants / existing assertion literals and no new params-owned threshold.
+- `git diff --check` -> exit 0.
+- Debug scan over changed Analyst source/spec/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 with Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
+**Open endings**
+
+- Hand to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) first, then [@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177) per the [ANKA-398](/ANKA/issues/ANKA-398) reviewer chain.
+
 ## 2026-04-30 20:01 Europe/Amsterdam — [ANKA-391](/ANKA/issues/ANKA-391) CodeReviewer follow-up — trader v0.9.4 / contracts v3.5.0
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_comment_mentioned` wake for CodeReviewer `CHANGES_REQUESTED`.

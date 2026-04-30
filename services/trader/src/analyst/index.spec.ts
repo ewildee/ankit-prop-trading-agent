@@ -59,7 +59,8 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(requests.at(-1)?.prompt).toContain('JSON');
     expect(requests.at(-1)?.prompt).toContain('reasoningSummary');
     expect(requests.at(-1)?.prompt).toContain('under 200 characters');
-    expect(requests.at(-1)?.prompt).toContain('Do not include regimeLabel');
+    expect(requests.at(-1)?.prompt).toContain('Do not include personaId');
+    expect(requests.at(-1)?.prompt).toContain('regimeLabel');
     expect(output?.regimeLabel).toBe('A_session_break');
     expect(output?.confidence).toBe(output?.confluenceScore ? output.confluenceScore / 100 : 0);
     expect(output?.cacheStats).toEqual({
@@ -163,6 +164,49 @@ describe('createVAnkitClassicAnalyst', () => {
     });
 
     expect(output.reasoningSummary).toBe(reasoningSummary);
+  });
+
+  test('strips known wrapper context keys from generated analyst output before strict parse', async () => {
+    const params = await loadPersonaConfig();
+    const warnings: unknown[][] = [];
+    const originalWarn = console.warn;
+    console.warn = (...args: unknown[]) => {
+      warnings.push(args);
+    };
+    try {
+      const analyst = createVAnkitClassicAnalyst({
+        generator: async () => ({
+          object: {
+            ...draftOutput(),
+            personaId: 'v_ankit_classic',
+            instrument: 'XAUUSD',
+            timeframe: '5m',
+            decidedAt: 'wrapper-context',
+          },
+          usage: usageFixture(),
+        }),
+      });
+      const bar = barsFromCloses([2300]).at(-1);
+      if (bar === undefined) throw new Error('test fixture did not produce a bar');
+
+      const output = await analyst.analyze({
+        bar,
+        persona: params,
+        context: {
+          runId: 'analyst-wrapper-keys-spec',
+          paramsHash: 'params-hash',
+          decidedAt: new Date(bar.tsEnd).toISOString(),
+        },
+      });
+
+      expect(output.bias).toBe('long');
+      expect('personaId' in (output as unknown as Record<string, unknown>)).toBe(false);
+      expect(warnings).toHaveLength(1);
+      expect(warnings[0]?.[0]).toContain('analyst.generation.wrapper_keys_dropped');
+      expect(warnings[0]?.[0]).toContain('personaId');
+    } finally {
+      console.warn = originalWarn;
+    }
   });
 
   test('extracts OpenRouter credits-USD usage cost from provider metadata', () => {

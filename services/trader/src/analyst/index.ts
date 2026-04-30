@@ -18,6 +18,12 @@ import { classifyRegime } from './regime-classifier.ts';
 const ANALYST_GENERATION_MAX_ATTEMPTS = 3;
 const ANALYST_GENERATION_RETRY_MAX_OUTPUT_TOKENS = 4096;
 const ANALYST_REASONING_SUMMARY_PROMPT_TARGET_CHARS = 200;
+const ANALYST_GENERATION_WRAPPER_KEYS = [
+  'personaId',
+  'instrument',
+  'timeframe',
+  'decidedAt',
+] as const;
 export const DEFAULT_ANALYST_REQUEST_TIMEOUT_MS = 90_000;
 const ANALYST_SAFE_FALLBACK_THESIS =
   'ANALYST_SAFE_FALLBACK: structured generation failed after retry escalation; neutral HOLD emitted.';
@@ -137,7 +143,9 @@ export function createVAnkitClassicAnalyst(
         });
       }
 
-      const parsedGeneration = AnalystGenerationOutput.safeParse(generation.result.object);
+      const parsedGeneration = AnalystGenerationOutput.safeParse(
+        stripAnalystGenerationWrapperKeys(generation.result.object),
+      );
       if (!parsedGeneration.success) {
         throw new Error(
           `Analyst generation output validation failed: ${JSON.stringify(parsedGeneration.error.issues)}`,
@@ -423,8 +431,35 @@ function buildAnalystPrompt({
     confluence,
     bars: recentBars,
     calendarLookahead,
-    instruction: `Return only the model-generated Analyst fields as JSON. Use the AnalystOutput field types exactly: keyLevels is an array of objects with name, price, and timeframe; reasoningSummary is a concise string. Keep reasoningSummary under ${ANALYST_REASONING_SUMMARY_PROMPT_TARGET_CHARS} characters. supportingEvidence is one string. Do not include regimeLabel, confidence, confluenceScore, regimeNote, or cacheStats; runtime computes and injects those deterministic fields.`,
+    instruction: `Return only the model-generated Analyst fields as JSON. Use the AnalystOutput field types exactly: keyLevels is an array of objects with name, price, and timeframe; reasoningSummary is a concise string. Keep reasoningSummary under ${ANALYST_REASONING_SUMMARY_PROMPT_TARGET_CHARS} characters. supportingEvidence is one string. Do not include personaId, instrument, timeframe, decidedAt, regimeLabel, confidence, confluenceScore, regimeNote, or cacheStats; runtime computes and injects those deterministic fields.`,
   });
+}
+
+function stripAnalystGenerationWrapperKeys(value: unknown): unknown {
+  if (!isRecord(value)) return value;
+  const droppedKeys = ANALYST_GENERATION_WRAPPER_KEYS.filter((key) => key in value);
+  if (droppedKeys.length === 0) return value;
+
+  const stripped: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    if (!isAnalystGenerationWrapperKey(key)) {
+      stripped[key] = entry;
+    }
+  }
+  console.warn(
+    JSON.stringify({
+      level: 'warn',
+      event: 'analyst.generation.wrapper_keys_dropped',
+      keys: droppedKeys,
+    }),
+  );
+  return stripped;
+}
+
+function isAnalystGenerationWrapperKey(
+  key: string,
+): key is (typeof ANALYST_GENERATION_WRAPPER_KEYS)[number] {
+  return ANALYST_GENERATION_WRAPPER_KEYS.some((wrapperKey) => wrapperKey === key);
 }
 
 function cacheStatsFromUsage(usage: LanguageModelUsage): CacheLayerStats {

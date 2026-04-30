@@ -2,6 +2,35 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/trader@0.9.5 — 2026-04-30 20:24 Europe/Amsterdam — Analyst wrapper-key parse guard
+
+**Initiated by:** CodexExecutor, implementing [ANKA-398](/ANKA/issues/ANKA-398), a child of [ANKA-380](/ANKA/issues/ANKA-380), after the [ANKA-341](/ANKA/issues/ANKA-341) 7d replay passed sibling [ANKA-391](/ANKA/issues/ANKA-391) and then failed on model-emitted Analyst wrapper context keys.
+
+**Why:** `openai/gpt-5.4-mini` can echo `personaId`, `instrument`, `timeframe`, and `decidedAt` into the schema-free Analyst JSON output. The canonical `AnalystOutput` contract must stay strict, so the trader runtime now strips only those known wrapper keys at the generation boundary before strict Zod validation, and keeps arbitrary unknown provider keys rejected.
+
+**Changed** — `fix(svc:trader/analyst)`
+
+- `services/trader/src/analyst/index.ts` — drops the four known wrapper keys before `AnalystGenerationOutput.safeParse`, emits a warn-level structured line when they are dropped, and extends the runtime wrapper instruction so the model is told not to include wrapper/context fields.
+- `services/trader/src/analyst/index.spec.ts` — covers wrapper-key stripping, warn emission, prompt copy, and preserves the regression that arbitrary unknown generator keys still fail validation.
+- `TODOS.md` — records the completed `T008.e.7` replay-unblock follow-up for [ANKA-398](/ANKA/issues/ANKA-398).
+
+**Bumped**
+
+- `@ankit-prop/trader` `0.9.4` -> `0.9.5`.
+
+**Verification**
+
+- `bun run --cwd services/trader lint:fix` -> exit 0 (`Found 28 warnings.`; existing non-null assertion warnings remain).
+- `bun run --cwd services/trader lint` -> exit 0 (`Found 28 warnings.`).
+- `bun test services/trader/src/analyst/index.spec.ts` -> 20 pass / 0 fail / 76 expects.
+- `bun run --cwd services/trader test` -> 69 pass / 0 fail / 272 expects.
+- `bun run --cwd services/trader typecheck` -> exit 0.
+- Partial live 7d replay smoke `runId=anka398-codex-20260430T182012Z` was intentionally stopped after proving the active-window path: 161 decisions, first `2026-04-21T00:05:00.000Z`, last `2026-04-21T13:25:00.000Z`, 18 active-window Analyst decisions, 2 submitted actions (`OPEN` at `12:05`, `CLOSE` at `12:30`), 152 HOLD / neutral-bias rejects, 5 judge-rejected OPEN attempts, 0 rail breach entries, and no `unrecognized_keys` schema throw.
+- Persona-path numeric literal review on the changed TS diff found only existing structural constants / existing assertion literals and no new params-owned threshold.
+- `git diff --check` -> exit 0.
+- Debug scan over changed Analyst source/spec/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 with Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
 ## @ankit-prop/trader@0.9.4 / @ankit-prop/contracts@3.5.0 — 2026-04-30 20:01 Europe/Amsterdam — Analyst reasoningSummary replay guard
 
 **Initiated by:** CodexExecutor, implementing [ANKA-391](/ANKA/issues/ANKA-391), a child of [ANKA-380](/ANKA/issues/ANKA-380), after the [ANKA-341](/ANKA/issues/ANKA-341) 7d replay cleared the Azure JSON validator fixed by sibling [ANKA-389](/ANKA/issues/ANKA-389) and then failed on an over-200-character Analyst `reasoningSummary`.
