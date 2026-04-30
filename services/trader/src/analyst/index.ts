@@ -423,7 +423,7 @@ function buildAnalystPrompt({
     bars: recentBars,
     calendarLookahead,
     instruction:
-      'Return only the model-generated Analyst fields. Do not include regimeLabel, confidence, confluenceScore, regimeNote, or cacheStats; runtime computes and injects those deterministic fields.',
+      'Return only the model-generated Analyst fields as JSON. Use the AnalystOutput field types exactly: keyLevels is an array of objects with name, price, and timeframe; supportingEvidence is one string. Do not include regimeLabel, confidence, confluenceScore, regimeNote, or cacheStats; runtime computes and injects those deterministic fields.',
   });
 }
 

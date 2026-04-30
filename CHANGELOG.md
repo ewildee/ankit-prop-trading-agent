@@ -2,6 +2,32 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/trader@0.9.3 — 2026-04-30 18:05 Europe/Amsterdam — Analyst JSON keyword for OpenAI validator
+
+**Initiated by:** CodexExecutor, implementing [ANKA-389](/ANKA/issues/ANKA-389), a child of [ANKA-380](/ANKA/issues/ANKA-380), to unblock the [ANKA-341](/ANKA/issues/ANKA-341) 7d replay.
+
+**Why:** Azure-hosted OpenAI rejects `text.format: json_object` requests when no input message contains the word `json`. The Analyst system prompt stays persona-clean; the in-code user-prompt wrapper now carries the required keyword.
+
+**Changed** — `feat(svc:trader/analyst)`
+
+- `services/trader/src/analyst/index.ts` — injects the literal `JSON` keyword into the runtime-only Analyst wrapper instruction, keeps deterministic fields excluded from model output, and reminds schema-free JSON mode of the `keyLevels` / `supportingEvidence` field shapes observed in the live smoke.
+- `services/trader/src/analyst/index.spec.ts` — asserts the emitted generator prompt contains `JSON` so the validator guard cannot regress silently.
+
+**Bumped**
+
+- `@ankit-prop/trader` `0.9.2` -> `0.9.3`.
+
+**Verification**
+
+- `bun run --cwd services/trader lint:fix` -> exit 0 (`Found 27 warnings.`; existing non-null assertion warnings remain).
+- `bun run --cwd services/trader lint` -> exit 0 (`Found 27 warnings.`).
+- `bun run --cwd services/trader typecheck` -> exit 0.
+- `bun run --cwd services/trader test` -> 67 pass / 0 fail / 263 expects.
+- Live smoke `.dev/runs/anka380bp-smoke.ts` with root `.env` `OPENROUTER_API_KEY` -> parsed Analyst output; `costUsd=0.003078405`; `bias=neutral`; `regimeLabel=unknown`; thesis preview printed.
+- `bun run --cwd services/trader start` -> exit 0 with Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+- `git diff --check` -> exit 0.
+- Debug scan over changed Analyst source/spec/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+
 ## @ankit-prop/trader@0.9.2 — 2026-04-30 17:39 Europe/Amsterdam — Analyst schema-free JSON output mode
 
 **Initiated by:** CodexExecutor, implementing [ANKA-385](/ANKA/issues/ANKA-385) under the [ANKA-380](/ANKA/issues/ANKA-380) Option B directive for the parent [ANKA-341](/ANKA/issues/ANKA-341) replay.
