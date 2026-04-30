@@ -54,6 +54,143 @@ describe('createInProcessReplayGateway', () => {
     }
   });
 
+  test('allows an approved OPEN inside the persona active window with clear calendar context', async () => {
+    const persona = await loadPersonaConfig();
+    const bar = barAt('2026-04-27T12:00:00.000Z');
+    const decision = await createInProcessReplayGateway({
+      calendarContext: () => ({ calendarLookahead: [] }),
+    }).decide({
+      bar,
+      persona,
+      context: contextAt(bar.tsEnd),
+      analystOutput: {} as never,
+      traderOutput: openOutput(),
+      judgeOutput: JUDGE_APPROVE,
+    });
+
+    expect(decision.status).toBe('submitted');
+    if (decision.status === 'submitted') {
+      expect(decision.railVerdict.outcome).toBe('allow');
+      expect(decision.railVerdict.decisions).toContainEqual(
+        expect.objectContaining({
+          rail: 'force_flat_schedule',
+          outcome: 'allow',
+          reason: 'inside_active_window_or_non_open',
+        }),
+      );
+      expect(decision.railVerdict.decisions).toContainEqual(
+        expect.objectContaining({
+          rail: 'news_blackout_5m',
+          outcome: 'allow',
+          reason: 'no_restricted_event_blackout',
+        }),
+      );
+    }
+  });
+
+  test('allows the five-minute blackout rail for events beyond five minutes', async () => {
+    const persona = await loadPersonaConfig();
+    const bar = barAt('2026-04-27T12:00:00.000Z');
+    const gateway = createInProcessReplayGateway({
+      calendarContext: () => ({
+        calendarLookahead: [
+          calendarItem(persona.instrument, new Date(bar.tsEnd + 6 * 60 * 1000).toISOString()),
+        ],
+      }),
+    });
+
+    const decision = await gateway.decide({
+      bar,
+      persona,
+      context: contextAt(bar.tsEnd),
+      analystOutput: {} as never,
+      traderOutput: openOutput(),
+      judgeOutput: JUDGE_APPROVE,
+    });
+
+    expect(decision.status).toBe('not_submitted');
+    if (decision.status === 'not_submitted') {
+      expect(decision.reason).toBe('rail_block');
+      expect(decision.railVerdict?.decisions).toContainEqual(
+        expect.objectContaining({
+          rail: 'news_blackout_5m',
+          outcome: 'allow',
+          reason: 'no_restricted_event_blackout',
+        }),
+      );
+      expect(decision.railVerdict?.decisions).toContainEqual(
+        expect.objectContaining({
+          rail: 'news_pre_kill_2h',
+          outcome: 'reject',
+          reason: 'tier_one_pre_news_kill',
+        }),
+      );
+    }
+  });
+
+  test('blocks an approved OPEN during the two-hour pre-news kill window', async () => {
+    const persona = await loadPersonaConfig();
+    const bar = barAt('2026-04-27T12:00:00.000Z');
+    const gateway = createInProcessReplayGateway({
+      calendarContext: () => ({
+        calendarLookahead: [
+          calendarItem(persona.instrument, new Date(bar.tsEnd + 90 * 60 * 1000).toISOString()),
+        ],
+      }),
+    });
+
+    const decision = await gateway.decide({
+      bar,
+      persona,
+      context: contextAt(bar.tsEnd),
+      analystOutput: {} as never,
+      traderOutput: openOutput(),
+      judgeOutput: JUDGE_APPROVE,
+    });
+
+    expect(decision.status).toBe('not_submitted');
+    if (decision.status === 'not_submitted') {
+      expect(decision.reason).toBe('rail_block');
+      expect(decision.railVerdict?.outcome).toBe('reject');
+      expect(decision.railVerdict?.decisions).toContainEqual(
+        expect.objectContaining({
+          rail: 'news_pre_kill_2h',
+          outcome: 'reject',
+          reason: 'tier_one_pre_news_kill',
+        }),
+      );
+    }
+  });
+
+  test('fails closed when replay calendar context is unavailable', async () => {
+    const persona = await loadPersonaConfig();
+    const bar = barAt('2026-04-27T12:00:00.000Z');
+    const gateway = createInProcessReplayGateway({
+      calendarContext: () => ({ calendarLookahead: [], calendarUnavailable: true }),
+    });
+
+    const decision = await gateway.decide({
+      bar,
+      persona,
+      context: contextAt(bar.tsEnd),
+      analystOutput: {} as never,
+      traderOutput: openOutput(),
+      judgeOutput: JUDGE_APPROVE,
+    });
+
+    expect(decision.status).toBe('not_submitted');
+    if (decision.status === 'not_submitted') {
+      expect(decision.reason).toBe('rail_block');
+      expect(decision.railVerdict?.decisions).toContainEqual(
+        expect.objectContaining({
+          rail: 'news_blackout_5m',
+          outcome: 'reject',
+          reason: 'calendar_unavailable',
+        }),
+      );
+    }
+  });
+
   test('blocks an approved OPEN outside the persona active window', async () => {
     const persona = await loadPersonaConfig();
     const bar = barAt('2026-04-27T03:00:00.000Z');

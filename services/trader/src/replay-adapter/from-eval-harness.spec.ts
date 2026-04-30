@@ -244,6 +244,47 @@ describe('runTraderReplay', () => {
       await rm(tmp, { recursive: true, force: true });
     }
   });
+
+  test('fails closed when replay provider has no calendar event source', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
+    try {
+      const provider = new NoCalendarMarketDataProvider(barsWithRepeatedLongSignals());
+      const persona = await loadReplayFixturePersona();
+      const result = await runTraderReplay({
+        runId: 'replay-adapter-missing-calendar-spec',
+        persona,
+        provider,
+        symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+        window: ONE_DAY_WINDOW,
+        account: ACCOUNT,
+        symbolMetas: await provider.listSymbols(),
+        logPath: join(tmp, 'decisions.jsonl'),
+        reflectAtEnd: false,
+        analystGenerator: fixtureAnalystGenerator,
+      });
+
+      const calendarBlocked = result.decisions.find(
+        (decision) =>
+          decision.traderOutput.action === 'OPEN' &&
+          decision.gatewayDecision?.status === 'not_submitted' &&
+          decision.gatewayDecision.reason === 'rail_block',
+      );
+
+      expect(calendarBlocked?.judgeOutput?.verdict).toBe('APPROVE');
+      expect(calendarBlocked?.gatewayDecision?.status).toBe('not_submitted');
+      if (calendarBlocked?.gatewayDecision?.status === 'not_submitted') {
+        expect(calendarBlocked.gatewayDecision.railVerdict?.decisions).toContainEqual(
+          expect.objectContaining({
+            rail: 'news_blackout_5m',
+            outcome: 'reject',
+            reason: 'calendar_unavailable',
+          }),
+        );
+      }
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
 });
 
 const fixtureAnalystGenerator = analystGeneratorForBiases(['long']);
@@ -426,6 +467,44 @@ class StaticMarketDataProvider implements IMarketDataProvider {
   async getEvents(args: { fromMs: number; toMs: number }): Promise<readonly CalendarEvent[]> {
     return this.events.filter(
       (event) => event.timestamp >= args.fromMs && event.timestamp < args.toMs,
+    );
+  }
+}
+
+class NoCalendarMarketDataProvider implements IMarketDataProvider {
+  readonly #symbols: SymbolMeta[] = [
+    {
+      symbol: 'XAUUSD',
+      ...INSTRUMENT_SPECS.XAUUSD,
+    },
+  ];
+
+  constructor(private readonly bars: ReadonlyArray<Bar>) {}
+
+  async listSymbols(): Promise<readonly SymbolMeta[]> {
+    return this.#symbols;
+  }
+
+  async resolveSymbol(symbol: string): Promise<SymbolMeta | undefined> {
+    return this.#symbols.find((meta) => meta.symbol === symbol);
+  }
+
+  async listAvailability(): Promise<readonly SymbolAvailability[]> {
+    return [
+      {
+        symbol: 'XAUUSD',
+        timeframes: ['5m'],
+      },
+    ];
+  }
+
+  async getBars(query: MarketDataQuery): Promise<readonly Bar[]> {
+    return this.bars.filter(
+      (bar) =>
+        bar.symbol === query.symbol &&
+        bar.timeframe === query.timeframe &&
+        bar.tsStart >= query.fromMs &&
+        bar.tsStart < query.toMs,
     );
   }
 }

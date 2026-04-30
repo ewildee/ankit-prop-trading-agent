@@ -2,6 +2,29 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/trader@0.6.1 — 2026-04-30 17:31 Europe/Amsterdam — Replay rail QA branch coverage
+
+**Initiated by:** QAEngineer, covering [ANKA-384](/ANKA/issues/ANKA-384) per-rail QA for [ANKA-381](/ANKA/issues/ANKA-381).
+
+**Why:** The ANKA-381 remediation had direct specs for the two reproduced block cases, but QA needed explicit permit/fail-closed branch coverage for the replay rail matrix before handing back to FoundingEngineer.
+
+**Added** — `test(svc:trader/gateway)`, `test(svc:trader/replay-adapter)`
+
+- `services/trader/src/gateway/in-process.spec.ts` — adds direct replay gateway coverage for inside-active-window allow, `news_blackout_5m` allow when the event is beyond five minutes, `news_pre_kill_2h` reject inside the two-hour pre-news window, and unavailable-calendar fail-closed.
+- `services/trader/src/replay-adapter/from-eval-harness.spec.ts` — adds a provider-without-`getEvents` regression proving replay defaults reject directional `OPEN` with `calendar_unavailable`.
+
+**Bumped**
+
+- `@ankit-prop/trader` `0.6.0` -> `0.6.1`.
+
+**Verification**
+
+- `bun test services/trader/src/gateway/in-process.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 11 pass / 0 fail / 72 expects.
+- `bun run lint:fix` -> exit 0 (`Found 36 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun test services/trader/src/gateway/in-process.spec.ts services/trader/src/judge/policy.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts services/trader/src/pipeline/runner.spec.ts packages/shared-contracts/src/personas.spec.ts --rerun-each 5` -> 245 pass / 0 fail / 905 expects.
+- `bun run typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+
 ## @ankit-prop/contracts@4.0.0, @ankit-prop/trader@0.6.0 — 2026-04-30 17:21 Europe/Amsterdam — Replay calendar rails and v0 Judge fail-closed persona rules
 
 **Initiated by:** CodexExecutor, implementing [ANKA-381](/ANKA/issues/ANKA-381) remediation for [ANKA-378](/ANKA/issues/ANKA-378) blocking findings.

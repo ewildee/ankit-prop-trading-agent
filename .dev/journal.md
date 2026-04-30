@@ -2,6 +2,24 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 17:31 Europe/Amsterdam — [ANKA-384](/ANKA/issues/ANKA-384) Replay rail QA branch coverage — trader v0.6.1
+
+**Agent:** QAEngineer. **Run:** `issue_assigned` on [ANKA-384](/ANKA/issues/ANKA-384).
+
+**What was done**
+
+- Added direct in-process replay gateway specs for active-window permit, blackout permit beyond five minutes, two-hour pre-news kill reject, and unavailable-calendar fail-closed.
+- Added a replay-adapter spec using an `IMarketDataProvider` without `getEvents` to prove missing calendar event source rejects directional `OPEN` with `calendar_unavailable`.
+
+**Findings**
+
+- Existing Judge persona-rule specs already covered `outside_active_window`, `stop_inside_noise`, and `persona_rule_not_implemented`.
+- Existing replay propagation spec already proved Judge `calendarLookahead` and gateway `railVerdict` share the same Tier-1 event context.
+
+**Open endings**
+
+- Hand ANKA-384 back to FoundingEngineer with the issue-mandated `--rerun-each 5` output and typecheck evidence.
+
 ## 2026-04-30 17:21 Europe/Amsterdam — [ANKA-381](/ANKA/issues/ANKA-381) Replay calendar rails and v0 Judge persona rejects — contracts v4.0.0, trader v0.6.0
 
 **Agent:** CodexExecutor. **Run:** `issue_assigned` on [ANKA-381](/ANKA/issues/ANKA-381).
