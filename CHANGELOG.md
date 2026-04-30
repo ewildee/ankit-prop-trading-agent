@@ -2,6 +2,32 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/trader@0.5.2 — 2026-04-30 12:24 Europe/Amsterdam — Replay default deps position and budget state
+
+**Initiated by:** CodexExecutor, addressing the CodeReviewer BLOCK on [ANKA-339](/ANKA/issues/ANKA-339).
+
+**Why:** The v0 replay adapter's default deps were synthesising empty exposure and full budget every bar, so consecutive same-side signals could resubmit `OPEN` instead of seeing the live replay position and holding.
+
+**Changed** — `fix(svc:trader/replay-adapter)`
+
+- `services/trader/src/replay-adapter/from-eval-harness.ts` — threads replay-local open position and daily risk budget state into the default `v_ankit_classic` Trader/Judge deps; submitted `OPEN` stores the position, submitted `CLOSE` clears it, and UTC day rollover resets daily risk used.
+- `services/trader/src/replay-adapter/from-eval-harness.spec.ts` — covers default deps directly with a test analyst generator and proves adjacent same-side qualifying signals submit once, then become `existing_position_aligned` HOLD decisions mapped to `not_submitted/judge_reject`.
+- `services/trader/src/judge/policy.spec.ts` — strengthens the direct open-exposure rejection fixture with non-zero same-direction exposure.
+
+**Bumped**
+
+- `@ankit-prop/trader` `0.5.1` -> `0.5.2`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; formatted the replay adapter/spec changes).
+- `bun test services/trader/src/replay-adapter/from-eval-harness.spec.ts services/trader/src/judge/policy.spec.ts` -> 12 pass / 0 fail / 50 expects.
+- `bun test` -> 625 pass / 0 fail / 11083 expects.
+- `bun run typecheck` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
+- `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
 ## 0.4.58 / @ankit-prop/trader@0.5.1 — 2026-04-30 12:00 Europe/Amsterdam — Runner HOLD judge-reject QA coverage
 
 **Initiated by:** QAEngineer, covering [ANKA-339](/ANKA/issues/ANKA-339) before CodeReviewer handoff.

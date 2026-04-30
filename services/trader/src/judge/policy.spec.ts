@@ -128,7 +128,7 @@ describe('createVAnkitClassicJudge', () => {
     const input = judgeInput(persona, {
       openExposure: {
         totalPct: persona.risk.maxPerTradePct,
-        sameDirectionPct: ZERO,
+        sameDirectionPct: persona.risk.maxPerTradePct,
       },
     });
     const output = await createVAnkitClassicJudge().evaluate(stageInput(persona, input));

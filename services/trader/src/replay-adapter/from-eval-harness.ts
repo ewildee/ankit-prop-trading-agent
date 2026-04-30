@@ -1,6 +1,6 @@
 import { appendFile, mkdir, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import type { PersonaConfig } from '@ankit-prop/contracts';
+import type { PersonaConfig, RecentDecisionSummary, TraderOutput } from '@ankit-prop/contracts';
 import {
   type AccountConfig,
   type BarStrategy,
@@ -9,7 +9,7 @@ import {
 } from '@ankit-prop/eval-harness';
 import type { Bar, IMarketDataProvider } from '@ankit-prop/market-data';
 import { ZERO } from '../analyst/constants.ts';
-import { createVAnkitClassicAnalyst } from '../analyst/index.ts';
+import { type AnalystGenerator, createVAnkitClassicAnalyst } from '../analyst/index.ts';
 import { createInProcessReplayGateway } from '../gateway/in-process.ts';
 import { createVAnkitClassicJudge } from '../judge/policy.ts';
 import { runDecision } from '../pipeline/runner.ts';
@@ -34,6 +34,7 @@ export type TraderReplayInput = {
   readonly truncateLog?: boolean;
   readonly reflectAtEnd?: boolean;
   readonly reportOutputDir?: string;
+  readonly analystGenerator?: AnalystGenerator;
 };
 
 export type TraderReplayResult = {
@@ -69,11 +70,14 @@ export async function runTraderReplay(input: TraderReplayInput): Promise<TraderR
   await mkdir(dirname(logPath), { recursive: true });
   if (input.truncateLog ?? true) await rm(logPath, { force: true });
 
-  const deps = input.deps ?? createDefaultPipelineDeps(input);
+  const replayState = createReplayState(input.persona);
+  const deps = input.deps ?? createDefaultPipelineDeps(input, replayState);
   const decisions = [];
   for (const bar of bars) {
+    replayState.advanceDay(bar);
     const decision = await runDecision(bar, input.persona, { ...deps, runId: input.runId });
     decisions.push(decision);
+    replayState.recordDecision(decision);
     await appendFile(logPath, `${JSON.stringify(decision)}\n`);
   }
 
@@ -90,17 +94,77 @@ export async function runTraderReplay(input: TraderReplayInput): Promise<TraderR
   return { runId: input.runId, logPath, decisions, report };
 }
 
-function createDefaultPipelineDeps(input: TraderReplayInput): PipelineDeps {
+type ReplayOpenPosition = {
+  readonly id: string;
+  readonly side: 'BUY' | 'SELL';
+  readonly pctEquity: number;
+};
+
+type ReplayState = {
+  readonly openPosition: () => ReplayOpenPosition | null;
+  readonly riskBudgetRemaining: () => { readonly dailyPct: number; readonly overallPct: number };
+  readonly recentDecisions: () => RecentDecisionSummary[];
+  readonly advanceDay: (bar: Bar) => void;
+  readonly recordDecision: (decision: Awaited<ReturnType<typeof runDecision>>) => void;
+};
+
+function createReplayState(persona: PersonaConfig): ReplayState {
+  let openPosition: ReplayOpenPosition | null = null;
+  let riskDayKey: string | null = null;
+  let dailyRiskUsedPct = ZERO;
+
+  return {
+    openPosition: () => openPosition,
+    riskBudgetRemaining: () => {
+      const remainingPct = Math.max(ZERO, persona.risk.maxPerTradePct - dailyRiskUsedPct);
+      return {
+        dailyPct: remainingPct,
+        overallPct: remainingPct,
+      };
+    },
+    recentDecisions: () => [],
+    advanceDay(bar) {
+      const nextDayKey = dayKey(bar);
+      if (riskDayKey === nextDayKey) return;
+      riskDayKey = nextDayKey;
+      dailyRiskUsedPct = ZERO;
+    },
+    recordDecision(decision) {
+      const { gatewayDecision, traderOutput } = decision;
+      if (gatewayDecision?.status !== 'submitted') return;
+      if (traderOutput.action === 'OPEN') {
+        openPosition = {
+          id: traderOutput.idempotencyKey,
+          side: traderOutput.side,
+          pctEquity: traderOutput.size.pctEquity,
+        };
+        dailyRiskUsedPct += traderOutput.size.pctEquity;
+        return;
+      }
+      if (traderOutput.action === 'CLOSE') {
+        openPosition = null;
+      }
+    },
+  };
+}
+
+function createDefaultPipelineDeps(
+  input: TraderReplayInput,
+  replayState: ReplayState,
+): PipelineDeps {
   const symbolMeta = input.symbolMetas.find((meta) => meta.symbol === input.persona.instrument);
   return {
     runId: input.runId,
     analyst:
       input.persona.personaId === 'v_ankit_classic'
-        ? createVAnkitClassicAnalyst()
+        ? input.analystGenerator
+          ? createVAnkitClassicAnalyst({ generator: input.analystGenerator })
+          : createVAnkitClassicAnalyst()
         : createAnalystStub(),
     trader:
       input.persona.personaId === 'v_ankit_classic'
         ? createVAnkitClassicTrader({
+            openPosition: () => replayState.openPosition(),
             currentEquity: () => input.account.initialCapital,
             recentAtrPips: (stageInput) => Math.abs(stageInput.bar.high - stageInput.bar.low),
           })
@@ -112,18 +176,20 @@ function createDefaultPipelineDeps(input: TraderReplayInput): PipelineDeps {
     gateway: createInProcessReplayGateway(),
     reflector: createReflectorStub(),
     buildJudgeInput(stageInput) {
+      const openPosition = replayState.openPosition();
+      const sameDirectionPct =
+        openPosition !== null && sameDirectionOpen(stageInput.traderOutput, openPosition.side)
+          ? openPosition.pctEquity
+          : ZERO;
       return {
         traderOutput: stageInput.traderOutput,
         analystOutput: stageInput.analystOutput,
-        riskBudgetRemaining: {
-          dailyPct: input.persona.risk.maxPerTradePct,
-          overallPct: input.persona.risk.maxPerTradePct,
-        },
+        riskBudgetRemaining: replayState.riskBudgetRemaining(),
         openExposure: {
-          totalPct: ZERO,
-          sameDirectionPct: ZERO,
+          totalPct: openPosition?.pctEquity ?? ZERO,
+          sameDirectionPct,
         },
-        recentDecisions: [],
+        recentDecisions: replayState.recentDecisions(),
         calendarLookahead: [],
         spreadStats: {
           current: symbolMeta?.typicalSpreadPips ?? input.persona.filters.maxSpreadMultiplier,
@@ -133,4 +199,15 @@ function createDefaultPipelineDeps(input: TraderReplayInput): PipelineDeps {
       };
     },
   };
+}
+
+function sameDirectionOpen(
+  traderOutput: TraderOutput,
+  openSide: ReplayOpenPosition['side'],
+): boolean {
+  return traderOutput.action === 'OPEN' && traderOutput.side === openSide;
+}
+
+function dayKey(bar: Bar): string {
+  return new Date(bar.tsEnd).toISOString().split('T')[0] ?? '';
 }

@@ -1,9 +1,10 @@
 # Progress
 
-- Current issue: [ANKA-339](/ANKA/issues/ANKA-339) — QA pass for Trader policy v0 + Judge v0.
+- Current issue: [ANKA-339](/ANKA/issues/ANKA-339) — CodeReviewer BLOCK follow-up for replay default deps.
 - Worktree: `.paperclip/worktrees/ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay`.
-- Bun llms.txt fetched/read: 2026-04-30 12:00 Europe/Amsterdam.
-- QA found and covered one runner gap: explicit risk-context `HOLD` now has a regression spec for Judge `trader_hold` -> gateway `not_submitted/judge_reject`.
-- Mutation check passed: temporary old gateway ordering made the new runner spec fail with `Received: "hold"`; restored implementation.
-- Local gate passed: `bun run lint:fix`; focused Trader/Judge/runner/replay specs 25/0; `bun test` 624/0; `bun run typecheck`; persona numeric grep/diff check clean; trader start placeholder exits 0.
-- Next: commit `test(svc:trader/instance-pipeline)`, push, then hand [ANKA-339](/ANKA/issues/ANKA-339) to CodeReviewer.
+- Bun llms.txt fetched/read: 2026-04-30 12:22 Europe/Amsterdam.
+- Replay in-loop state implemented: open position snapshot, UTC day reset, and daily/overall risk budget mirror from remaining per-trade cap.
+- Default replay deps pass real open-position state into Trader and Judge; Judge open exposure uses live position pct and same-side pct.
+- Regression specs omit `deps`, inject only a test analyst generator, and prove adjacent same-side OPEN signals submit once then `existing_position_aligned` HOLD / `judge_reject`.
+- Local gate passed: `bun run lint:fix`; focused replay+judge specs 12/0; `bun test` 625/0; `bun run typecheck`; persona numeric grep/diff check clean; trader start placeholder exits 0.
+- Next: commit `fix(svc:trader/replay-adapter)`, then hand [ANKA-339](/ANKA/issues/ANKA-339) to QAEngineer.

@@ -2,6 +2,29 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 12:24 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) Replay default deps thread position+budget state — trader v0.5.2
+
+**Agent:** CodexExecutor (codex_local). **Run:** `issue_comment_mentioned` resume after FoundingEngineer acknowledged CodeReviewer's BLOCK on replay default deps.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 12:22 Europe/Amsterdam before editing Bun-runtime TypeScript.
+- Added an in-loop replay state shim to `runTraderReplay`: UTC day rollover resets daily risk used, submitted `OPEN` stores the live position id/side/pct-equity and consumes daily budget, and submitted `CLOSE` clears the position.
+- Wired that state into default `v_ankit_classic` deps: Trader receives `openPosition`, Judge receives numeric `openExposure` from the same snapshot, and `riskBudgetRemaining.dailyPct` / `overallPct` both mirror the remaining per-trade cap until an account/envelope-level overall-budget config exists.
+- Left `recentDecisions` as an empty v0 shim because no persona config knob exists for its replay lookback and the current Judge policy does not gate on it.
+- Replaced the replay adapter's stub-injected regression with default-deps coverage using a test-only analyst generator seam, then added adjacent same-side signal coverage: first qualifying signal submits, later aligned signals hold with `existing_position_aligned` and surface Judge `trader_hold` -> gateway `not_submitted/judge_reject`.
+- Tightened the direct Judge open-exposure spec so the synthetic `OPEN` has non-zero same-direction exposure and still rejects with `open_exposure_at_cap`.
+
+**Verification**
+
+- Focused replay+judge specs -> 12 pass / 0 fail / 50 expects.
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; formatted the replay adapter/spec changes).
+- `bun test` -> 625 pass / 0 fail / 11083 expects.
+- `bun run typecheck` -> exit 0 after strict optional/gateway narrowing fixes.
+- Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
+- `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
 ## 2026-04-30 12:14 Europe/Amsterdam — [ANKA-340](/ANKA/issues/ANKA-340) ADR-0009 local fast-forward merge to `main`
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` resume after CodeReviewer APPROVE on head `6ee0246`.
