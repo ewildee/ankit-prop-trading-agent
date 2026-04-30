@@ -322,6 +322,52 @@ The 14 hard rails (BLUEPRINT §9) live in
 rail logic ships with explicit `.spec.ts` regression coverage. Default
 for any uncertainty: **fail closed**. No trades > wrong trades.
 
+## Persona-path numeric thresholds — review enforcement (BLUEPRINT §13)
+
+Phase-4 trader work introduces LLM-driven persona logic where the
+Analyst's regime classification, confluence scoring, and decision
+gating must be data-driven, not hand-tuned. To keep the agent's
+behaviour empirical (and to prevent "looks-profitable-because-the-
+threshold-was-tuned-to-the-window" replay artefacts), every numeric
+threshold on the persona / Analyst / Trader / Judge code path **must**
+come from `params.yaml.{persona}` and never appear inline.
+
+We are not running CI for this repo (private-only packages, BLUEPRINT
+§5.2). Enforcement is review-time, owned by **QAEngineer** and
+**CodeReviewer**, both of whom MUST apply this checklist on every PR
+that touches `services/trader/`, `packages/personas/` (when it lands),
+or any persona/strategy code:
+
+1. **Grep the diff** for inline numeric literals in persona-path files.
+   `grep -nE '\b(0\.[0-9]+|[1-9][0-9]*\.?[0-9]*)\b'` on the changed
+   `*.ts` files inside the persona path. Every hit must either:
+   - originate from `params.yaml` via the persona config loader, or
+   - be a structural constant (array index, loop bound, message-version
+     literal, FTMO rule constant from BLUEPRINT §3 already pinned in a
+     `const` named for the rule), or
+   - be flagged as a BLOCK with the suggested params.yaml field.
+2. **Check `params.yaml` is the single source.** No `Math.max(0.5, x)`,
+   no `if (score >= 50)`, no `const TARGET_RR = 1.5`. The reviewable
+   shape is `if (score >= persona.judge.threshold)` where
+   `persona.judge.threshold` traces to a YAML field with a default and
+   a tuning-window note.
+3. **No window-fitted defaults.** Defaults shipped in `params.yaml`
+   that visibly track the last replay window's outcomes (e.g. setting
+   the threshold to whatever produced positive PnL on 7d) are a BLOCK.
+   The PR description must state how the default was chosen and the
+   reviewer must agree it is not curve-fit.
+4. **Static-value escape hatches require an explicit ADR.** If a value
+   genuinely cannot live in YAML (e.g. a regime label enum), it goes in
+   a named `const` in a single shared file with an inline comment
+   pointing at the ADR that justifies it.
+
+A reviewer who lets a numeric literal through without one of the above
+justifications co-owns the "static-value steered profit" failure mode
+with the author.
+
+This section supersedes any earlier "I'll add CI for this later" notes
+in older issues. Until CI is reintroduced, reviewers are CI.
+
 ## Bounds (CEO-approval gates)
 
 - No real-money credentials anywhere — FTMO Free Trial demo and FTMO

@@ -2,6 +2,37 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 09:37 Europe/Amsterdam — [ANKA-320](/ANKA/issues/ANKA-320) PR #37 rebase after CodeReviewer BLOCK — v0.4.51
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_comment_mentioned` wake for CodeReviewer comment `3ec08840`.
+
+**What was done**
+
+- Checked out [ANKA-320](/ANKA/issues/ANKA-320) after CodeReviewer blocked PR [#37](https://github.com/ewildee/ankit-prop-trading-agent/pull/37) for being stale against current `origin/main`.
+- Rebased `ANKA-320-agents-persona-path-review-enforcement` onto current `origin/main`, preserving all landed ANKA-321 persona contracts / params and ANKA-326 blueprint/audit ledger content.
+- Kept the requested `AGENTS.md` persona-path numeric-threshold reviewer directive between `## Hard guardrails` and `## Bounds (CEO-approval gates)`.
+- Bumped root `ankit-prop-umbrella` `0.4.50` → `0.4.51` because `0.4.50` is already occupied on `main`.
+
+**Findings**
+
+- The original PR branch had one docs commit on top of an old merge base; against current `main` it would have deleted `packages/shared-contracts/src/personas.ts`, its specs, `services/trader/strategy/v_ankit_classic/params.yaml`, and DBF-003/004/005 audit history.
+- The repair shape is intentionally narrow: AGENTS.md plus root release bookkeeping only.
+
+**Verification**
+
+- `diff -u /tmp/agents-md-persona-section.md /tmp/agents-md-persona-section.rebased` -> exit 0; inserted section still matches the supplied body byte-for-byte after rebase.
+- `git diff --check` -> exit 0.
+- `git diff --name-status origin/main` -> only `.dev/journal.md`, `.dev/progress.md`, `AGENTS.md`, `CHANGELOG.md`, and `package.json`.
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 85 installs across 89 packages (no changes)`).
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun run typecheck` -> exit 0.
+- `bun test` -> 576 pass / 0 fail / 10904 expects.
+- Dry-run reviewer grep on `services/ctrader-gateway/src/hard-rails/*.ts` -> exit 0 with expected false-positive examples.
+
+**Next**
+
+- Push the rebased PR head and hand [ANKA-320](/ANKA/issues/ANKA-320) back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) for the second review pass.
+
 ## 2026-04-30 09:24 Europe/Amsterdam — [ANKA-321](/ANKA/issues/ANKA-321) PR #36 rebase after CodeReviewer CHANGES_REQUESTED — v0.4.50 / contracts v0.8.1
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_comment_mentioned` wake for CodeReviewer comment `888c1144`.

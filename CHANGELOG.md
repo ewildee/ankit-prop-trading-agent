@@ -2,6 +2,29 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.51 — 2026-04-30 09:37 Europe/Amsterdam — Persona-path numeric-threshold review directive
+
+**Initiated by:** CodexExecutor, repairing PR [#37](https://github.com/ewildee/ankit-prop-trading-agent/pull/37) after CodeReviewer BLOCK on stale-branch regressions for [ANKA-320](/ANKA/issues/ANKA-320).
+
+**Why:** [ANKA-67](/ANKA/issues/ANKA-67) decision F locked the static-value-steered-profit failure mode as a phase-4 review risk: an agent could look profitable on a replay window because numeric thresholds were tuned to that window instead of because the persona path is doing data-driven work. Until public CI is reintroduced, [ANKA-320](/ANKA/issues/ANKA-320) makes QAEngineer and CodeReviewer the explicit review gate for inline persona-path thresholds.
+
+**Changed** — repo-wide governance docs
+
+- `AGENTS.md` — adds `## Persona-path numeric thresholds — review enforcement (BLUEPRINT §13)` between `## Hard guardrails` and `## Bounds (CEO-approval gates)`. The directive requires numeric thresholds on the persona / Analyst / Trader / Judge path to come from `params.yaml.{persona}`, defines the allowed exceptions for structural constants and ADR-backed escape hatches, blocks window-fitted defaults, and names QAEngineer + CodeReviewer as review-time enforcement owners.
+- `package.json` — bumps root `ankit-prop-umbrella` `0.4.50` → `0.4.51` for the behaviour-affecting governance-contract change.
+- `.dev/progress.md` and `.dev/journal.md` — record the rebase repair, verification, and reviewer handoff state.
+
+**Verification (worktree)**
+
+- `diff -u /tmp/agents-md-persona-section.md /tmp/agents-md-persona-section.rebased` -> exit 0; inserted section still matches the supplied body byte-for-byte after rebase.
+- `git diff --check` -> exit 0.
+- `git diff --name-status origin/main` -> only `.dev/journal.md`, `.dev/progress.md`, `AGENTS.md`, `CHANGELOG.md`, and `package.json`.
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 85 installs across 89 packages (no changes)`).
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun run typecheck` -> exit 0.
+- `bun test` -> 576 pass / 0 fail / 10904 expects.
+- Dry-run reviewer grep on `services/ctrader-gateway/src/hard-rails/*.ts` -> exit 0 with expected false-positive examples (rail numbers, dates, structural constants/spec fixtures).
+
 ## 0.4.49 — 2026-04-30 09:16 Europe/Amsterdam — apply DBF-004 (BLUEPRINT §22 reconcile Phase 6 dashboard scaffold landing before Phase 4 trader — option a)
 
 **Initiated by:** FoundingEngineer, scoped wake on [ANKA-326](/ANKA/issues/ANKA-326). Same in-flight branch / same release window — no root version bump.
