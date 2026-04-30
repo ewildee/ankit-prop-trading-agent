@@ -2,6 +2,40 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 20:01 Europe/Amsterdam — [ANKA-391](/ANKA/issues/ANKA-391) CodeReviewer follow-up — trader v0.9.4 / contracts v3.5.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_comment_mentioned` wake for CodeReviewer `CHANGES_REQUESTED`.
+
+**What was done**
+
+- Fetched/read `https://bun.com/llms.txt` before editing Bun-runtime TypeScript.
+- Corrected the locked-spec misses from commit `47e417d`: contracts version is now `3.5.0`, the wrapper prompt emits the exact substring `under 200 characters`, the Analyst prompt spec asserts that exact copy, and the contracts negative case asserts Zod `too_big` at path `reasoningSummary`.
+- Left `services/trader/strategy/v_ankit_classic/prompts/analyst.md`, `params.yaml`, retry ladder, timeout, JSON-mode, and provider options untouched.
+
+**Findings**
+
+- Codebase retrieval returned HTTP 429 again; targeted reads of the review comment and named files supplied the correction context.
+- The prior journal entry below records the first implementation as `contracts v3.4.1`; this follow-up supersedes that version in the current tree per CodeReviewer.
+
+**Decisions**
+
+- No ADR. This is a review-fix commit implementing the CEO locked Option A acceptance text exactly.
+
+**Verification**
+
+- `bun run --cwd services/trader lint:fix` -> exit 0 (`Found 28 warnings.`; existing non-null assertion warnings remain).
+- `biome check --write packages/shared-contracts/src/personas.ts packages/shared-contracts/src/personas.spec.ts .dev/runs/anka391-stage-smoke.ts` -> exit 0; no fixes applied.
+- `bun run --cwd services/trader lint && bun run --cwd services/trader typecheck && bun run --cwd services/trader test` -> exit 0; trader test 68 pass / 0 fail / 266 expects.
+- `bun test packages/shared-contracts/src` -> 80 pass / 0 fail / 188 expects.
+- Full-stage live smoke `.dev/runs/anka391-stage-smoke.ts` with `createVAnkitClassicAnalyst()` and root `.env` -> parsed Analyst output; `costUsd=0.002321055`; `bias=neutral`; `reasoningSummaryLength=85`; `thesisPreview="Single 5m bullish candle pushed off 2299.8 to 2302.9; without follow-through, treat it as a probe into 2303.4 resistance, invalidated below "`.
+- `git diff --check` -> exit 0.
+- Debug scan over changed source/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 with Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
+**Open endings**
+
+- Hand back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) for re-review.
+
 ## 2026-04-30 19:51 Europe/Amsterdam — [ANKA-391](/ANKA/issues/ANKA-391) Analyst reasoningSummary replay guard — trader v0.9.4 / contracts v3.4.1
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-391](/ANKA/issues/ANKA-391).

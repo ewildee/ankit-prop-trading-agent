@@ -2,22 +2,22 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
-## @ankit-prop/trader@0.9.4 / @ankit-prop/contracts@3.4.1 — 2026-04-30 19:47 Europe/Amsterdam — Analyst reasoningSummary replay guard
+## @ankit-prop/trader@0.9.4 / @ankit-prop/contracts@3.5.0 — 2026-04-30 20:01 Europe/Amsterdam — Analyst reasoningSummary replay guard
 
-**Initiated by:** CodexExecutor, implementing [ANKA-391](/ANKA/issues/ANKA-391), a child of [ANKA-380](/ANKA/issues/ANKA-380), after the [ANKA-341](/ANKA/issues/ANKA-341) 7d replay cleared the Azure JSON validator and then failed on an over-200-character Analyst `reasoningSummary`.
+**Initiated by:** CodexExecutor, implementing [ANKA-391](/ANKA/issues/ANKA-391), a child of [ANKA-380](/ANKA/issues/ANKA-380), after the [ANKA-341](/ANKA/issues/ANKA-341) 7d replay cleared the Azure JSON validator fixed by sibling [ANKA-389](/ANKA/issues/ANKA-389) and then failed on an over-200-character Analyst `reasoningSummary`.
 
 **Why:** `openai/gpt-5.4-mini` can emit useful `reasoningSummary` text just above the old 200-character schema cap, which made the replay non-determinable at the first active-window bar. The persona prompt stays untouched; the runtime wrapper nudges brevity while the shared Zod contract accepts the observed provider output envelope.
 
 **Changed** — `fix(pkg:contracts/personas)` / `fix(svc:trader/analyst)`
 
 - `packages/shared-contracts/src/personas.ts` — widens optional `AnalystOutput.reasoningSummary` from 200 to 500 characters.
-- `packages/shared-contracts/src/personas.spec.ts` — pins 500-character acceptance and 501-character rejection at the shared contract boundary.
-- `services/trader/src/analyst/index.ts` — keeps the runtime-only Analyst wrapper instruction asking for `reasoningSummary` to stay at `<=200` characters so the model usually remains concise.
-- `services/trader/src/analyst/index.spec.ts` — asserts a generated 250-character `reasoningSummary` parses without throwing and that the prompt still contains the `reasoningSummary` / `200` guard.
+- `packages/shared-contracts/src/personas.spec.ts` — pins 500-character acceptance and `too_big` / `reasoningSummary` path rejection for 501-character summaries at the shared contract boundary.
+- `services/trader/src/analyst/index.ts` — keeps the runtime-only Analyst wrapper instruction sentence `Keep reasoningSummary under 200 characters.` so the model usually remains concise.
+- `services/trader/src/analyst/index.spec.ts` — asserts a generated 250-character `reasoningSummary` parses without throwing and that the prompt still contains the exact `under 200 characters` guard.
 
 **Bumped**
 
-- `@ankit-prop/contracts` `3.4.0` -> `3.4.1`.
+- `@ankit-prop/contracts` `3.4.0` -> `3.5.0`.
 - `@ankit-prop/trader` `0.9.3` -> `0.9.4`.
 
 **Verification**
@@ -25,9 +25,11 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bun run lint:fix` -> exit 0 (`Found 55 warnings. Found 37 infos.`; existing repo-wide diagnostics remain, one touched file formatted).
 - `bun run --cwd services/trader lint` -> exit 0 (`Found 28 warnings.`; existing non-null assertion warnings remain).
 - `bun test packages/shared-contracts/src/personas.spec.ts services/trader/src/analyst/index.spec.ts` -> 38 pass / 0 fail / 122 expects.
+- `bun test packages/shared-contracts/src` -> 80 pass / 0 fail / 188 expects.
 - `bun run --cwd services/trader test` -> 68 pass / 0 fail / 266 expects.
 - `bun run --cwd services/trader typecheck` -> exit 0.
 - Partial live 7d replay smoke `runId=anka391-codex-20260430T174900Z` was intentionally stopped after proving the active-window path: 154 decisions, first `2026-04-21T00:05:00.000Z`, last `2026-04-21T12:50:00.000Z`, 11 active Analyst decisions, submitted `OPEN` at `12:05` and `CLOSE` at `12:30`, 152 `HOLD`, 0 rail rejects, max observed `reasoningSummary` length 132 chars. No `Too big` schema throw past the previously failing `2026-04-21T12:00:00.000Z` bar.
+- Locked full-stage live smoke `.dev/runs/anka391-stage-smoke.ts` using `createVAnkitClassicAnalyst()` and root `.env` `OPENROUTER_API_KEY` -> parsed Analyst output; `costUsd=0.002321055`; `bias=neutral`; `reasoningSummaryLength=85`; `thesisPreview="Single 5m bullish candle pushed off 2299.8 to 2302.9; without follow-through, treat it as a probe into 2303.4 resistance, invalidated below "`.
 - `git diff --check` -> exit 0.
 - Debug scan over changed source/package files (`console.log|debugger|TODO|HACK`) -> no matches.
 - `bun run --cwd services/trader start` -> exit 0 with Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.

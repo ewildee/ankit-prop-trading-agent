@@ -1,6 +1,6 @@
 {
   "name": "@ankit-prop/contracts",
-  "version": "3.4.1",
+  "version": "3.5.0",
   "private": true,
   "type": "module",
   "description": "Cross-package Zod schemas (HealthSnapshot, AnalystOutput, TraderOutput, JudgeOutput, ReflectorOutput, …) plus the canonical pino logger factory (BLUEPRINT §20.1 / §23.6).",

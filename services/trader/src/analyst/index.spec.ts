@@ -58,7 +58,7 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(requests.at(-1)?.prompt).toContain('calendarLookahead');
     expect(requests.at(-1)?.prompt).toContain('JSON');
     expect(requests.at(-1)?.prompt).toContain('reasoningSummary');
-    expect(requests.at(-1)?.prompt).toContain('200');
+    expect(requests.at(-1)?.prompt).toContain('under 200 characters');
     expect(requests.at(-1)?.prompt).toContain('Do not include regimeLabel');
     expect(output?.regimeLabel).toBe('A_session_break');
     expect(output?.confidence).toBe(output?.confluenceScore ? output.confluenceScore / 100 : 0);

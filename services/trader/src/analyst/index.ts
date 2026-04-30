@@ -423,7 +423,7 @@ function buildAnalystPrompt({
     confluence,
     bars: recentBars,
     calendarLookahead,
-    instruction: `Return only the model-generated Analyst fields as JSON. Use the AnalystOutput field types exactly: keyLevels is an array of objects with name, price, and timeframe; reasoningSummary is a concise string of <=${ANALYST_REASONING_SUMMARY_PROMPT_TARGET_CHARS} characters; supportingEvidence is one string. Do not include regimeLabel, confidence, confluenceScore, regimeNote, or cacheStats; runtime computes and injects those deterministic fields.`,
+    instruction: `Return only the model-generated Analyst fields as JSON. Use the AnalystOutput field types exactly: keyLevels is an array of objects with name, price, and timeframe; reasoningSummary is a concise string. Keep reasoningSummary under ${ANALYST_REASONING_SUMMARY_PROMPT_TARGET_CHARS} characters. supportingEvidence is one string. Do not include regimeLabel, confidence, confluenceScore, regimeNote, or cacheStats; runtime computes and injects those deterministic fields.`,
   });
 }
 

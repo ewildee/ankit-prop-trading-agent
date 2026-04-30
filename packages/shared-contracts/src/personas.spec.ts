@@ -147,14 +147,22 @@ describe('persona pipeline contracts', () => {
 
   test('AnalystOutput accepts replay-safe reasoning summaries above the old 200-char cap', () => {
     const reasoningSummary = 'r'.repeat(500);
+    const rejected = AnalystOutput.safeParse({
+      ...analystOutput,
+      reasoningSummary: `${reasoningSummary}x`,
+    });
 
     expect(AnalystOutput.parse({ ...analystOutput, reasoningSummary }).reasoningSummary).toBe(
       reasoningSummary,
     );
-    expect(
-      AnalystOutput.safeParse({ ...analystOutput, reasoningSummary: `${reasoningSummary}x` })
-        .success,
-    ).toBe(false);
+    expect(rejected.success).toBe(false);
+    if (rejected.success) throw new Error('expected 501-char reasoningSummary to fail');
+    expect(rejected.error.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'too_big',
+        path: ['reasoningSummary'],
+      }),
+    );
   });
 
   test('stage outputs accept optional billed OpenRouter credits-USD cost', () => {
