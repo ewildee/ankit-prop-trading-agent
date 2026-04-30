@@ -2,6 +2,41 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 10:08 Europe/Amsterdam — [ANKA-335](/ANKA/issues/ANKA-335) trader vertical-slice skeleton — v0.4.51 / trader v0.2.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-335](/ANKA/issues/ANKA-335).
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 10:08 Europe/Amsterdam before editing Bun-runtime TypeScript.
+- Re-read BLUEPRINT §0, §0.1, §0.2, §5, §13.5, §17, §22, and §25; fast-forwarded the [ANKA-318](/ANKA/issues/ANKA-318) worktree onto the [ANKA-319](/ANKA/issues/ANKA-319) ADR-0010 contract branch before implementing [ANKA-335](/ANKA/issues/ANKA-335).
+- Added `services/trader/src/` with stage seams, `runDecision`, minimum-valid stubs, a replay-only in-process gateway double, a Bun-native persona loader, and an eval-harness replay adapter that writes `DecisionRecord` JSONL.
+- Added focused specs for runner permutations, persona-config strict parsing/rejection, and a 1-day XAUUSD fixture replay with at least 200 parseable decision records.
+
+**Findings**
+
+- The issue text requested a `yaml` dependency, but BLUEPRINT §5.1 says YAML is Bun-native and §5.3/Bounds prohibit widening the dependency surface for native features. The loader uses dynamic Bun YAML import instead.
+- The replay adapter uses `replayWithProvider` to materialize canonical bar order, then runs the async trader pipeline over the collected bars. This keeps the eval-harness seam without changing the synchronous `BarStrategy` contract.
+
+**Decisions**
+
+- No ADR-0011 was needed for the gateway double shape; it uses ADR-0010 `GatewayDecision` and existing `RailVerdict` unchanged.
+- The replay gateway's synthetic allow verdict is explicitly commented as a replay-only cheat; live hard-rail enforcement remains in `services/ctrader-gateway`.
+
+**Open endings**
+
+- Handoff to [@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177) after final local gate, commit, and push. QA should rerun the trader replay spec and persona-path numeric grep against the diff.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied on final rerun).
+- `bun test services/trader/src` -> 7 pass / 0 fail / 603 expects.
+- `bun test` -> 588 pass / 0 fail / 11527 expects.
+- `bun run typecheck` -> exit 0.
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 86 installs across 89 packages (no changes)`).
+- Persona-path numeric grep over `services/trader/src/**/*.ts` -> production files clean; hits are limited to spec fixture values and the explicit loader rejection case.
+- Debug leftovers scan over changed trader source/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+
 ## 2026-04-30 09:43 Europe/Amsterdam — [ANKA-333](/ANKA/issues/ANKA-333) persona contract acceptance repair — v0.4.50 / contracts v1.0.0
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-333](/ANKA/issues/ANKA-333).

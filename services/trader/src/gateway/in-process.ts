@@ -1,0 +1,60 @@
+import {
+  composeRailVerdict,
+  type GatewayDecision,
+  type JudgeOutput,
+  RailDecision,
+  type TraderOutput,
+} from '@ankit-prop/contracts';
+import type { GatewayStage } from '../pipeline/stages.ts';
+
+export function createInProcessReplayGateway(): GatewayStage {
+  return {
+    decide(input): GatewayDecision {
+      return decideInProcess(input.traderOutput, input.judgeOutput, input.context.decidedAt);
+    },
+  };
+}
+
+function decideInProcess(
+  traderOutput: TraderOutput,
+  judgeOutput: JudgeOutput | null,
+  decidedAt: string,
+): GatewayDecision {
+  if (traderOutput.action === 'HOLD') {
+    return {
+      status: 'not_submitted',
+      reason: 'hold',
+      traderOutput,
+      railVerdict: null,
+    };
+  }
+  if (judgeOutput?.verdict !== 'APPROVE') {
+    return {
+      status: 'not_submitted',
+      reason: 'judge_reject',
+      traderOutput,
+      railVerdict: null,
+    };
+  }
+
+  // Replay-only cheat: the real hard rails still live in svc:gateway. This
+  // double keeps the stage seam parseable by emitting a synthetic allow verdict.
+  const railVerdict = composeRailVerdict(
+    [
+      RailDecision.parse({
+        rail: 'idempotency',
+        outcome: 'allow',
+        reason: 'replay gateway double allow',
+        detail: { replayOnly: true },
+        decidedAt,
+      }),
+    ],
+    decidedAt,
+  );
+  return {
+    status: 'submitted',
+    traderOutput,
+    railVerdict,
+    submittedAt: decidedAt,
+  };
+}

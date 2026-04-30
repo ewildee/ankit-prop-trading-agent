@@ -39,6 +39,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 - [ ] **T008** Modular monolith with N account loops (drop-on-overlap concurrency, decision A).
 - [x] **T008.a** Materialize Analyst → Trader → Judge shared contract surface and `v_ankit_classic` params skeleton — _[ANKA-321](/ANKA/issues/ANKA-321)_.
 - [x] **T008.b** Repair persona contract acceptance gaps after ANKA-321: analyst confluence score, actionable trader idempotency keys, pips-based open risk, required close target, and reflector/eval run aggregate metrics — _[ANKA-333](/ANKA/issues/ANKA-333), unblocks [ANKA-319](/ANKA/issues/ANKA-319)_.
+- [x] **T008.c** Add `services/trader` vertical-slice skeleton, per-bar-close runner, in-process replay gateway double, persona loader, and eval-harness replay adapter — _[ANKA-335](/ANKA/issues/ANKA-335), advances [ANKA-318](/ANKA/issues/ANKA-318)_.
 
 ## Phase 5 — `news`
 

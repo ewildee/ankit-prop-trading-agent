@@ -1,10 +1,11 @@
 # Progress
 
-- Current issue: [ANKA-333](/ANKA/issues/ANKA-333) — repair [ANKA-319](/ANKA/issues/ANKA-319) persona contract acceptance gaps after [ANKA-321](/ANKA/issues/ANKA-321).
-- Worktree: `.paperclip/worktrees/ANKA-319-architect-vertical-slice-contract-surface-analyst-trader-judge-reflector`.
-- Bun llms.txt fetched/read: 2026-04-30 09:41 Europe/Amsterdam.
-- Blueprint refreshed: §0, §5, §13, §17, §22, §25 before editing `pkg:contracts/pipeline`.
-- Implemented strict schema/test repair: confluence score, `idempotencyKey`, pips-based `OPEN` risk, required `CLOSE.positionId`, and `RunAggregate` metrics.
-- Local gate passed: lint:fix; focused shared-contract tests 17/0; package tests 76/0; full `bun test` 581/0; typecheck; frozen install.
-- TODO mirror: T008.b is `[x]` for [ANKA-333](/ANKA/issues/ANKA-333).
-- Next: commit, push, hand to CodeReviewer.
+- Current issue: [ANKA-335](/ANKA/issues/ANKA-335) — `services/trader` vertical-slice skeleton + replay adapter stubs.
+- Worktree: `.paperclip/worktrees/ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay`.
+- Bun llms.txt fetched/read: 2026-04-30 10:08 Europe/Amsterdam.
+- Blueprint refreshed: §0, §0.1, §0.2, §5, §13.5, §17, §22, §25 before editing `svc:trader`.
+- Fast-forwarded onto the [ANKA-319](/ANKA/issues/ANKA-319) ADR-0010 contract branch before adding runtime code.
+- Implemented runner, stage seams/stubs, in-process replay gateway double, Bun-native persona loader, and eval-harness replay adapter JSONL writer.
+- Focused check passed: `bun test services/trader/src` -> 7 pass / 0 fail / 603 expects.
+- TODO mirror: T008.c is `[x]` for [ANKA-335](/ANKA/issues/ANKA-335).
+- Next: finish final lint/test/typecheck, commit, push, hand to QAEngineer.

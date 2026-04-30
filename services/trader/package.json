@@ -1,10 +1,20 @@
 {
   "name": "@ankit-prop/trader",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "description": "Modular monolith with N account loops; Analyst → Trader → Judge → (Gateway) → Reflector. Port 9202.",
+  "main": "src/index.ts",
   "scripts": {
-    "start": "echo 'trader: not yet implemented (Phase 4)'"
+    "start": "echo 'trader: replay adapter only (Phase 4 vertical slice)'",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "test": "bun test src",
+    "typecheck": "tsc --noEmit -p ../../tsconfig.json"
+  },
+  "dependencies": {
+    "@ankit-prop/contracts": "workspace:*",
+    "@ankit-prop/eval-harness": "workspace:*",
+    "@ankit-prop/market-data": "workspace:*"
   }
 }

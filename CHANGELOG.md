@@ -2,6 +2,37 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.51 / @ankit-prop/trader@0.2.0 — 2026-04-30 10:08 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, implementing [ANKA-335](/ANKA/issues/ANKA-335) under the [ANKA-318](/ANKA/issues/ANKA-318) trader vertical-slice umbrella.
+
+**Why:** The Analyst, Trader, Judge, Gateway, and Reflector children need a concrete `services/trader` skeleton and replay-driven per-bar-close runner before their real logic can plug in. This slice keeps every stage stubbed while proving the contract surface and JSONL handoff work end-to-end against committed XAUUSD fixture bars.
+
+**Added** — `feat(svc:trader/instance-pipeline)`
+
+- `services/trader/src/pipeline/` — adds the stage interfaces, pure `runDecision(bar, persona, deps)` orchestrator, and minimum-valid Analyst / Trader / Judge / Reflector stubs. `HOLD` skips Judge and records gateway `not_submitted`; actionable Trader outputs run through Judge before Gateway.
+- `services/trader/src/gateway/in-process.ts` — adds a replay-only Gateway double. It returns `not_submitted` for `HOLD` / Judge reject and emits a synthetic `RailVerdict` `allow` for approved actionable outputs; real hard-rail enforcement remains in `services/ctrader-gateway`.
+- `services/trader/src/persona-config/loader.ts` — loads `services/trader/strategy/{personaId}/params.yaml` via Bun's native YAML import and validates it with the strict `PersonaConfig` schema. No `yaml` npm dependency was added because BLUEPRINT §5.1 / §5.3 require Bun-native YAML first.
+- `services/trader/src/replay-adapter/from-eval-harness.ts` — consumes `IMarketDataProvider` and `replayWithProvider` to collect bar-close order, then runs the trader pipeline and appends parseable `DecisionRecord` JSONL under `.dev/runs/{runId}/decisions.jsonl` or a caller-supplied path.
+- Specs: `pipeline/runner.spec.ts`, `persona-config/loader.spec.ts`, and `replay-adapter/from-eval-harness.spec.ts`; the replay spec drives one committed XAUUSD fixture day and validates at least 200 decision records.
+- `services/trader/package.json` — adds `main`, standard lint/test/typecheck scripts, and workspace dependencies on contracts, market-data, and eval-harness.
+- `TODOS.md` — adds and closes T008.c for [ANKA-335](/ANKA/issues/ANKA-335).
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.50` → `0.4.51`.
+- `@ankit-prop/trader` `0.1.0` → `0.2.0`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied on final rerun).
+- `bun test services/trader/src` -> 7 pass / 0 fail / 603 expects.
+- `bun test` -> 588 pass / 0 fail / 11527 expects.
+- `bun run typecheck` -> exit 0.
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 86 installs across 89 packages (no changes)`).
+- Persona-path numeric grep over `services/trader/src/**/*.ts` -> production files clean; hits are limited to spec fixture values and the explicit loader rejection case.
+- Debug leftovers scan over changed trader source/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+
 ## 0.4.50 / @ankit-prop/contracts@1.0.0 — 2026-04-30 09:43 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, implementing [ANKA-333](/ANKA/issues/ANKA-333) to repair remaining [ANKA-319](/ANKA/issues/ANKA-319) acceptance gaps after [ANKA-321](/ANKA/issues/ANKA-321).
