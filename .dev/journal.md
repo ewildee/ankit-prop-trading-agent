@@ -2,6 +2,33 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 13:14 Europe/Amsterdam — [ANKA-357](/ANKA/issues/ANKA-357) Analyst provider schema split — trader v0.5.5
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for the schema blocker before the [ANKA-341](/ANKA/issues/ANKA-341) replay retry.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 13:14 Europe/Amsterdam before editing Bun-runtime TypeScript.
+- Split the Analyst structured-output contract: OpenRouter now receives a strict `AnalystGenerationOutput` schema that omits runtime-owned deterministic fields, while `analyze()` strict-parses provider output before injecting `regimeLabel`, `confidence`, `confluenceScore`, `regimeNote`, and `cacheStats`.
+- Updated the Analyst prompt instruction so the model does not try to emit those runtime-owned fields.
+- Added focused regressions for model output that omits `cacheStats` and for the malformed empty-string provider key failing closed before overlay.
+- Bumped root `0.4.58` -> `0.4.59` and `@ankit-prop/trader` `0.5.4` -> `0.5.5`.
+
+**Findings**
+
+- The previous post-generation overlay still used `AnalystOutput.safeParse`, but the live failure happened earlier inside `generateObject` because the provider-facing schema required `cacheStats`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 36 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun test services/trader/src/analyst/index.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 7 pass / 0 fail / 53 expects.
+- `bun test` -> 627 pass / 0 fail / 11097 expects.
+- `bun run typecheck` -> exit 0.
+- Production Analyst numeric grep (`services/trader/src/analyst/index.ts`) -> no matches.
+- Debug leftovers scan over changed trader source/spec files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
 ## 2026-04-30 13:01 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) ADR-0009 local fast-forward merge to `main`
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` resume after CodeReviewer APPROVE on head `5a713dd` (`73286fe4`).

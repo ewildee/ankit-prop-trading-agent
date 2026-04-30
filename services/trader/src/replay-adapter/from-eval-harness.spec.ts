@@ -211,18 +211,7 @@ function analystGeneratorForBiases(
       object: {
         thesis: 'Fixture thesis; deterministic confluence fields are filled by the analyst.',
         bias,
-        confidence: 1,
-        confluenceScore: 100,
         keyLevels: [{ name: 'fixture support', price: 100, timeframe: '5m' }],
-        regimeLabel: 'A_session_break',
-        regimeNote: 'fixture',
-        cacheStats: {
-          inputCachedTokens: 0,
-          inputFreshTokens: 0,
-          inputCacheWriteTokens: 0,
-          outputTokens: 0,
-          thinkingTokens: 0,
-        },
       },
       usage: {
         inputTokens: 0,

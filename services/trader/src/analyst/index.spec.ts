@@ -6,6 +6,11 @@ import { loadPersonaConfig } from '../persona-config/loader.ts';
 import type { AnalystGenerationRequest } from './index.ts';
 import { createVAnkitClassicAnalyst } from './index.ts';
 
+type AnalystGenerationDraft = Omit<
+  AnalystOutput,
+  'confidence' | 'confluenceScore' | 'regimeLabel' | 'regimeNote' | 'cacheStats'
+>;
+
 describe('createVAnkitClassicAnalyst', () => {
   test('calls OpenRouter-shaped generator and overlays deterministic regime, score, and usage', async () => {
     const params = await loadPersonaConfig();
@@ -34,6 +39,7 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(requests.at(-1)?.model).toBe('moonshotai/kimi-k2.6');
     expect(requests.at(-1)?.system).toContain('v_ankit_classic');
     expect(requests.at(-1)?.prompt).toContain('calendarLookahead');
+    expect(requests.at(-1)?.prompt).toContain('Do not include regimeLabel');
     expect(output?.regimeLabel).toBe('A_session_break');
     expect(output?.confidence).toBe(output?.confluenceScore ? output.confluenceScore / 100 : 0);
     expect(output?.cacheStats).toEqual({
@@ -45,7 +51,7 @@ describe('createVAnkitClassicAnalyst', () => {
     });
   });
 
-  test('malformed generator output fails with structured validation detail', async () => {
+  test('malformed generator output fails with structured validation detail before overlay', async () => {
     const params = await loadPersonaConfig();
     const analyst = createVAnkitClassicAnalyst({
       generator: async () => ({
@@ -69,7 +75,33 @@ describe('createVAnkitClassicAnalyst', () => {
           decidedAt: new Date(bar.tsEnd).toISOString(),
         },
       }),
-    ).rejects.toThrow(/AnalystOutput validation failed.*thesis.*bias/);
+    ).rejects.toThrow(/Analyst generation output validation failed.*thesis.*bias/);
+  });
+
+  test('rejects unknown generator keys instead of silently normalizing provider output', async () => {
+    const params = await loadPersonaConfig();
+    const analyst = createVAnkitClassicAnalyst({
+      generator: async () => ({
+        object: {
+          ...draftOutput(),
+          '': 'malformed-provider-key',
+        },
+        usage: usageFixture(),
+      }),
+    });
+    const bar = barsFromCloses([2300]).at(-1)!;
+
+    await expect(
+      analyst.analyze({
+        bar,
+        persona: params,
+        context: {
+          runId: 'analyst-index-spec',
+          paramsHash: 'params-hash',
+          decidedAt: new Date(bar.tsEnd).toISOString(),
+        },
+      }),
+    ).rejects.toThrow(/Analyst generation output validation failed.*unrecognized_keys/);
   });
 
   test('maps aggregate-only usage telemetry without token detail objects', async () => {
@@ -106,25 +138,14 @@ describe('createVAnkitClassicAnalyst', () => {
   });
 });
 
-function draftOutput(): AnalystOutput {
+function draftOutput(): AnalystGenerationDraft {
   return {
     thesis:
       'XAUUSD is breaking above the session range with enough momentum to keep a long bias active.',
     bias: 'long',
-    confidence: 0.01,
-    confluenceScore: 1,
     keyLevels: [{ name: 'session high', price: 2303.4, timeframe: '5m' }],
-    regimeLabel: 'unknown',
-    regimeNote: 'llm draft',
     reasoningSummary: 'Session break and momentum agree.',
     supportingEvidence: 'Latest close is near the top of the supplied range.',
-    cacheStats: {
-      inputCachedTokens: 0,
-      inputFreshTokens: 0,
-      inputCacheWriteTokens: 0,
-      outputTokens: 0,
-      thinkingTokens: 0,
-    },
   };
 }
 

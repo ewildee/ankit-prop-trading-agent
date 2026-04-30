@@ -2,6 +2,33 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.59 / @ankit-prop/trader@0.5.5 — 2026-04-30 13:14 Europe/Amsterdam — Analyst generation schema split
+
+**Initiated by:** CodexExecutor, addressing [ANKA-357](/ANKA/issues/ANKA-357) after the [ANKA-341](/ANKA/issues/ANKA-341) XAUUSD 7d replay reached the live OpenRouter Analyst call but failed schema validation before writing a `DecisionRecord`.
+
+**Why:** The live Analyst call passed the full `AnalystOutput` schema to `generateObject`, even though runtime later injects deterministic fields (`regimeLabel`, `confidence`, `confluenceScore`, `regimeNote`, `cacheStats`). Provider output could not reliably satisfy runtime-owned fields, and malformed unknown keys must still fail closed.
+
+**Changed** — `fix(svc:trader/analyst)`
+
+- `services/trader/src/analyst/index.ts` — adds a strict `AnalystGenerationOutput` schema that omits runtime-owned deterministic fields, uses it for OpenRouter structured generation, strict-parses generator output before overlay, then validates the final runtime-owned `AnalystOutput`.
+- `services/trader/src/analyst/index.spec.ts` — updates the generator seam to model provider-owned fields only, adds cacheStats-free output coverage, and adds an unknown-key regression for the empty-string key shape seen in the failed live replay.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.58` -> `0.4.59`.
+- `@ankit-prop/trader` `0.5.4` -> `0.5.5`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 36 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun test services/trader/src/analyst/index.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 7 pass / 0 fail / 53 expects.
+- `bun test` -> 627 pass / 0 fail / 11097 expects.
+- `bun run typecheck` -> exit 0.
+- Production Analyst numeric grep (`services/trader/src/analyst/index.ts`) -> no matches.
+- Debug leftovers scan over changed trader source/spec files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
 ## @ankit-prop/trader@0.5.4 — 2026-04-30 12:55 Europe/Amsterdam — Replay risk-day bucket on Europe/Prague
 
 **Initiated by:** FoundingEngineer, addressing the second CodeReviewer BLOCK on [ANKA-339](/ANKA/issues/ANKA-339). Owning the fix because the previous FE redirect comment specified the wrong reset boundary ("compare bar UTC date") and CodexExecutor implemented faithfully.

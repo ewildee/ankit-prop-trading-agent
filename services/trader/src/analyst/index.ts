@@ -23,6 +23,13 @@ const ANALYST_PROMPT_PATH = resolve(
   'prompts',
   'analyst.md',
 );
+const AnalystGenerationOutput = AnalystOutput.omit({
+  confidence: true,
+  confluenceScore: true,
+  regimeLabel: true,
+  regimeNote: true,
+  cacheStats: true,
+});
 
 export type AnalystGenerationRequest = {
   readonly model: string;
@@ -87,8 +94,15 @@ export function createVAnkitClassicAnalyst(
         }),
       });
 
+      const parsedGeneration = AnalystGenerationOutput.safeParse(generation.object);
+      if (!parsedGeneration.success) {
+        throw new Error(
+          `Analyst generation output validation failed: ${JSON.stringify(parsedGeneration.error.issues)}`,
+        );
+      }
+
       const parsed = AnalystOutput.safeParse({
-        ...(generation.object as Record<string, unknown>),
+        ...parsedGeneration.data,
         regimeLabel,
         confidence: confluence.confidence,
         confluenceScore: confluence.score,
@@ -123,9 +137,10 @@ export function createOpenRouterAnalystGenerator(
         plugins: [{ id: 'response-healing' }],
         usage: { include: true },
       }),
-      schema: AnalystOutput,
-      schemaName: 'AnalystOutput',
-      schemaDescription: 'Validated AnalystOutput for the v_ankit_classic trader persona.',
+      schema: AnalystGenerationOutput,
+      schemaName: 'AnalystGenerationOutput',
+      schemaDescription:
+        'Validated model-generated Analyst fields for v_ankit_classic; runtime fills deterministic telemetry fields.',
       system: request.system,
       prompt: request.prompt,
       maxOutputTokens: request.maxOutputTokens,
@@ -163,7 +178,7 @@ function buildAnalystPrompt({
     bars: recentBars,
     calendarLookahead,
     instruction:
-      'Return an AnalystOutput object. Keep regimeLabel, confidence, confluenceScore, regimeNote, and cacheStats present; runtime will verify and replace deterministic fields.',
+      'Return only the model-generated Analyst fields. Do not include regimeLabel, confidence, confluenceScore, regimeNote, or cacheStats; runtime computes and injects those deterministic fields.',
   });
 }
 
