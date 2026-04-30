@@ -25,11 +25,27 @@ describe('writeReflectorReport', () => {
       });
 
       const json = JSON.parse(await readFile(report.reportJsonPath, 'utf8'));
-      expect(() => RunAggregate.parse(json.aggregate)).not.toThrow();
-      expect(json.aggregate.realizedPnl).toBe(125);
-      expect(await readFile(report.reportMdPath, 'utf8')).toContain(
-        '# Reflector report: reflector-spec-run',
-      );
+      const aggregate = RunAggregate.parse(json.aggregate);
+      expect(aggregate.realizedPnl).toBe(125);
+      expect(aggregate.tradeCount).toBeGreaterThan(0);
+      expect(aggregate.breachCount).toBe(0);
+      expect(aggregate.llmCostUsd.totalUsd).toBeLessThanOrEqual(1.7);
+      expect(json.sortino).toMatchObject({
+        rollingWindowDays: 60,
+        sampleCount: 1,
+        downsideSampleCount: 0,
+        sortinoRolling60d: 125,
+      });
+      expect(json.realizedPnlPoints).toEqual([
+        { closedAt: '2026-04-27T14:45:02.000Z', realizedPnl: 125 },
+      ]);
+
+      const markdown = await readFile(report.reportMdPath, 'utf8');
+      expect(markdown).toContain('# Reflector report: reflector-spec-run');
+      expect(markdown).toContain('- Trades: 2');
+      expect(markdown).toContain('- Gateway breaches: 0');
+      expect(markdown).toContain('- Realized PnL: $125.000000');
+      expect(markdown).toContain('- LLM cost: $0.000000');
     } finally {
       await rm(tmp, { recursive: true, force: true });
     }

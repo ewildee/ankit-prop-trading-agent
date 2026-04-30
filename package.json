@@ -1,6 +1,6 @@
 {
   "name": "ankit-prop-umbrella",
-  "version": "0.4.55",
+  "version": "0.4.56",
   "private": true,
   "type": "module",
   "description": "Autonomous LLM-driven FTMO prop-trading agent — umbrella monorepo (BLUEPRINT.md is the source of truth).",

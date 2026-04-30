@@ -2,6 +2,31 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.56 / @ankit-prop/trader@0.4.1 — 2026-04-30 11:48 Europe/Amsterdam — Reflector report QA coverage
+
+**Initiated by:** QAEngineer, covering [ANKA-340](/ANKA/issues/ANKA-340) before CodeReviewer handoff.
+
+**Why:** The v0 gate follow-up needs the Reflector's persisted report to keep the parse-back telemetry shape stable: trade count, zero replay breaches, LLM cost total, realized PnL, Sortino, and human-readable Markdown gate lines.
+
+**Added** — `test(svc:trader/reflector)`
+
+- `services/trader/src/reflector/report.spec.ts` — strengthens report parse-back coverage to assert the JSON report carries the v0 gate telemetry fields and the Markdown report exposes the corresponding gate lines.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.55` -> `0.4.56`.
+- `@ankit-prop/trader` `0.4.0` -> `0.4.1`.
+
+**Verification**
+
+- Mutation check: temporarily removed `realizedPnlPoints` from `report.json` output; `bun test services/trader/src/reflector/report.spec.ts` failed on missing `json.realizedPnlPoints`, then passed after restoring the writer.
+- `bun test services/trader/src/reflector/report.spec.ts services/trader/src/reflector packages/shared-contracts/src/personas.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 21 pass / 0 fail / 645 expects.
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes reported).
+- `bun test` -> 623 pass / 0 fail / 11624 expects.
+- `bun run typecheck` -> exit 2, blocked by unrelated dirty `services/trader/src/judge/*` and `services/trader/src/trader/*` work using `MaybePromise` values synchronously; this QA change does not touch those files.
+- `git diff --check -- .dev/progress.md CHANGELOG.md package.json services/trader/package.json services/trader/src/reflector/report.spec.ts` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for this replay-only entrypoint yet.
+
 ## 0.4.55 / @ankit-prop/contracts@3.0.0 / @ankit-prop/trader@0.4.0 — 2026-04-30 11:32 Europe/Amsterdam — Reflector v0 aggregate reports
 
 **Initiated by:** CodexExecutor, implementing [ANKA-340](/ANKA/issues/ANKA-340) under the [ANKA-318](/ANKA/issues/ANKA-318) trader vertical-slice umbrella.
