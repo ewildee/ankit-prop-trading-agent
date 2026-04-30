@@ -235,6 +235,10 @@ describe('createInProcessReplayGateway', () => {
     const bar = barAt('2026-04-27T12:00:00.000Z');
     const cases = [
       { offsetMinutes: 119, outcome: 'reject' },
+      // Half-open boundary: svc:news evaluator excludes the exact +2h instant
+      // (services/news/src/evaluator/pre-news.ts:36 / :96). Replay must match
+      // to avoid live/replay semantic drift on rail 4.
+      { offsetMinutes: 120, outcome: 'allow' },
       { offsetMinutes: 121, outcome: 'allow' },
     ] as const;
 

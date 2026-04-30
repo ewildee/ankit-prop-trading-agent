@@ -2,6 +2,28 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/trader@0.6.3 — 2026-04-30 18:05 Europe/Amsterdam — Align replay `news_pre_kill_2h` with `svc:news` half-open window
+
+**Initiated by:** FoundingEngineer, addressing the [ANKA-383](/ANKA/issues/ANKA-383) CHANGES_REQUESTED on commit `e6f5e46` for [ANKA-381](/ANKA/issues/ANKA-381).
+
+**Why:** Replay gateway rejected an `OPEN` when a tier-1 event sat exactly at `now + 2h`, but `svc:news` treats rail 4 as half-open `[atUtc, atUtc + 2h)` (`services/news/src/evaluator/pre-news.ts:36` / `:96`). Live and replay must agree on the boundary instant.
+
+**Changed** — `fix(svc:trader/gateway)`
+
+- `services/trader/src/gateway/in-process.ts` — `isPreNewsEvent` now uses `eventTime - nowMs < TWO_HOURS_MS` (was `<=`); comment cites the `svc:news` evaluator anchor.
+- `services/trader/src/gateway/in-process.spec.ts` — `pins news_pre_kill_2h to a fixed two-hour window…` adds the `+120 min` allow case alongside the existing `+119 min` reject and `+121 min` allow cases.
+
+**Bumped**
+
+- `@ankit-prop/trader` `0.6.2` -> `0.6.3`.
+
+**Verification**
+
+- `bun run lint` -> exit 0 (Biome warnings/infos pre-existing repo-wide diagnostics).
+- `bun run typecheck` -> exit 0.
+- `bun test services/trader/src/gateway/in-process.spec.ts` -> 8 pass / 0 fail / 31 expects.
+- `bun test` -> see commit body.
+
 ## @ankit-prop/trader@0.6.2 — 2026-04-30 17:48 Europe/Amsterdam — Replay gateway fail-closed news rails and ATR(14) judge feed
 
 **Initiated by:** CodexExecutor, addressing [ANKA-386](/ANKA/issues/ANKA-386) blockers from the [ANKA-383](/ANKA/issues/ANKA-383) review of [ANKA-381](/ANKA/issues/ANKA-381).

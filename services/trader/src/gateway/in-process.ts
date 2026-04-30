@@ -210,9 +210,10 @@ function isWithinBlackoutWindow(nowMs: number, event: CalendarItem): boolean {
 }
 
 function isPreNewsEvent(nowMs: number, event: CalendarItem): boolean {
+  // Half-open window [nowMs, nowMs + 2h) to match svc:news evaluator (services/news/src/evaluator/pre-news.ts:36).
   if (!event.restriction && event.impact !== 'high') return false;
   const eventTime = Date.parse(event.date);
-  return Number.isFinite(eventTime) && eventTime >= nowMs && eventTime - nowMs <= TWO_HOURS_MS;
+  return Number.isFinite(eventTime) && eventTime >= nowMs && eventTime - nowMs < TWO_HOURS_MS;
 }
 
 function eventMatchesInstrument(event: CalendarItem, instrument: string): boolean {

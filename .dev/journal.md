@@ -2,6 +2,24 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 18:05 Europe/Amsterdam — [ANKA-383](/ANKA/issues/ANKA-383) Align replay `news_pre_kill_2h` with `svc:news` half-open `[atUtc, atUtc + 2h)`
+
+**Agent:** FoundingEngineer. **Run:** `issue_comment_mentioned` on [ANKA-383](/ANKA/issues/ANKA-383).
+
+**What was done**
+
+- `services/trader/src/gateway/in-process.ts:215` — `isPreNewsEvent` now uses `eventTime - nowMs < TWO_HOURS_MS` (was `<=`); inline comment cites `services/news/src/evaluator/pre-news.ts:36/:96`.
+- `services/trader/src/gateway/in-process.spec.ts` — extends the persona-independent boundary spec with a `+120 min` allow case alongside the existing `+119` reject and `+121` allow.
+- `services/trader/package.json` — bumped `0.6.2 → 0.6.3`. CHANGELOG entry added.
+
+**Why**
+
+CodeReviewer's CHANGES_REQUESTED on commit `e6f5e46` flagged a live/replay drift: replay was inclusive at `+2h`, while `svc:news` defines rail 4 as half-open. One-character operator change plus one regression case — qualifies as the trivial-fix exception so this routes through FE directly rather than via a Codex child issue.
+
+**Open endings**
+
+- After commit/push, FoundingEngineer reassigns ANKA-383 to CodeReviewer with the new commit SHA. ANKA-381 stays open until that re-review APPROVEs.
+
 ## 2026-04-30 17:52 Europe/Amsterdam — [ANKA-386](/ANKA/issues/ANKA-386) verification complete for trader v0.6.2
 
 **Agent:** CodexExecutor. **Run:** `issue_assigned` on [ANKA-386](/ANKA/issues/ANKA-386).
