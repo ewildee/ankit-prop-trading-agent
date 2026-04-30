@@ -42,6 +42,7 @@ export const AnalystOutput = z.strictObject({
   thesis: z.string().min(20).max(800),
   bias: z.enum(['long', 'short', 'neutral']),
   confidence: z.number().min(0).max(1),
+  confluenceScore: z.number().min(0).max(100),
   keyLevels: z.array(KeyLevel),
   regimeLabel: RegimeLabel,
   regimeNote: z.string().max(80),
@@ -76,6 +77,7 @@ export type TraderHoldOutput = z.infer<typeof TraderHoldOutput>;
 
 export const TraderOpenOutput = TraderBaseOutput.extend({
   action: z.literal('OPEN'),
+  idempotencyKey: z.string().min(1),
   side: z.enum(['BUY', 'SELL']),
   size: z.strictObject({
     lots: z.number().positive(),
@@ -86,8 +88,8 @@ export const TraderOpenOutput = TraderBaseOutput.extend({
     price: z.number().positive().optional(),
     expiresInBars: z.number().int().positive().optional(),
   }),
-  stopLoss: z.number().positive(),
-  takeProfit: z.number().positive().optional(),
+  stopLossPips: z.number().positive(),
+  takeProfitPips: z.number().positive().optional(),
   trailingStop: z
     .strictObject({
       activateAtR: z.number().positive(),
@@ -99,12 +101,14 @@ export type TraderOpenOutput = z.infer<typeof TraderOpenOutput>;
 
 export const TraderCloseOutput = TraderBaseOutput.extend({
   action: z.literal('CLOSE'),
-  positionId: z.string().min(1).optional(),
+  idempotencyKey: z.string().min(1),
+  positionId: z.string().min(1),
 });
 export type TraderCloseOutput = z.infer<typeof TraderCloseOutput>;
 
 export const TraderAmendOutput = TraderBaseOutput.extend({
   action: z.literal('AMEND'),
+  idempotencyKey: z.string().min(1),
   positionId: z.string().min(1),
   amend: z.strictObject({
     amendType: z.enum(['sl', 'tp', 'trailing_distance']),
@@ -308,6 +312,20 @@ export const DecisionRecord = z.strictObject({
 });
 export type DecisionRecord = z.infer<typeof DecisionRecord>;
 
+export const RunLlmCostUsd = z.strictObject({
+  total: z.number().nonnegative(),
+  breakdown: z.strictObject({
+    byStage: z.record(z.string(), z.number().nonnegative()),
+    byModel: z.record(z.string(), z.number().nonnegative()),
+  }),
+  claudeEquivalent: z.strictObject({
+    total: z.number().nonnegative(),
+    byStage: z.record(z.string(), z.number().nonnegative()),
+    byModel: z.record(z.string(), z.number().nonnegative()),
+  }),
+});
+export type RunLlmCostUsd = z.infer<typeof RunLlmCostUsd>;
+
 export const RunAggregate = z.strictObject({
   runId: z.string().min(1),
   personaId: PersonaId,
@@ -315,6 +333,11 @@ export const RunAggregate = z.strictObject({
   startedAt: z.string().min(1),
   endedAt: z.string().min(1).nullable(),
   decisionCount: z.number().int().nonnegative(),
+  sortinoRolling60d: z.number(),
+  llmCostUsd: RunLlmCostUsd,
+  breachCount: z.number().int().nonnegative(),
+  tradeCount: z.number().int().nonnegative(),
+  realizedPnl: z.number(),
   traderActions: z.record(z.enum(TRADER_ACTIONS), z.number().int().nonnegative()),
   judgeVerdicts: z.record(z.enum(['APPROVE', 'REJECT']), z.number().int().nonnegative()),
   gatewayOutcomes: z.record(

@@ -1,9 +1,10 @@
 # Progress
 
-- Current issue: [ANKA-321](/ANKA/issues/ANKA-321) — PR #36 rebase after CodeReviewer `CHANGES_REQUESTED`.
+- Current issue: [ANKA-333](/ANKA/issues/ANKA-333) — repair [ANKA-319](/ANKA/issues/ANKA-319) persona contract acceptance gaps after [ANKA-321](/ANKA/issues/ANKA-321).
 - Worktree: `.paperclip/worktrees/ANKA-319-architect-vertical-slice-contract-surface-analyst-trader-judge-reflector`.
-- Rebased branch onto current `origin/main` (`ccbfcb6`) after PR #36 was `CONFLICTING/DIRTY`.
-- Conflict resolution preserved `main` DBF entries plus ANKA-321 09:13 and 08:57 entries newest-first in CHANGELOG and journal.
-- Approved `GatewayDecision` repair remains intact: `submitted` allows `allow | tighten`; `rejected_by_rails` requires `reject`.
-- Rebased-head gate passed: lint:fix, focused tests, package tests, lint, typecheck, frozen install, repro matrix, debug scan.
-- Next: amend/push rebased PR #36 head and hand [ANKA-321](/ANKA/issues/ANKA-321) back to CodeReviewer.
+- Bun llms.txt fetched/read: 2026-04-30 09:41 Europe/Amsterdam.
+- Blueprint refreshed: §0, §5, §13, §17, §22, §25 before editing `pkg:contracts/pipeline`.
+- Implemented strict schema/test repair: confluence score, `idempotencyKey`, pips-based `OPEN` risk, required `CLOSE.positionId`, and `RunAggregate` metrics.
+- Local gate passed: lint:fix; focused shared-contract tests 17/0; package tests 76/0; full `bun test` 581/0; typecheck; frozen install.
+- TODO mirror: T008.b is `[x]` for [ANKA-333](/ANKA/issues/ANKA-333).
+- Next: commit, push, hand to CodeReviewer.

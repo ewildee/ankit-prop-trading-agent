@@ -2,6 +2,18 @@
 
 _Append-only, newest first. Each ADR captures: context, decision, alternatives, consequences._
 
+## ADR-0011 — Persona contract acceptance fields are explicit in v1.0
+
+- **Date:** 2026-04-30 09:43 Europe/Amsterdam
+- **Status:** Accepted ([ANKA-333](/ANKA/issues/ANKA-333), child of [ANKA-319](/ANKA/issues/ANKA-319))
+- **Context:** [ANKA-321](/ANKA/issues/ANKA-321) established the ADR-0010 HOLD/OPEN/CLOSE/AMEND boundary, but the first shared schema pass missed several parent-requested acceptance fields: per-decision analyst confluence score, retry-safe client idempotency on gateway-submitted trader actions, pips-based open risk, required close target, and the reflector/eval aggregate metrics needed to judge a run. Leaving those fields implicit would let downstream trader, gateway-adapter, dashboard, and replay code encode incompatible assumptions.
+- **Decision:** `@ankit-prop/contracts` v1.0 makes those fields first-class and required. `AnalystOutput.confluenceScore` is a 0-100 score while `PersonaConfig.scoring.threshold` remains the configurable threshold source. `OPEN`, `CLOSE`, and `AMEND` require `idempotencyKey`; `HOLD` remains `not_submitted` telemetry and does not require one. `OPEN` exposes `stopLossPips` / `takeProfitPips` rather than absolute SL/TP prices; the later gateway adapter owns translation to service-local `stopLossPrice` / `takeProfitPrice` intents. `CLOSE.positionId` is required. `RunAggregate` now carries `sortinoRolling60d`, `llmCostUsd` actual cost plus Claude-equivalent breakdowns, `breachCount`, `tradeCount`, and `realizedPnl`; the US spelling satisfies the parent issue's "realised PnL" requirement in code.
+- **Alternatives considered:**
+  - _Keep `stopLoss` / `takeProfit` absolute fields and document that they are pips in prompts._ Rejected — the field names remain ambiguous and would fight the gateway rail intent shape.
+  - _Put `idempotencyKey` on `TraderBaseOutput`, including `HOLD`._ Rejected — `HOLD` is a local no-op and never reaches the gateway idempotency registry.
+  - _Reuse `EvalMetrics` and `CostBreakdown` directly for `RunAggregate`._ Rejected — the run aggregate is reflector/dashboard telemetry, not a full eval result; it needs realised PnL, breach count, and Claude-equivalent cost comparisons without importing an eval-specific object wholesale.
+- **Consequences:** The shared persona surface is now intentionally breaking and versioned as `@ankit-prop/contracts@1.0.0`. Downstream Phase-4 trader and gateway-adapter code must emit pips-based risk plus idempotency keys before submitting actionable outputs, and missing acceptance telemetry fails at the Zod boundary instead of becoming a dashboard/replay ambiguity.
+
 ## ADR-0010 — Persona pipeline contract surface lives in shared contracts
 
 - **Date:** 2026-04-30 08:57 Europe/Amsterdam

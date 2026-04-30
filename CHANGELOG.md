@@ -2,6 +2,29 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.50 / @ankit-prop/contracts@1.0.0 — 2026-04-30 09:43 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, implementing [ANKA-333](/ANKA/issues/ANKA-333) to repair remaining [ANKA-319](/ANKA/issues/ANKA-319) acceptance gaps after [ANKA-321](/ANKA/issues/ANKA-321).
+
+**Why:** The first persona contract slice landed the ADR-0010 action boundary but still allowed several parent-requested fields to be absent. That would let trader/gateway/reflector consumers disagree on confluence, idempotency, risk units, close targets, and run metrics.
+
+**Changed** — `feat(pkg:contracts/pipeline)` / breaking shared contract surface
+
+- `packages/shared-contracts/src/personas.ts` — adds required `AnalystOutput.confluenceScore` (0-100), requires `idempotencyKey` on `OPEN` / `CLOSE` / `AMEND`, switches `OPEN` risk to `stopLossPips` / `takeProfitPips`, requires `CLOSE.positionId`, and expands `RunAggregate` with `sortinoRolling60d`, `llmCostUsd` actual + Claude-equivalent breakdowns, `breachCount`, `tradeCount`, and `realizedPnl`.
+- `packages/shared-contracts/src/personas.spec.ts` and `packages/shared-contracts/src/index.spec.ts` — add regressions proving missing confluence score, missing actionable idempotency, absolute SL/TP-only opens, missing close target, and missing aggregate metrics fail the Zod boundary.
+- `.dev/decisions.md` — adds ADR-0011 documenting the acceptance repair and noting that code uses US spelling `realizedPnl` for the parent issue's "realised PnL" wording.
+- `packages/shared-contracts/package.json` — bumps `@ankit-prop/contracts` `0.8.1` → `1.0.0` for the breaking schema surface.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; final rerun applied no fixes).
+- `bun test packages/shared-contracts/src/personas.spec.ts packages/shared-contracts/src/index.spec.ts` -> 17 pass / 0 fail / 51 expects.
+- `bun test packages/shared-contracts` -> 76 pass / 0 fail / 175 expects.
+- `bun test` -> 581 pass / 0 fail / 10924 expects.
+- `bun run typecheck` -> exit 0.
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 85 installs across 89 packages (no changes)`).
+- Debug leftovers scan over changed shared-contract source/spec/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+
 ## 0.4.49 — 2026-04-30 09:16 Europe/Amsterdam — apply DBF-004 (BLUEPRINT §22 reconcile Phase 6 dashboard scaffold landing before Phase 4 trader — option a)
 
 **Initiated by:** FoundingEngineer, scoped wake on [ANKA-326](/ANKA/issues/ANKA-326). Same in-flight branch / same release window — no root version bump.

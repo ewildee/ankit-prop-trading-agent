@@ -6,6 +6,8 @@ import {
   JudgeOutput,
   PersonaConfig,
   PHASE_0_SENTINEL,
+  RunAggregate,
+  RunLlmCostUsd,
   TRADER_ACTIONS,
   TraderOutput,
   V0_TRADER_RUNTIME_ACTIONS,
@@ -22,6 +24,8 @@ describe('shared-contracts smoke', () => {
     expect(JudgeInput).toBeDefined();
     expect(JudgeOutput).toBeDefined();
     expect(PersonaConfig).toBeDefined();
+    expect(RunAggregate).toBeDefined();
+    expect(RunLlmCostUsd).toBeDefined();
     expect(GatewayDecision).toBeDefined();
     expect(TRADER_ACTIONS).toEqual(['HOLD', 'OPEN', 'CLOSE', 'AMEND']);
     expect(V0_TRADER_RUNTIME_ACTIONS).toEqual(['HOLD', 'OPEN', 'CLOSE']);
