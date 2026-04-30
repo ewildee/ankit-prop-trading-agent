@@ -71,6 +71,39 @@ describe('createVAnkitClassicAnalyst', () => {
       }),
     ).rejects.toThrow(/AnalystOutput validation failed.*thesis.*bias/);
   });
+
+  test('maps aggregate-only usage telemetry without token detail objects', async () => {
+    const params = await loadPersonaConfig();
+    const analyst = createVAnkitClassicAnalyst({
+      generator: async () => ({
+        object: draftOutput(),
+        usage: {
+          inputTokens: 95,
+          outputTokens: 40,
+          totalTokens: 135,
+        } as unknown as LanguageModelUsage,
+      }),
+    });
+    const bar = barsFromCloses([2300]).at(-1)!;
+
+    const output = await analyst.analyze({
+      bar,
+      persona: params,
+      context: {
+        runId: 'analyst-index-spec',
+        paramsHash: 'params-hash',
+        decidedAt: new Date(bar.tsEnd).toISOString(),
+      },
+    });
+
+    expect(output.cacheStats).toEqual({
+      inputCachedTokens: 0,
+      inputFreshTokens: 95,
+      inputCacheWriteTokens: 0,
+      outputTokens: 40,
+      thinkingTokens: 0,
+    });
+  });
 });
 
 function draftOutput(): AnalystOutput {

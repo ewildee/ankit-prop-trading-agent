@@ -169,16 +169,16 @@ function buildAnalystPrompt({
 
 function cacheStatsFromUsage(usage: LanguageModelUsage): CacheLayerStats {
   const inputCachedTokens =
-    usage.inputTokenDetails.cacheReadTokens ?? usage.cachedInputTokens ?? ZERO;
-  const inputCacheWriteTokens = usage.inputTokenDetails.cacheWriteTokens ?? ZERO;
+    usage.inputTokenDetails?.cacheReadTokens ?? usage.cachedInputTokens ?? ZERO;
+  const inputCacheWriteTokens = usage.inputTokenDetails?.cacheWriteTokens ?? ZERO;
   const inputFreshTokens =
-    usage.inputTokenDetails.noCacheTokens ??
+    usage.inputTokenDetails?.noCacheTokens ??
     Math.max((usage.inputTokens ?? ZERO) - inputCachedTokens - inputCacheWriteTokens, ZERO);
   return {
     inputCachedTokens,
     inputFreshTokens,
     inputCacheWriteTokens,
     outputTokens: usage.outputTokens ?? ZERO,
-    thinkingTokens: usage.outputTokenDetails.reasoningTokens ?? usage.reasoningTokens ?? ZERO,
+    thinkingTokens: usage.outputTokenDetails?.reasoningTokens ?? usage.reasoningTokens ?? ZERO,
   };
 }

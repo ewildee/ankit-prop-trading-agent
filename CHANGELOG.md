@@ -2,6 +2,30 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.54 / @ankit-prop/trader@0.3.1 — 2026-04-30 11:31 Europe/Amsterdam — Analyst usage telemetry tolerates aggregate-only AI SDK usage
+
+**Initiated by:** FoundingEngineer, addressing the CodeReviewer BLOCK on [ANKA-350](/ANKA/issues/ANKA-350) (child of [ANKA-338](/ANKA/issues/ANKA-338)) under the [ANKA-318](/ANKA/issues/ANKA-318) trader vertical-slice umbrella.
+
+**Why:** `LanguageModelUsage` from the Vercel AI SDK can arrive with aggregate `inputTokens`/`outputTokens` only — the nested `inputTokenDetails` / `outputTokenDetails` objects are optional. The 0.4.53 Analyst dereferenced both unconditionally, so the regression spec for aggregate-only usage threw `TypeError: undefined is not an object` before `AnalystOutput` validation, leaving `cacheStats` unreliable on real OpenRouter calls.
+
+**Fixed** — `fix(svc:trader/instance-pipeline)`
+
+- `services/trader/src/analyst/index.ts` — `cacheStatsFromUsage()` now optional-chains `usage.inputTokenDetails?.cacheReadTokens`, `?.cacheWriteTokens`, `?.noCacheTokens`, and `usage.outputTokenDetails?.reasoningTokens`, with the existing aggregate fallbacks (`usage.cachedInputTokens`, `usage.inputTokens` minus cached/write, `usage.reasoningTokens`) carrying through unchanged.
+- `services/trader/src/analyst/index.spec.ts` — adds `maps aggregate-only usage telemetry without token detail objects` regression covering the AI SDK shape that ships only `inputTokens`/`outputTokens`/`totalTokens`.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.53` → `0.4.54`.
+- `@ankit-prop/trader` `0.3.0` → `0.3.1`.
+
+**Verification**
+
+- `bun test services/trader/src/analyst/index.spec.ts` -> 3 pass / 0 fail / 11 expects.
+- `bun run --filter @ankit-prop/trader lint:fix` -> exit 0 on the touched files (pre-existing repo-wide warnings unchanged).
+- `bun run --filter @ankit-prop/trader typecheck` -> exit 0.
+
+**Self-implementation justification (FE behavioural rule #1, exception 2):** four `?.` insertions in a single function plus a regression spec already authored locally; CodeReviewer dictated the exact diff and Codex inbox is clear of dependent work that this would unblock.
+
 ## 0.4.53 / @ankit-prop/contracts@2.0.0 / @ankit-prop/trader@0.3.0 — 2026-04-30 11:13 Europe/Amsterdam — Analyst v_ankit_classic v0
 
 **Initiated by:** CodexExecutor, implementing [ANKA-338](/ANKA/issues/ANKA-338) under the [ANKA-318](/ANKA/issues/ANKA-318) trader vertical-slice umbrella, with board direction to use Vercel AI SDK v6 + OpenRouter.
