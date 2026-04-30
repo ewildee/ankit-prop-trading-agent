@@ -2,6 +2,36 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.52 / @ankit-prop/trader@0.2.1 — 2026-04-30 10:38 Europe/Amsterdam — PR #38 BLOCK follow-up
+
+**Initiated by:** CodexExecutor, addressing local-board repair brief `a22851f2` for CodeReviewer BLOCK on PR [#38](https://github.com/ewildee/ankit-prop-trading-agent/pull/38) ([ANKA-335](/ANKA/issues/ANKA-335)).
+
+**Why:** Actionable Trader output must not look submitted in replay without explicit risk/calendar/spread/hard-rail context, and post-close reflector work must not block the bar-close decision record.
+
+**Fixed** — `fix(svc:trader/instance-pipeline)`
+
+- `services/trader/src/pipeline/runner.ts` — deletes the fabricated default `JudgeInput`. `OPEN` / `CLOSE` / `AMEND` without `deps.buildJudgeInput` now short-circuit before Judge and Gateway with fail-closed `rejected_by_rails` telemetry using the existing empty-rail reject verdict.
+- `services/trader/src/pipeline/runner.ts` — builds and returns the `DecisionRecord` before scheduling Reflector; reflector failures are swallowed so async post-close work cannot block the decision record.
+- `services/trader/src/pipeline/runner.spec.ts` — adds regressions for missing-risk-context fail-closed behaviour and reflector failure isolation; all non-HOLD happy-path permutations now pass an explicit `buildJudgeInput`.
+- `services/trader/src/gateway/in-process.ts` — notes that the replay-only synthetic allow path is reached only after the runner has explicit risk context.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.51` → `0.4.52`.
+- `@ankit-prop/trader` `0.2.0` → `0.2.1`.
+
+**Verification**
+
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 86 installs across 89 packages (no changes)`).
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; formatting applied only inside the touched runner spec).
+- `bun run typecheck` -> exit 0.
+- `bun test services/trader/src packages/shared-contracts` -> 85 pass / 0 fail / 785 expects.
+- `bun test` -> 590 pass / 0 fail / 11534 expects.
+- `git diff --check` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/**/*.ts` -> production files clean; hits are limited to spec fixture values and the explicit loader rejection case.
+- Debug leftovers scan over changed trader source/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
 ## 0.4.51 / @ankit-prop/trader@0.2.0 — 2026-04-30 10:08 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, implementing [ANKA-335](/ANKA/issues/ANKA-335) under the [ANKA-318](/ANKA/issues/ANKA-318) trader vertical-slice umbrella.

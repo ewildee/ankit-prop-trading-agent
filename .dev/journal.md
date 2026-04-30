@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 10:38 Europe/Amsterdam — [ANKA-335](/ANKA/issues/ANKA-335) PR #38 BLOCK follow-up — v0.4.52 / trader v0.2.1
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_comment_mentioned` wake for local-board repair brief `a22851f2`.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 10:38 Europe/Amsterdam before editing Bun-runtime TypeScript.
+- Rebasing PR [#38](https://github.com/ewildee/ankit-prop-trading-agent/pull/38) onto current `origin/main` completed; the `.dev/` and CHANGELOG conflicts preserved ANKA-320, ANKA-333, and ANKA-335 entries newest-first.
+- Removed the fabricated `buildDefaultJudgeInput` risk context from `runDecision`.
+- Made actionable Trader output without an explicit `buildJudgeInput` fail closed before Judge/Gateway, using existing ADR-0010 `rejected_by_rails` telemetry with the contracts fail-closed empty-rail verdict.
+- Made reflector invocation non-blocking after the `DecisionRecord` is built and swallowed reflector failures so post-close reflection cannot block bar-close decisions.
+- Added runner regressions for the missing-risk-context fail-closed path and reflector failure isolation.
+
+**Findings**
+
+- ADR-0010 does not currently have a `not_submitted` reason for "missing risk context"; widening that enum would be a contract reshape. The implementation therefore uses the existing `rejected_by_rails` branch rather than adding a new reason code.
+
+**Verification**
+
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 86 installs across 89 packages (no changes)`).
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; formatting applied only inside the touched runner spec).
+- `bun run typecheck` -> exit 0.
+- `bun test services/trader/src packages/shared-contracts` -> 85 pass / 0 fail / 785 expects.
+- `bun test` -> 590 pass / 0 fail / 11534 expects.
+- `git diff --check` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/**/*.ts` -> production files clean; hits are limited to spec fixture values and the explicit loader rejection case.
+- Debug leftovers scan over changed trader source/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
+**Next**
+
+- Commit, force-with-lease push PR #38's existing branch, and hand back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592).
+
 ## 2026-04-30 10:08 Europe/Amsterdam — [ANKA-335](/ANKA/issues/ANKA-335) trader vertical-slice skeleton — v0.4.51 / trader v0.2.0
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-335](/ANKA/issues/ANKA-335).

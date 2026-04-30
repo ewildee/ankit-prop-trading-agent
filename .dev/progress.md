@@ -1,11 +1,11 @@
 # Progress
 
-- Current issue: [ANKA-335](/ANKA/issues/ANKA-335) — `services/trader` vertical-slice skeleton + replay adapter stubs.
+- Current issue: [ANKA-335](/ANKA/issues/ANKA-335) — PR #38 CodeReviewer BLOCK follow-up.
 - Worktree: `.paperclip/worktrees/ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay`.
-- Bun llms.txt fetched/read: 2026-04-30 10:08 Europe/Amsterdam.
-- Blueprint refreshed: §0, §0.1, §0.2, §5, §13.5, §17, §22, §25 before editing `svc:trader`.
-- Fast-forwarded onto the [ANKA-319](/ANKA/issues/ANKA-319) ADR-0010 contract branch before adding runtime code.
-- Implemented runner, stage seams/stubs, in-process replay gateway double, Bun-native persona loader, and eval-harness replay adapter JSONL writer.
-- Focused check passed: `bun test services/trader/src` -> 7 pass / 0 fail / 603 expects.
-- TODO mirror: T008.c is `[x]` for [ANKA-335](/ANKA/issues/ANKA-335).
-- Next: finish final lint/test/typecheck, commit, push, hand to QAEngineer.
+- Bun llms.txt fetched/read: 2026-04-30 10:38 Europe/Amsterdam.
+- Rebased PR #38 onto `origin/main`; conflict resolution preserved ANKA-320 / ANKA-333 / ANKA-335 ledger entries newest-first.
+- Fixed `runDecision`: no default `JudgeInput`; actionable output without `buildJudgeInput` now fails closed before Judge/Gateway; reflector runs post-record and is isolated.
+- Added runner regressions for missing risk context and reflector failure isolation.
+- Version target: root `0.4.51` → `0.4.52`; `@ankit-prop/trader` `0.2.0` → `0.2.1`.
+- Local gate passed: lint:fix; typecheck; focused `bun test services/trader/src packages/shared-contracts` 85/0; full `bun test` 590/0; `git diff --check`; service start echo.
+- Next: commit, force-with-lease push PR #38, confirm PR state, and hand back to CodeReviewer.

@@ -1,5 +1,6 @@
 import {
   AnalystOutput,
+  composeRailVerdict,
   DecisionRecord,
   GatewayDecision,
   JudgeInput,
@@ -25,31 +26,41 @@ export async function runDecision(
   const traderInput: TraderStageInput = { ...analystInput, analystOutput };
   const traderOutput = TraderOutput.parse(await deps.trader.decide(traderInput));
 
-  const judgeOutput =
-    traderOutput.action === 'HOLD'
-      ? null
-      : JudgeOutput.parse(
-          await deps.judge.evaluate({
-            judgeInput: JudgeInput.parse(
-              deps.buildJudgeInput?.({ ...traderInput, traderOutput }) ??
-                buildDefaultJudgeInput({ ...traderInput, traderOutput }),
-            ),
-            bar,
-            persona,
-            context,
-          }),
-        );
-
-  const gatewayDecision = GatewayDecision.parse(
-    await deps.gateway.decide({
-      bar,
-      persona,
-      context,
-      analystOutput,
+  let judgeOutput: JudgeOutput | null = null;
+  let gatewayDecision: GatewayDecision;
+  if (traderOutput.action !== 'HOLD' && deps.buildJudgeInput === undefined) {
+    gatewayDecision = GatewayDecision.parse({
+      status: 'rejected_by_rails',
       traderOutput,
-      judgeOutput,
-    }),
-  );
+      railVerdict: composeRailVerdict([], context.decidedAt),
+    });
+  } else {
+    judgeOutput =
+      traderOutput.action === 'HOLD'
+        ? null
+        : JudgeOutput.parse(
+            await deps.judge.evaluate({
+              judgeInput: JudgeInput.parse(
+                deps.buildJudgeInput?.({ ...traderInput, traderOutput }),
+              ),
+              bar,
+              persona,
+              context,
+            }),
+          );
+
+    gatewayDecision = GatewayDecision.parse(
+      await deps.gateway.decide({
+        bar,
+        persona,
+        context,
+        analystOutput,
+        traderOutput,
+        judgeOutput,
+      }),
+    );
+  }
+
   const record = DecisionRecord.parse({
     decisionId: crypto.randomUUID(),
     runId: context.runId,
@@ -65,43 +76,21 @@ export async function runDecision(
     decidedAt: context.decidedAt,
   });
 
-  await deps.reflector.reflect({
-    bar,
-    persona,
-    context,
-    analystOutput,
-    traderOutput,
-    judgeOutput,
-    gatewayDecision,
-  });
+  void Promise.resolve()
+    .then(() =>
+      deps.reflector.reflect({
+        bar,
+        persona,
+        context,
+        analystOutput,
+        traderOutput,
+        judgeOutput,
+        gatewayDecision,
+      }),
+    )
+    .catch(() => undefined);
 
   return record;
-}
-
-function buildDefaultJudgeInput(
-  input: TraderStageInput & { readonly traderOutput: TraderOutput },
-): JudgeInput {
-  const currentSpread = Math.max(input.bar.high - input.bar.low, Number.EPSILON);
-  const typicalSpread = input.bar.close > Number.EPSILON ? input.bar.close : Number.EPSILON;
-  return {
-    traderOutput: input.traderOutput,
-    analystOutput: input.analystOutput,
-    riskBudgetRemaining: {
-      dailyPct: Number.EPSILON,
-      overallPct: Number.EPSILON,
-    },
-    openExposure: {
-      totalPct: Number.EPSILON,
-      sameDirectionPct: Number.EPSILON,
-    },
-    recentDecisions: [],
-    calendarLookahead: [],
-    spreadStats: {
-      current: currentSpread,
-      typical: typicalSpread,
-    },
-    strategyParams: input.persona as unknown as Record<string, unknown>,
-  };
 }
 
 function hashPersonaConfig(persona: PersonaConfig): string {

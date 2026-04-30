@@ -37,8 +37,8 @@ function decideInProcess(
     };
   }
 
-  // Replay-only cheat: the real hard rails still live in svc:gateway. This
-  // double keeps the stage seam parseable by emitting a synthetic allow verdict.
+  // Replay-only cheat: the real hard rails still live in svc:gateway. The
+  // runner only reaches this allow path after explicit risk context is present.
   const railVerdict = composeRailVerdict(
     [
       RailDecision.parse({
