@@ -1,6 +1,11 @@
 import { appendFile, mkdir, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
-import type { PersonaConfig, RecentDecisionSummary, TraderOutput } from '@ankit-prop/contracts';
+import {
+  type PersonaConfig,
+  pragueDayBucket,
+  type RecentDecisionSummary,
+  type TraderOutput,
+} from '@ankit-prop/contracts';
 import {
   type AccountConfig,
   type BarStrategy,
@@ -110,7 +115,11 @@ type ReplayState = {
 
 function createReplayState(persona: PersonaConfig): ReplayState {
   let openPosition: ReplayOpenPosition | null = null;
-  let riskDayKey: string | null = null;
+  // Risk-day bucket is keyed off Europe/Prague (FTMO server clock per BLUEPRINT
+  // §0.2 timezone discipline and §8.3 day_start_balance). UTC bucketing rolled
+  // over inside the same FTMO daily bucket and would let extra replay risk slip
+  // through (ANKA-339 BLOCK).
+  let riskDayKey: number | null = null;
   let dailyRiskUsedPct = ZERO;
 
   return {
@@ -124,7 +133,7 @@ function createReplayState(persona: PersonaConfig): ReplayState {
     },
     recentDecisions: () => [],
     advanceDay(bar) {
-      const nextDayKey = dayKey(bar);
+      const nextDayKey = pragueDayBucket(bar.tsEnd);
       if (riskDayKey === nextDayKey) return;
       riskDayKey = nextDayKey;
       dailyRiskUsedPct = ZERO;
@@ -206,8 +215,4 @@ function sameDirectionOpen(
   openSide: ReplayOpenPosition['side'],
 ): boolean {
   return traderOutput.action === 'OPEN' && traderOutput.side === openSide;
-}
-
-function dayKey(bar: Bar): string {
-  return new Date(bar.tsEnd).toISOString().split('T')[0] ?? '';
 }

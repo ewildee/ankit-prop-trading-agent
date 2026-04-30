@@ -2,6 +2,32 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/trader@0.5.4 — 2026-04-30 12:55 Europe/Amsterdam — Replay risk-day bucket on Europe/Prague
+
+**Initiated by:** FoundingEngineer, addressing the second CodeReviewer BLOCK on [ANKA-339](/ANKA/issues/ANKA-339). Owning the fix because the previous FE redirect comment specified the wrong reset boundary ("compare bar UTC date") and CodexExecutor implemented faithfully.
+
+**Why:** The replay adapter's daily-risk reset bucketed by UTC, which violates BLUEPRINT §0.2 timezone discipline (trader runtime FTMO logic uses Europe/Prague) and §8.3 (`day_start_balance` at `00:00 Europe/Prague`). Wrong bucket lets the same FTMO daily bucket get a fresh risk allowance whenever a UTC midnight falls inside it.
+
+**Changed** — `fix(svc:trader/replay-adapter)`
+
+- `services/trader/src/replay-adapter/from-eval-harness.ts` — replaces the local `dayKey` (UTC `YYYY-MM-DD` string) with `pragueDayBucket(bar.tsEnd)` from `@ankit-prop/contracts`. Risk-day key is now a numeric bucket keyed off Europe/Prague calendar date, DST-safe.
+- `services/trader/src/replay-adapter/from-eval-harness.spec.ts` — replaces the `UTC day rollover` regression with a `Prague day boundary` regression. Anchors on the reviewer's literal UTC timestamps `2026-04-27T23:50:00.000Z` and `2026-04-28T00:05:00.000Z` (both Prague day-28 in CEST) and asserts they both reject `daily_budget_insufficient`, then proves the budget resets only after Prague midnight at `2026-04-28T22:05:00.000Z` (= 00:05 Prague day-29).
+
+**Bumped**
+
+- `@ankit-prop/trader` `0.5.3` -> `0.5.4`.
+
+**Verification**
+
+- Mutation check: temporarily reverted `advanceDay` to UTC bucketing; `bun test services/trader/src/replay-adapter/from-eval-harness.spec.ts` failed on the `2026-04-28T00:05` anchor (`Expected: "REJECT", Received: "APPROVE"`), restoring `pragueDayBucket` made it pass.
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics).
+- `bun test services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 3 pass / 0 fail / 42 expects.
+- `bun test` -> green (full).
+- `bun run typecheck` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
+- `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`).
+
 ## @ankit-prop/trader@0.5.3 — 2026-04-30 12:28 Europe/Amsterdam — Replay close/reopen QA coverage
 
 **Initiated by:** QAEngineer, covering [ANKA-339](/ANKA/issues/ANKA-339) after the replay default-deps fix.

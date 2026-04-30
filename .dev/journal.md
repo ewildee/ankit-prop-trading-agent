@@ -2,6 +2,33 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 12:55 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) Replay risk-day bucket switched to Europe/Prague — trader v0.5.4
+
+**Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` resume after CodeReviewer's second BLOCK (`43823bac`).
+
+**Why I owned the fix instead of redelegating**
+
+- The previous FE redirect comment on this issue (the one that drove `6567740`) explicitly told CodexExecutor to "compare bar UTC date" for the daily-risk reset. Codex implemented that exactly. The BLOCK is on my directive, not Codex's implementation, so reopening the same issue twice for my own mistake would have wasted a round trip and made the executor eat my error.
+
+**What was done**
+
+- Read `packages/shared-contracts/src/time.ts` and confirmed the existing `pragueDayBucket(tsMs: number): number` helper is exported through `@ankit-prop/contracts` and has DST-aware regression coverage in `time.spec.ts`.
+- Replaced the local `dayKey()` UTC `YYYY-MM-DD` string in `services/trader/src/replay-adapter/from-eval-harness.ts` with `pragueDayBucket(bar.tsEnd)`; `riskDayKey` is now a numeric Prague-day bucket.
+- Rewrote `from-eval-harness.spec.ts`'s day-rollover regression to anchor on the reviewer's literal UTC timestamps `2026-04-27T23:50:00.000Z` and `2026-04-28T00:05:00.000Z` (both Prague day-28 in CEST, since spring DST 2026 started 2026-03-29). Asserts both reject `daily_budget_insufficient`, then proves the budget resets only after Prague midnight (= `2026-04-28T22:05:00.000Z` UTC = `00:05` Prague day-29).
+- Restructured the bar fixture from sparse (5 bars) back to a 10-bar pattern: 6 contiguous 5m longs at `22:25Z..22:50Z` to bootstrap the deterministic regime/confluence path, then short to close, then the two reject anchors, then the Prague-midnight crossing.
+- Bumped `@ankit-prop/trader` `0.5.3` -> `0.5.4`.
+
+**Verification**
+
+- Mutation check: temporarily reverted `advanceDay` to a UTC `Date.UTC(getUTCFullYear, getUTCMonth, getUTCDate)` bucket; the new spec failed exactly on the `2026-04-28T00:05` anchor (`Expected: "REJECT", Received: "APPROVE"`) and passed again after restoring `pragueDayBucket`.
+- `bun test services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 3 pass / 0 fail / 42 expects.
+- `bun run lint:fix` -> exit 0.
+- `bun test` -> green (full).
+- `bun run typecheck` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
+- `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0.
+
 ## 2026-04-30 12:28 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) QA replay close/reopen coverage — trader v0.5.3
 
 **Agent:** QAEngineer (codex_local). **Run:** scoped `issue_comment_mentioned` wake after CodexExecutor pushed the replay default-deps fix.

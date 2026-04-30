@@ -111,20 +111,20 @@ describe('runTraderReplay', () => {
     }
   });
 
-  test('clears submitted CLOSE state and resets risk budget on UTC day rollover', async () => {
+  test('keeps the daily risk budget across UTC midnight within one Prague day and resets at the Prague boundary', async () => {
     const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
     try {
-      const bars = barsAcrossUtcDayForCloseThenReopen();
+      const bars = barsAcrossPragueDayForCloseThenReopen();
       const provider = new StaticMarketDataProvider(bars);
       const persona = personaWithAllDaySignalWindow(await loadPersonaConfig());
       const result = await runTraderReplay({
-        runId: 'replay-adapter-close-reopen-spec',
+        runId: 'replay-adapter-prague-day-spec',
         persona,
         provider,
         symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
         window: {
-          fromMs: Date.parse('2026-04-27T23:00:00.000Z'),
-          toMs: Date.parse('2026-04-28T00:30:00.000Z'),
+          fromMs: Date.parse('2026-04-27T22:00:00.000Z'),
+          toMs: Date.parse('2026-04-28T22:30:00.000Z'),
         },
         account: ACCOUNT,
         symbolMetas: await provider.listSymbols(),
@@ -139,19 +139,57 @@ describe('runTraderReplay', () => {
           'long',
           'short',
           'short',
+          'short',
+          'short',
         ]),
       });
 
+      // BLUEPRINT §0.2 / §8.3: replay risk-day bucket follows Europe/Prague,
+      // not UTC. CEST = UTC+2 in late April 2026, so Prague midnight for day-29
+      // lands at 2026-04-28T22:00:00.000Z; the UTC day rollover at
+      // 2026-04-28T00:00:00.000Z is *inside* Prague day-28 and must NOT reset
+      // the daily risk budget.
       const submittedActions = result.decisions
         .filter((decision) => decision.gatewayDecision?.status === 'submitted')
         .map((decision) => decision.traderOutput.action);
       expect(submittedActions).toEqual(['OPEN', 'CLOSE', 'OPEN']);
+
+      // Same Prague day-28 as the OPEN/CLOSE pair; daily budget exhausted, so
+      // Trader still emits OPEN but Judge rejects on `daily_budget_insufficient`.
+      const sameDayLatePragueBar = result.decisions.find((decision) =>
+        decision.barClosedAt.startsWith('2026-04-27T23:50'),
+      );
+      expect(sameDayLatePragueBar?.traderOutput.action).toBe('OPEN');
+      expect(sameDayLatePragueBar?.judgeOutput?.verdict).toBe('REJECT');
+      expect(sameDayLatePragueBar?.judgeOutput?.rejectedRules).toContain(
+        'daily_budget_insufficient',
+      );
+      expect(sameDayLatePragueBar?.gatewayDecision?.status).toBe('not_submitted');
+      if (sameDayLatePragueBar?.gatewayDecision?.status === 'not_submitted') {
+        expect(sameDayLatePragueBar.gatewayDecision.reason).toBe('judge_reject');
+      }
+
+      // Past UTC midnight but still Prague day-28 — would have reset under the
+      // old UTC bucketing; under Prague bucketing it must still reject.
+      const utcMidnightCrossSamePragueBar = result.decisions.find((decision) =>
+        decision.barClosedAt.startsWith('2026-04-28T00:05'),
+      );
+      expect(utcMidnightCrossSamePragueBar?.traderOutput.action).toBe('OPEN');
+      expect(utcMidnightCrossSamePragueBar?.judgeOutput?.verdict).toBe('REJECT');
+      expect(utcMidnightCrossSamePragueBar?.judgeOutput?.rejectedRules).toContain(
+        'daily_budget_insufficient',
+      );
+      expect(utcMidnightCrossSamePragueBar?.gatewayDecision?.status).toBe('not_submitted');
+
+      // Past Prague midnight (2026-04-28T22:00:00.000Z UTC = 00:00 Prague day-29):
+      // bucket flips, budget resets, Judge approves the fresh OPEN.
       const submittedReopen = result.decisions.find(
         (decision) =>
           decision.traderOutput.action === 'OPEN' &&
           decision.gatewayDecision?.status === 'submitted' &&
-          decision.barClosedAt.startsWith('2026-04-28'),
+          decision.barClosedAt.startsWith('2026-04-28T22:'),
       );
+      expect(submittedReopen).toBeDefined();
       expect(submittedReopen?.judgeOutput?.verdict).toBe('APPROVE');
     } finally {
       await rm(tmp, { recursive: true, force: true });
@@ -222,16 +260,30 @@ function barsWithRepeatedLongSignals(): Bar[] {
   });
 }
 
-function barsAcrossUtcDayForCloseThenReopen(): Bar[] {
+function barsAcrossPragueDayForCloseThenReopen(): Bar[] {
+  // Six contiguous 5m bars at the start of Prague day-28 (22:25Z..22:50Z UTC =
+  // 00:25..00:50 Prague day-28) bootstrap the deterministic regime/confluence
+  // path so the analyst eventually emits enough confidence to OPEN. The
+  // remaining bars anchor specific Prague-day assertions:
+  //   - 23:40Z UTC -> 01:40 Prague day-28: short bias closes the long.
+  //   - 23:45Z UTC -> closes at 23:50Z (reviewer's anchor): same Prague day-28,
+  //     daily budget exhausted; Judge must reject `daily_budget_insufficient`.
+  //   - 00:00Z UTC -> closes at 00:05Z next day (reviewer's anchor): past UTC
+  //     midnight but still Prague day-28; under UTC bucketing this would have
+  //     reset, under Prague bucketing it must still reject.
+  //   - 22:00Z next day -> closes at 22:05Z = 00:05 Prague day-29; bucket
+  //     flips, budget resets, Judge approves the fresh OPEN.
   const starts = [
-    '2026-04-27T23:00:00.000Z',
-    '2026-04-27T23:05:00.000Z',
-    '2026-04-27T23:10:00.000Z',
-    '2026-04-27T23:15:00.000Z',
-    '2026-04-27T23:20:00.000Z',
-    '2026-04-27T23:25:00.000Z',
-    '2026-04-27T23:50:00.000Z',
-    '2026-04-28T00:05:00.000Z',
+    '2026-04-27T22:25:00.000Z',
+    '2026-04-27T22:30:00.000Z',
+    '2026-04-27T22:35:00.000Z',
+    '2026-04-27T22:40:00.000Z',
+    '2026-04-27T22:45:00.000Z',
+    '2026-04-27T22:50:00.000Z',
+    '2026-04-27T23:40:00.000Z',
+    '2026-04-27T23:45:00.000Z',
+    '2026-04-28T00:00:00.000Z',
+    '2026-04-28T22:00:00.000Z',
   ];
   return starts.map((start, index) => {
     const tsStart = Date.parse(start);
