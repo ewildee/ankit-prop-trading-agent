@@ -7,6 +7,7 @@ import {
   JudgeInput,
   JudgeOutput,
   PersonaConfig,
+  RunAggregate,
   TRADER_ACTIONS,
   TraderOutput,
   V0_TRADER_RUNTIME_ACTIONS,
@@ -25,6 +26,7 @@ const analystOutput = {
     'XAUUSD remains bid above the pre-session midpoint, but the setup still needs a confirmed 5-minute close.',
   bias: 'long',
   confidence: 0.72,
+  confluenceScore: 68,
   keyLevels: [{ name: 'pre-session high', price: 2352.4, timeframe: '5m' }],
   regimeLabel: 'B_trend_retrace',
   regimeNote: 'Trend retrace is active.',
@@ -43,13 +45,31 @@ const holdOutput = {
 
 const openOutput = {
   action: 'OPEN',
+  idempotencyKey: 'decision-1:open',
   side: 'BUY',
   size: { lots: 0.1, pctEquity: 0.4 },
   entry: { type: 'market' },
-  stopLoss: 2346.5,
-  takeProfit: 2361,
+  stopLossPips: 59,
+  takeProfitPips: 145,
   rationale: 'Trend retrace has enough confluence to open with defined risk.',
   expectedRR: 1.8,
+  cacheStats,
+} as const;
+
+const closeOutput = {
+  action: 'CLOSE',
+  idempotencyKey: 'decision-2:close',
+  positionId: 'pos-1',
+  rationale: 'Close the position after the invalidation level is breached.',
+  cacheStats,
+} as const;
+
+const amendOutput = {
+  action: 'AMEND',
+  idempotencyKey: 'decision-3:amend',
+  positionId: 'pos-1',
+  amend: { amendType: 'sl', newValue: 2349 },
+  rationale: 'Tighten stop after price moves in favour.',
   cacheStats,
 } as const;
 
@@ -105,6 +125,7 @@ describe('persona pipeline contracts', () => {
 
     expect(parsed.bias).toBe('long');
     expect(parsed.regimeLabel).toBe('B_trend_retrace');
+    expect(parsed.confluenceScore).toBe(68);
   });
 
   test('AnalystOutput stays strict at the contract boundary', () => {
@@ -116,20 +137,20 @@ describe('persona pipeline contracts', () => {
     ).toThrow();
   });
 
+  test('AnalystOutput requires a 0-100 confluence score', () => {
+    const { confluenceScore: _confluenceScore, ...missingConfluence } = analystOutput;
+
+    expect(AnalystOutput.safeParse(missingConfluence).success).toBe(false);
+    expect(AnalystOutput.safeParse({ ...analystOutput, confluenceScore: 101 }).success).toBe(false);
+  });
+
   test('TraderOutput is canonical HOLD | OPEN | CLOSE | AMEND and excludes TRAIL', () => {
     expect(TRADER_ACTIONS).toEqual(['HOLD', 'OPEN', 'CLOSE', 'AMEND']);
     expect(V0_TRADER_RUNTIME_ACTIONS).toEqual(['HOLD', 'OPEN', 'CLOSE']);
     expect(TraderOutput.parse(holdOutput).action).toBe('HOLD');
     expect(TraderOutput.parse(openOutput).action).toBe('OPEN');
-    expect(
-      TraderOutput.parse({
-        action: 'AMEND',
-        positionId: 'pos-1',
-        amend: { amendType: 'sl', newValue: 2349 },
-        rationale: 'Tighten stop after price moves in favour.',
-        cacheStats,
-      }).action,
-    ).toBe('AMEND');
+    expect(TraderOutput.parse(closeOutput).action).toBe('CLOSE');
+    expect(TraderOutput.parse(amendOutput).action).toBe('AMEND');
     expect(() =>
       TraderOutput.parse({
         action: 'TRAIL',
@@ -137,6 +158,37 @@ describe('persona pipeline contracts', () => {
         cacheStats,
       }),
     ).toThrow();
+  });
+
+  test('TraderOutput requires idempotency keys only on gateway-submitted actions', () => {
+    expect(TraderOutput.parse(holdOutput).action).toBe('HOLD');
+
+    for (const output of [openOutput, closeOutput, amendOutput]) {
+      const { idempotencyKey: _idempotencyKey, ...withoutKey } = output;
+      expect(TraderOutput.safeParse(withoutKey).success).toBe(false);
+    }
+  });
+
+  test('TraderOpenOutput uses pips-based risk instead of absolute SL/TP prices', () => {
+    const absoluteOnlyOpen = {
+      ...openOutput,
+      stopLoss: 2346.5,
+      takeProfit: 2361,
+    };
+    const {
+      stopLossPips: _stopLossPips,
+      takeProfitPips: _takeProfitPips,
+      ...withoutPips
+    } = absoluteOnlyOpen;
+
+    expect(TraderOutput.safeParse(withoutPips).success).toBe(false);
+    expect(TraderOutput.safeParse(openOutput).success).toBe(true);
+  });
+
+  test('TraderCloseOutput requires an unambiguous position target', () => {
+    const { positionId: _positionId, ...withoutPosition } = closeOutput;
+
+    expect(TraderOutput.safeParse(withoutPosition).success).toBe(false);
   });
 
   test('JudgeInput and JudgeOutput allow normal no-trade without modelling it as a rejection', () => {
@@ -226,6 +278,51 @@ describe('persona pipeline contracts', () => {
 
     expect(record.personaId).toBe('v_ankit_classic');
     expect(record.traderOutput.action).toBe('OPEN');
+  });
+
+  test('RunAggregate requires reflector/eval metrics for acceptance telemetry', () => {
+    const aggregate = {
+      runId: 'run-1',
+      personaId: 'v_ankit_classic',
+      instrument: 'XAUUSD',
+      startedAt: '2026-04-30T14:30:00.000Z',
+      endedAt: '2026-04-30T21:30:00.000Z',
+      decisionCount: 12,
+      sortinoRolling60d: 1.4,
+      llmCostUsd: {
+        total: 1.27,
+        breakdown: {
+          byStage: { analyst: 0.61, trader: 0.31, judge: 0.22, reflector: 0.13 },
+          byModel: { 'moonshotai/kimi-k2.6': 0.72, 'deepseek/deepseek-v4-flash': 0.55 },
+        },
+        claudeEquivalent: {
+          total: 4.92,
+          byStage: { analyst: 2.42, trader: 1.1, judge: 0.89, reflector: 0.51 },
+          byModel: { 'claude-sonnet-equivalent': 4.92 },
+        },
+      },
+      breachCount: 0,
+      tradeCount: 3,
+      realizedPnl: 184.55,
+      traderActions: { HOLD: 8, OPEN: 3, CLOSE: 1, AMEND: 0 },
+      judgeVerdicts: { APPROVE: 4, REJECT: 0 },
+      gatewayOutcomes: { allow: 3, tighten: 0, reject: 0, not_submitted: 9 },
+    } as const;
+
+    const parsed = RunAggregate.parse(aggregate);
+    expect(parsed.llmCostUsd.claudeEquivalent.total).toBe(4.92);
+    expect(parsed.realizedPnl).toBe(184.55);
+
+    for (const key of [
+      'sortinoRolling60d',
+      'llmCostUsd',
+      'breachCount',
+      'tradeCount',
+      'realizedPnl',
+    ] as const) {
+      const { [key]: _removed, ...missingMetric } = aggregate;
+      expect(RunAggregate.safeParse(missingMetric).success).toBe(false);
+    }
   });
 });
 

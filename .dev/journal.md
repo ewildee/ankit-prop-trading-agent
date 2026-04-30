@@ -2,6 +2,53 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 09:43 Europe/Amsterdam — [ANKA-333](/ANKA/issues/ANKA-333) persona contract acceptance repair — v0.4.50 / contracts v1.0.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-333](/ANKA/issues/ANKA-333).
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 09:41 Europe/Amsterdam before editing Bun-runtime TypeScript; no new npm dependencies were added.
+- Refreshed BLUEPRINT §0, §5, §13, §17, §22, and §25, then repaired the `pkg:contracts/pipeline` surface narrowly against the [ANKA-333](/ANKA/issues/ANKA-333) acceptance list.
+- Added required `AnalystOutput.confluenceScore` (0-100), actionable trader `idempotencyKey` fields, pips-based `OPEN` risk fields, required `CLOSE.positionId`, and `RunAggregate` eval/reflector metrics.
+- Added ADR-0011 for the acceptance repair and bumped `@ankit-prop/contracts` `0.8.1` → `1.0.0` because this is a breaking shared schema change.
+
+**Findings**
+
+- `PersonaConfig.scoring.threshold` already exists and remains the configurable threshold source; the new analyst score is the per-decision measured value.
+- Service-local gateway rail intents still use absolute `stopLossPrice` / `takeProfitPrice`; the shared trader contract now stays pips-based and leaves translation to the later adapter.
+
+**Contradictions**
+
+- [ANKA-321](/ANKA/issues/ANKA-321) satisfied ADR-0010's action boundary but not the full parent [ANKA-319](/ANKA/issues/ANKA-319) acceptance field list. [ANKA-333](/ANKA/issues/ANKA-333) resolves that by adding the missing fields without changing the HOLD/OPEN/CLOSE/AMEND boundary.
+
+**Decisions**
+
+- Use US spelling `realizedPnl` in code while documenting that it satisfies the parent issue's "realised PnL" wording.
+- Do not require `idempotencyKey` for `HOLD`, because it is never submitted to the gateway idempotency registry.
+
+**Unexpected behaviour**
+
+- None so far; focused persona/index tests passed after the schema patch.
+
+**Adaptations**
+
+- Versioned the package as `1.0.0` rather than another `0.x` patch/minor because the schema intentionally rejects previously accepted trader outputs.
+
+**Open endings**
+
+- Hand [ANKA-333](/ANKA/issues/ANKA-333) to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) after commit/push.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; final rerun applied no fixes).
+- `bun test packages/shared-contracts/src/personas.spec.ts packages/shared-contracts/src/index.spec.ts` -> 17 pass / 0 fail / 51 expects.
+- `bun test packages/shared-contracts` -> 76 pass / 0 fail / 175 expects.
+- `bun test` -> 581 pass / 0 fail / 10924 expects.
+- `bun run typecheck` -> exit 0.
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 85 installs across 89 packages (no changes)`).
+- Debug leftovers scan over changed shared-contract source/spec/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+
 ## 2026-04-30 09:37 Europe/Amsterdam — [ANKA-320](/ANKA/issues/ANKA-320) PR #37 rebase after CodeReviewer BLOCK — v0.4.51
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_comment_mentioned` wake for CodeReviewer comment `3ec08840`.
