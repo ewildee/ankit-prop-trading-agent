@@ -2,6 +2,43 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 18:05 Europe/Amsterdam — [ANKA-389](/ANKA/issues/ANKA-389) Analyst JSON keyword for OpenAI/Azure validator — trader v0.9.3
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_status_changed` wake for [ANKA-389](/ANKA/issues/ANKA-389).
+
+**What was done**
+
+- Fetched/read `https://bun.com/llms.txt` before editing Bun-runtime TypeScript.
+- Created per-issue worktree `.paperclip/worktrees/ANKA-389`; after the initial `origin/main` base showed stale trader `0.5.4`, switched the worktree to a fresh branch from `origin/ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay`, where [ANKA-385](/ANKA/issues/ANKA-385) is already merged.
+- Added the literal `JSON` keyword to the in-code Analyst user-prompt wrapper instruction only; after the live smoke reached the model but returned schema-invalid field types, tightened the same wrapper sentence with `keyLevels` / `supportingEvidence` type reminders. Persona prompt markdown, `params.yaml`, retry ladder, timeout logic, and provider options were not changed.
+- Added a regression assertion that the emitted Analyst generator prompt contains capital `JSON`.
+- Bumped `@ankit-prop/trader` `0.9.2` → `0.9.3` and appended the root `CHANGELOG.md` entry.
+
+**Findings**
+
+- The issue brief names `services/trader/CHANGELOG.md`, but this branch still has no service-local changelog. Existing trader package entries are in the root `CHANGELOG.md`, so the entry was added there.
+- Codebase retrieval returned HTTP 429 once; direct reads supplied the scoped context.
+- The first two live-smoke attempts reached OpenRouter without the Azure `json_object` keyword 400, but failed runtime validation because schema-free model output used non-object `keyLevels` and array `supportingEvidence`. Tightening the same wrapper instruction with field-type reminders produced parsed output on the next attempt.
+
+**Decisions**
+
+- No new ADR. This is the [ANKA-380](/ANKA/issues/ANKA-380) Option B' wrapper-keyword fix, not a persona prompt or provider policy change.
+
+**Verification**
+
+- `bun run --cwd services/trader lint:fix` → exit 0 (`Found 27 warnings.`; existing non-null assertion warnings remain).
+- `bun run --cwd services/trader lint` → exit 0 (`Found 27 warnings.`).
+- `bun run --cwd services/trader typecheck` → exit 0.
+- `bun run --cwd services/trader test` → 67 pass / 0 fail / 263 expects.
+- Live smoke `.dev/runs/anka380bp-smoke.ts` with root `.env` `OPENROUTER_API_KEY` → parsed Analyst output; `costUsd=0.003078405`; `bias=neutral`; `regimeLabel=unknown`; `thesisPreview="5m price action is mildly constructive after reclaiming 2300 and closing near the session high, but with only one bar..."`.
+- `bun run --cwd services/trader start` → exit 0 with Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+- `git diff --check` → exit 0.
+- Debug scan over changed Analyst source/spec/package files (`console.log|debugger|TODO|HACK`) → no matches.
+
+**Next**
+
+- Commit and push, then hand to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592). FoundingEngineer reruns the [ANKA-341](/ANKA/issues/ANKA-341) 7d replay after the reviewer chain.
+
 ## 2026-04-30 17:39 Europe/Amsterdam — [ANKA-385](/ANKA/issues/ANKA-385) Analyst JSON output mode — trader v0.9.2
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_status_changed` wake for [ANKA-385](/ANKA/issues/ANKA-385).
