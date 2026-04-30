@@ -1,10 +1,14 @@
 import { describe, expect, test } from 'bun:test';
 import type { AnalystOutput } from '@ankit-prop/contracts';
 import type { Bar } from '@ankit-prop/market-data';
-import type { LanguageModelUsage } from 'ai';
+import type { LanguageModelUsage, ProviderMetadata } from 'ai';
 import { loadPersonaConfig } from '../persona-config/loader.ts';
 import type { AnalystGenerationRequest } from './index.ts';
-import { createVAnkitClassicAnalyst } from './index.ts';
+import {
+  buildOpenRouterAnalystProviderOptions,
+  createVAnkitClassicAnalyst,
+  openRouterCostUsdFromProviderMetadata,
+} from './index.ts';
 
 type AnalystGenerationDraft = Omit<
   AnalystOutput,
@@ -18,7 +22,11 @@ describe('createVAnkitClassicAnalyst', () => {
     const analyst = createVAnkitClassicAnalyst({
       generator: async (request) => {
         requests.push(request);
-        return { object: draftOutput(), usage: usageFixture() };
+        return {
+          object: draftOutput(),
+          usage: usageFixture(),
+          providerMetadata: openRouterUsageCostFixture(0.012345),
+        };
       },
     });
 
@@ -37,6 +45,7 @@ describe('createVAnkitClassicAnalyst', () => {
 
     expect(requests.length).toBe(6);
     expect(requests.at(-1)?.model).toBe('moonshotai/kimi-k2.6');
+    expect(requests.at(-1)?.reasoningMaxTokens).toBe(params.analyst.reasoningMaxTokens);
     expect(requests.at(-1)?.system).toContain('v_ankit_classic');
     expect(requests.at(-1)?.prompt).toContain('calendarLookahead');
     expect(requests.at(-1)?.prompt).toContain('Do not include regimeLabel');
@@ -48,6 +57,32 @@ describe('createVAnkitClassicAnalyst', () => {
       inputCacheWriteTokens: 5,
       outputTokens: 40,
       thinkingTokens: 7,
+    });
+    expect(output?.costUsd).toBe(0.012345);
+  });
+
+  test('extracts OpenRouter credits-USD usage cost from provider metadata', () => {
+    expect(openRouterCostUsdFromProviderMetadata(openRouterUsageCostFixture(0.009876))).toBe(
+      0.009876,
+    );
+    expect(openRouterCostUsdFromProviderMetadata(undefined)).toBeUndefined();
+  });
+
+  test('passes params-sourced reasoning cap through OpenRouter provider options', async () => {
+    const params = await loadPersonaConfig();
+    const reasoningMaxTokens = params.analyst.reasoningMaxTokens;
+    if (reasoningMaxTokens === undefined) throw new Error('test params missing reasoningMaxTokens');
+    const options = buildOpenRouterAnalystProviderOptions({
+      model: params.analyst.model,
+      maxOutputTokens: params.analyst.maxOutputTokens,
+      reasoningMaxTokens,
+      system: 'system',
+      prompt: 'prompt',
+    });
+
+    expect(options.openrouter.reasoning).toEqual({
+      max_tokens: reasoningMaxTokens,
+      exclude: true,
     });
   });
 
@@ -164,6 +199,16 @@ function usageFixture(): LanguageModelUsage {
     },
     totalTokens: 135,
   };
+}
+
+function openRouterUsageCostFixture(cost: number): ProviderMetadata {
+  return {
+    openrouter: {
+      usage: {
+        cost,
+      },
+    },
+  } as unknown as ProviderMetadata;
 }
 
 function barsFromCloses(closes: number[]): Bar[] {

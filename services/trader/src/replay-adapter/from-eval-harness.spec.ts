@@ -13,6 +13,7 @@ import type {
 } from '@ankit-prop/market-data';
 import type { AnalystGenerator } from '../analyst/index.ts';
 import { loadPersonaConfig } from '../persona-config/loader.ts';
+import type { PipelineDeps } from '../pipeline/stages.ts';
 import { runTraderReplay } from './from-eval-harness.ts';
 
 const WINDOW_FROM_MS = Date.parse('2026-04-27T12:00:00.000Z');
@@ -61,6 +62,38 @@ describe('runTraderReplay', () => {
         expect(parsed.personaId).toBe('v_ankit_classic');
         expect(parsed.instrument).toBe('XAUUSD');
       }
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
+  test('flushes each emitted decision before processing the next bar', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
+    try {
+      const provider = new StaticMarketDataProvider(barsWithRepeatedLongSignals().slice(0, 2));
+      const persona = await loadPersonaConfig();
+      const logPath = join(tmp, 'decisions.jsonl');
+
+      await expect(
+        runTraderReplay({
+          runId: 'replay-adapter-flush-spec',
+          persona,
+          provider,
+          symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+          window: ONE_DAY_WINDOW,
+          account: ACCOUNT,
+          symbolMetas: await provider.listSymbols(),
+          logPath,
+          reflectAtEnd: false,
+          deps: depsThatAbortAfterFirstDecision(),
+        }),
+      ).rejects.toThrow('fixture abort before second decision');
+
+      const lines = (await readFile(logPath, 'utf8')).trim().split('\n');
+      expect(lines).toHaveLength(1);
+      const parsed = DecisionRecord.parse(JSON.parse(lines[0] ?? ''));
+      expect(parsed.runId).toBe('replay-adapter-flush-spec');
+      expect(parsed.personaId).toBe('v_ankit_classic');
     } finally {
       await rm(tmp, { recursive: true, force: true });
     }
@@ -309,6 +342,71 @@ function personaWithAllDaySignalWindow(persona: PersonaConfig): PersonaConfig {
         end: '23:59',
       },
     },
+  };
+}
+
+function depsThatAbortAfterFirstDecision(): PipelineDeps {
+  let analystCalls = 0;
+  return {
+    analyst: {
+      analyze() {
+        analystCalls += 1;
+        if (analystCalls > 1) throw new Error('fixture abort before second decision');
+        return {
+          thesis: 'Fixture analyst emits a valid neutral thesis for the first flushed decision.',
+          bias: 'neutral',
+          confidence: 0,
+          confluenceScore: 0,
+          keyLevels: [],
+          regimeLabel: 'unknown',
+          regimeNote: 'flush spec',
+          cacheStats: zeroCacheStats(),
+        };
+      },
+    },
+    trader: {
+      decide() {
+        return {
+          action: 'HOLD',
+          rationale: 'flush spec',
+          reason: 'flush spec',
+          cacheStats: zeroCacheStats(),
+        };
+      },
+    },
+    judge: {
+      evaluate() {
+        return {
+          verdict: 'REJECT',
+          reason: 'flush spec',
+          rejectedRules: [],
+          cacheStats: zeroCacheStats(),
+        };
+      },
+    },
+    gateway: {
+      decide({ traderOutput }) {
+        return {
+          status: 'not_submitted',
+          reason: 'hold',
+          traderOutput,
+          railVerdict: null,
+        };
+      },
+    },
+    reflector: {
+      reflect() {},
+    },
+  };
+}
+
+function zeroCacheStats() {
+  return {
+    inputCachedTokens: 0,
+    inputFreshTokens: 0,
+    inputCacheWriteTokens: 0,
+    outputTokens: 0,
+    thinkingTokens: 0,
   };
 }
 

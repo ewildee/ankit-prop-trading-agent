@@ -2,6 +2,61 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.61 / @ankit-prop/trader@0.6.0 / @ankit-prop/contracts@3.2.0 — 2026-04-30 14:15 Europe/Amsterdam — OpenRouter cost telemetry and replay JSONL flush
+
+**Initiated by:** CodexExecutor, implementing [ANKA-361](/ANKA/issues/ANKA-361) after the [ANKA-341](/ANKA/issues/ANKA-341) replay cost abort proved the Reflector was projecting Kimi usage through Claude Sonnet 4.5 rates.
+
+**Why:** OpenRouter already returns authoritative per-call billing telemetry at `providerMetadata.openrouter.usage.cost`; using token-derived Claude pricing for all stages produced a phantom ~$73 projection for the 7d replay. The replay adapter also needed to persist each decision before advancing so an abort still leaves a parseable `decisions.jsonl` prefix.
+
+**Changed** — `feat(svc:trader/reflector)` / `feat(svc:trader/replay-adapter)` / `feat(pkg:contracts/personas)`
+
+- `packages/shared-contracts/src/personas.ts` — adds optional per-stage `costUsd` for Analyst/Trader/Judge outputs. The value is OpenRouter credits-USD after account discounts, not upstream inference USD.
+- `services/trader/src/analyst/index.ts` — passes through AI SDK provider metadata and extracts `providerMetadata.openrouter.usage.cost` into `AnalystOutput.costUsd`.
+- `services/trader/src/reflector/cost.ts` — sums authoritative stage `costUsd` values and uses the frozen Claude Sonnet 4.5 token table only for stages without provider cost metadata.
+- `services/trader/src/replay-adapter/from-eval-harness.ts` — creates `decisions.jsonl` before replay work begins and fsyncs after every emitted `DecisionRecord`.
+- Specs cover OpenRouter-cost aggregation, Claude fallback pricing, Analyst provider metadata extraction, and one-line JSONL persistence after an abort before the second bar.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.60` -> `0.4.61`.
+- `@ankit-prop/trader` `0.5.6` -> `0.6.0`.
+- `@ankit-prop/contracts` `3.1.0` -> `3.2.0`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 36 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied on the final run).
+- `bun test` -> 632 pass / 0 fail / 11111 expects.
+- `bun run typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 with the Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
+## 0.4.60 / @ankit-prop/trader@0.5.6 / @ankit-prop/contracts@3.1.0 — 2026-04-30 14:01 Europe/Amsterdam — Analyst reasoning budget cap
+
+**Initiated by:** CodexExecutor, continuing [ANKA-341](/ANKA/issues/ANKA-341) after [ANKA-357](/ANKA/issues/ANKA-357) closed and the replay retry reached OpenRouter again.
+
+**Why:** The model-owned Analyst schema split fixed the earlier `cacheStats` schema contradiction, but the live retry still failed before the first `DecisionRecord` because Kimi used the full 1200-token completion budget on reasoning and returned no text. The Analyst request needs a params-sourced OpenRouter reasoning cap so thinking stays enabled without consuming the entire structured-output budget.
+
+**Changed** — `fix(svc:trader/analyst)` / `feat(pkg:contracts/personas)`
+
+- `packages/shared-contracts/src/personas.ts` — adds optional `AnalystRuntimeConfig.reasoningMaxTokens` so provider reasoning budget is explicit config, not an inline Analyst-path threshold.
+- `services/trader/strategy/v_ankit_classic/params.yaml` — sets the v0 Analyst reasoning cap for the retry path.
+- `services/trader/src/analyst/index.ts` — passes the params-sourced cap to OpenRouter as `reasoning.max_tokens` and excludes reasoning text from the response body while preserving usage telemetry.
+- `services/trader/src/analyst/index.spec.ts` and `packages/shared-contracts/src/personas.spec.ts` — cover the params-sourced provider option and config schema.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.59` -> `0.4.60`.
+- `@ankit-prop/trader` `0.5.5` -> `0.5.6`.
+- `@ankit-prop/contracts` `3.0.0` -> `3.1.0`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 36 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun test services/trader/src/analyst/index.spec.ts packages/shared-contracts/src/personas.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 24 pass / 0 fail / 97 expects.
+- `bun run --cwd services/trader typecheck` -> exit 0.
+- `bun run typecheck` -> exit 0.
+- Live replay retry emitted 1 decision, then was aborted under the [ANKA-341](/ANKA/issues/ANKA-341) $2.50 safety rule: `totalUsd=0.036231`, projected 2016-bar run `~$73.04`.
+
 ## 0.4.59 / @ankit-prop/trader@0.5.5 — 2026-04-30 13:14 Europe/Amsterdam — Analyst generation schema split
 
 **Initiated by:** CodexExecutor, addressing [ANKA-357](/ANKA/issues/ANKA-357) after the [ANKA-341](/ANKA/issues/ANKA-341) XAUUSD 7d replay reached the live OpenRouter Analyst call but failed schema validation before writing a `DecisionRecord`.

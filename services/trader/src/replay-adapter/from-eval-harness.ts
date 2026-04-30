@@ -1,4 +1,4 @@
-import { appendFile, mkdir, rm } from 'node:fs/promises';
+import { type FileHandle, mkdir, open, rm } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import {
   type PersonaConfig,
@@ -50,6 +50,11 @@ export type TraderReplayResult = {
 };
 
 export async function runTraderReplay(input: TraderReplayInput): Promise<TraderReplayResult> {
+  const logPath = input.logPath ?? join('.dev', 'runs', input.runId, 'decisions.jsonl');
+  await mkdir(dirname(logPath), { recursive: true });
+  if (input.truncateLog ?? true) await rm(logPath, { force: true });
+  const decisionLog = await open(logPath, 'a');
+
   const bars: Bar[] = [];
   const collector: BarStrategy = {
     name: `trader_decision_collector_${input.runId}`,
@@ -61,29 +66,29 @@ export async function runTraderReplay(input: TraderReplayInput): Promise<TraderR
     },
   };
 
-  await replayWithProvider({
-    strategyVersion: collector.name,
-    account: input.account,
-    provider: input.provider,
-    symbols: input.symbols,
-    window: input.window,
-    symbolMetas: input.symbolMetas,
-    strategy: collector,
-  });
-
-  const logPath = input.logPath ?? join('.dev', 'runs', input.runId, 'decisions.jsonl');
-  await mkdir(dirname(logPath), { recursive: true });
-  if (input.truncateLog ?? true) await rm(logPath, { force: true });
-
   const replayState = createReplayState(input.persona);
   const deps = input.deps ?? createDefaultPipelineDeps(input, replayState);
   const decisions = [];
-  for (const bar of bars) {
-    replayState.advanceDay(bar);
-    const decision = await runDecision(bar, input.persona, { ...deps, runId: input.runId });
-    decisions.push(decision);
-    replayState.recordDecision(decision);
-    await appendFile(logPath, `${JSON.stringify(decision)}\n`);
+  try {
+    await replayWithProvider({
+      strategyVersion: collector.name,
+      account: input.account,
+      provider: input.provider,
+      symbols: input.symbols,
+      window: input.window,
+      symbolMetas: input.symbolMetas,
+      strategy: collector,
+    });
+
+    for (const bar of bars) {
+      replayState.advanceDay(bar);
+      const decision = await runDecision(bar, input.persona, { ...deps, runId: input.runId });
+      decisions.push(decision);
+      replayState.recordDecision(decision);
+      await appendDecisionRecord(decisionLog, decision);
+    }
+  } finally {
+    await decisionLog.close();
   }
 
   const reportOutputDir = input.reportOutputDir ?? (input.logPath ? dirname(logPath) : undefined);
@@ -97,6 +102,14 @@ export async function runTraderReplay(input: TraderReplayInput): Promise<TraderR
       : null;
 
   return { runId: input.runId, logPath, decisions, report };
+}
+
+async function appendDecisionRecord(
+  decisionLog: FileHandle,
+  decision: Awaited<ReturnType<typeof runDecision>>,
+): Promise<void> {
+  await decisionLog.appendFile(`${JSON.stringify(decision)}\n`);
+  await decisionLog.sync();
 }
 
 type ReplayOpenPosition = {

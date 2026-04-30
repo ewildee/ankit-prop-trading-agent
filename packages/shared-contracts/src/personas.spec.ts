@@ -145,10 +145,18 @@ describe('persona pipeline contracts', () => {
     expect(AnalystOutput.safeParse({ ...analystOutput, confluenceScore: 101 }).success).toBe(false);
   });
 
+  test('stage outputs accept optional billed OpenRouter credits-USD cost', () => {
+    expect(AnalystOutput.parse({ ...analystOutput, costUsd: 0.0123 }).costUsd).toBe(0.0123);
+    expect(TraderOutput.parse({ ...holdOutput, costUsd: 0 }).costUsd).toBe(0);
+    expect(JudgeOutput.parse({ ...judgeOutput, costUsd: 0.0045 }).costUsd).toBe(0.0045);
+    expect(AnalystOutput.safeParse({ ...analystOutput, costUsd: -0.01 }).success).toBe(false);
+  });
+
   test('AnalystRuntimeConfig carries model, lookback, and regime thresholds', () => {
     const parsed = AnalystRuntimeConfig.parse({
       model: 'moonshotai/kimi-k2.6',
       maxOutputTokens: 1200,
+      reasoningMaxTokens: 128,
       barLookback: 18,
       calendarLookaheadLimit: 8,
       regime: {
@@ -362,6 +370,7 @@ describe('PersonaConfig', () => {
       analyst: {
         model: 'moonshotai/kimi-k2.6',
         maxOutputTokens: 1200,
+        reasoningMaxTokens: 128,
         barLookback: 18,
         calendarLookaheadLimit: 8,
         regime: {

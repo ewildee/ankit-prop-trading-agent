@@ -13,6 +13,7 @@ v0RuntimeActionAllowList: [HOLD, OPEN, CLOSE]
 analyst:
   model: moonshotai/kimi-k2.6
   maxOutputTokens: 1200
+  reasoningMaxTokens: 128
   barLookback: 18
   calendarLookaheadLimit: 8
   regime:

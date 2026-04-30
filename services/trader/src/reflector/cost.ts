@@ -10,13 +10,42 @@ const ZERO_CACHE_STATS: CacheLayerStats = {
 };
 
 export function summarizeLlmCost(records: ReadonlyArray<DecisionRecord>): RunLlmCostUsd {
-  const total = { ...ZERO_CACHE_STATS };
+  const fallbackStats = { ...ZERO_CACHE_STATS };
+  let authoritativeTotalUsd = 0;
   for (const record of records) {
-    addCacheStats(total, record.analystOutput.cacheStats);
-    addCacheStats(total, record.traderOutput.cacheStats);
-    if (record.judgeOutput) addCacheStats(total, record.judgeOutput.cacheStats);
+    authoritativeTotalUsd += addStageCostOrFallback(
+      fallbackStats,
+      record.analystOutput.costUsd,
+      record.analystOutput.cacheStats,
+    );
+    authoritativeTotalUsd += addStageCostOrFallback(
+      fallbackStats,
+      record.traderOutput.costUsd,
+      record.traderOutput.cacheStats,
+    );
+    if (record.judgeOutput) {
+      authoritativeTotalUsd += addStageCostOrFallback(
+        fallbackStats,
+        record.judgeOutput.costUsd,
+        record.judgeOutput.cacheStats,
+      );
+    }
   }
-  return priceCacheStatsAsClaudeSonnet45(total);
+  const fallback = priceCacheStatsAsClaudeSonnet45(fallbackStats);
+  return {
+    ...fallback,
+    totalUsd: authoritativeTotalUsd + fallback.totalUsd,
+  };
+}
+
+function addStageCostOrFallback(
+  target: CacheLayerStats,
+  costUsd: number | undefined,
+  cacheStats: CacheLayerStats,
+): number {
+  if (costUsd !== undefined) return costUsd;
+  addCacheStats(target, cacheStats);
+  return 0;
 }
 
 function addCacheStats(target: CacheLayerStats, source: CacheLayerStats): void {

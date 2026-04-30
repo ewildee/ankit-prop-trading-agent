@@ -9,7 +9,7 @@ import {
 } from '@ankit-prop/contracts';
 import type { Bar } from '@ankit-prop/market-data';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { generateObject, type LanguageModelUsage } from 'ai';
+import { generateObject, type LanguageModelUsage, type ProviderMetadata } from 'ai';
 import type { AnalystStage, AnalystStageInput } from '../pipeline/stages.ts';
 import { scoreConfluence } from './confluence-score.ts';
 import { ZERO } from './constants.ts';
@@ -29,11 +29,13 @@ const AnalystGenerationOutput = AnalystOutput.omit({
   regimeLabel: true,
   regimeNote: true,
   cacheStats: true,
+  costUsd: true,
 });
 
 export type AnalystGenerationRequest = {
   readonly model: string;
   readonly maxOutputTokens: number;
+  readonly reasoningMaxTokens?: number;
   readonly system: string;
   readonly prompt: string;
 };
@@ -41,6 +43,7 @@ export type AnalystGenerationRequest = {
 export type AnalystGenerationResult = {
   readonly object: unknown;
   readonly usage: LanguageModelUsage;
+  readonly providerMetadata?: ProviderMetadata;
 };
 
 export type AnalystGenerator = (
@@ -92,6 +95,9 @@ export function createVAnkitClassicAnalyst(
           confluence,
           calendarLookahead,
         }),
+        ...(input.persona.analyst.reasoningMaxTokens
+          ? { reasoningMaxTokens: input.persona.analyst.reasoningMaxTokens }
+          : {}),
       });
 
       const parsedGeneration = AnalystGenerationOutput.safeParse(generation.object);
@@ -108,6 +114,7 @@ export function createVAnkitClassicAnalyst(
         confluenceScore: confluence.score,
         regimeNote: confluence.regimeNote,
         cacheStats: cacheStatsFromUsage(generation.usage),
+        costUsd: openRouterCostUsdFromProviderMetadata(generation.providerMetadata),
       });
       if (!parsed.success) {
         throw new Error(`AnalystOutput validation failed: ${JSON.stringify(parsed.error.issues)}`);
@@ -144,13 +151,29 @@ export function createOpenRouterAnalystGenerator(
       system: request.system,
       prompt: request.prompt,
       maxOutputTokens: request.maxOutputTokens,
-      providerOptions: {
-        openrouter: {
-          usage: { include: true },
-        },
-      },
+      providerOptions: buildOpenRouterAnalystProviderOptions(request),
     });
-    return { object: result.object, usage: result.usage };
+    return {
+      object: result.object,
+      usage: result.usage,
+      ...(result.providerMetadata ? { providerMetadata: result.providerMetadata } : {}),
+    };
+  };
+}
+
+export function buildOpenRouterAnalystProviderOptions(request: AnalystGenerationRequest) {
+  return {
+    openrouter: {
+      usage: { include: true },
+      ...(request.reasoningMaxTokens
+        ? {
+            reasoning: {
+              max_tokens: request.reasoningMaxTokens,
+              exclude: true,
+            },
+          }
+        : {}),
+    },
   };
 }
 
@@ -196,4 +219,19 @@ function cacheStatsFromUsage(usage: LanguageModelUsage): CacheLayerStats {
     outputTokens: usage.outputTokens ?? ZERO,
     thinkingTokens: usage.outputTokenDetails?.reasoningTokens ?? usage.reasoningTokens ?? ZERO,
   };
+}
+
+export function openRouterCostUsdFromProviderMetadata(
+  providerMetadata: ProviderMetadata | undefined,
+): number | undefined {
+  const openrouter = providerMetadata?.openrouter;
+  if (!isRecord(openrouter)) return undefined;
+  const usage = openrouter.usage;
+  if (!isRecord(usage)) return undefined;
+  const cost = usage.cost;
+  return typeof cost === 'number' && Number.isFinite(cost) && cost >= ZERO ? cost : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
 }

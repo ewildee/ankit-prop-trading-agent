@@ -2,6 +2,69 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 14:15 Europe/Amsterdam — [ANKA-361](/ANKA/issues/ANKA-361) OpenRouter cost telemetry + replay flush — trader v0.6.0 / contracts v3.2.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for the [ANKA-341](/ANKA/issues/ANKA-341) cost-axis sibling.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 14:07 Europe/Amsterdam before editing Bun-runtime TypeScript.
+- Added optional per-stage `costUsd` to Analyst/Trader/Judge outputs, with the contract comment clarifying OpenRouter credits-USD semantics.
+- Preserved the existing cacheStats contract while extracting `providerMetadata.openrouter.usage.cost` from the OpenRouter Analyst call.
+- Updated Reflector cost folding to sum authoritative `costUsd` values and retain Claude Sonnet 4.5 token pricing only as the missing-cost fallback.
+- Changed the replay adapter to create `decisions.jsonl` up front and fsync after each emitted `DecisionRecord`.
+
+**Findings**
+
+- The existing replay adapter appended per decision, but only after bar collection; opening the file before collection gives a durable artifact even if later work aborts.
+- AI SDK provider metadata is typed as generic JSON, so the OpenRouter cost path needs runtime narrowing rather than direct property access.
+
+**Contradictions**
+
+- None in the blueprint. The issue-level cost assertion matched the OpenRouter provider README and the installed provider types.
+
+**Decisions**
+
+- Keep stage `costUsd` optional so deterministic Trader/Judge policies and older fixtures remain valid; the Reflector treats missing stage cost as the signal to use the existing Claude fallback.
+
+**Unexpected behaviour**
+
+- This worktree already contained uncommitted [ANKA-341](/ANKA/issues/ANKA-341) reasoning-cap changes, including `params.yaml`; they were preserved and not reverted.
+
+**Adaptations**
+
+- Folded the cost telemetry contract change on top of the existing uncommitted `AnalystRuntimeConfig.reasoningMaxTokens` widening instead of rewriting the in-flight worktree.
+
+**Open endings**
+
+- [ANKA-361](/ANKA/issues/ANKA-361) still needs commit/push and CodeReviewer/QA handoff.
+
+## 2026-04-30 14:01 Europe/Amsterdam — [ANKA-341](/ANKA/issues/ANKA-341) Analyst reasoning cap + cost abort — trader v0.5.6 / contracts v3.1.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped board-comment wake to continue the [ANKA-341](/ANKA/issues/ANKA-341) replay after [ANKA-357](/ANKA/issues/ANKA-357) closed.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 13:57 Europe/Amsterdam before editing Bun-runtime TypeScript.
+- Confirmed [ANKA-357](/ANKA/issues/ANKA-357) was present in the worktree (`5cfeea4`) and retried the canonical XAUUSD 7d replay.
+- Observed a new live failure: Kimi used the full completion budget as reasoning and returned no text.
+- Added optional `AnalystRuntimeConfig.reasoningMaxTokens`, set it in `v_ankit_classic` params, and passed it to OpenRouter as `reasoning.max_tokens` with reasoning excluded from the response body.
+- Bumped root `0.4.59` -> `0.4.60`, `@ankit-prop/trader` `0.5.5` -> `0.5.6`, and `@ankit-prop/contracts` `3.0.0` -> `3.1.0`.
+
+**Findings**
+
+- The reasoning cap lets the replay write the first `DecisionRecord`, proving the no-text failure mode is cleared.
+- The first emitted decision cost `$0.036231` under the Reflector pricing model. Projected across 2016 bars, the run would cost about `$73.04`, far above the `$2.50` abort buffer and `$1.70` v0 gate.
+
+**Decisions**
+
+- Stop the replay immediately under the issue's cost-abort rule instead of burning the full 7d run.
+- Treat the next blocker as a cost-axis design/implementation issue, not another structured-output schema issue.
+
+**Open endings**
+
+- [ANKA-341](/ANKA/issues/ANKA-341) still lacks a successful `RunAggregate`; attach/update the gate report and block on a cost-axis follow-up before retrying.
+
 ## 2026-04-30 13:14 Europe/Amsterdam — [ANKA-357](/ANKA/issues/ANKA-357) Analyst provider schema split — trader v0.5.5
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for the schema blocker before the [ANKA-341](/ANKA/issues/ANKA-341) replay retry.

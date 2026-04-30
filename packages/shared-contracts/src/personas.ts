@@ -25,6 +25,10 @@ export const CacheLayerStats = z.strictObject({
 });
 export type CacheLayerStats = z.infer<typeof CacheLayerStats>;
 
+// OpenRouter reports this as credits-USD after account discounts, not upstream
+// inference USD. Reflector cost gates intentionally consume this billed number.
+const StageCostUsd = z.number().nonnegative().optional();
+
 export const RiskBudgetRemaining = z.strictObject({
   dailyPct: z.number().nonnegative(),
   overallPct: z.number().nonnegative(),
@@ -51,12 +55,14 @@ export const AnalystOutput = z.strictObject({
   withholdMinutes: z.number().int().min(0).max(60).optional(),
   freshnessLag: z.number().int().nonnegative().optional(),
   cacheStats: CacheLayerStats,
+  costUsd: StageCostUsd,
 });
 export type AnalystOutput = z.infer<typeof AnalystOutput>;
 
 export const AnalystRuntimeConfig = z.strictObject({
   model: z.string().min(1),
   maxOutputTokens: z.number().int().positive(),
+  reasoningMaxTokens: z.number().int().positive().optional(),
   barLookback: z.number().int().positive(),
   calendarLookaheadLimit: z.number().int().nonnegative(),
   regime: z.strictObject({
@@ -84,6 +90,7 @@ const TraderBaseOutput = z.strictObject({
   rationale: z.string().max(200),
   expectedRR: z.number().positive().optional(),
   cacheStats: CacheLayerStats,
+  costUsd: StageCostUsd,
 });
 
 export const TraderHoldOutput = TraderBaseOutput.extend({
@@ -193,6 +200,7 @@ export const JudgeOutput = z.strictObject({
   reason: z.string().max(200),
   rejectedRules: z.array(RejectionRule).optional(),
   cacheStats: CacheLayerStats,
+  costUsd: StageCostUsd,
 });
 export type JudgeOutput = z.infer<typeof JudgeOutput>;
 
