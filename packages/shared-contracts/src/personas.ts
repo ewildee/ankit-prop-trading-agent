@@ -28,6 +28,7 @@ export type CacheLayerStats = z.infer<typeof CacheLayerStats>;
 // OpenRouter reports this as credits-USD after account discounts, not upstream
 // inference USD. Reflector cost gates intentionally consume this billed number.
 const StageCostUsd = z.number().nonnegative().optional();
+const AnalystReasoningSummaryMaxChars = 500;
 
 export const RiskBudgetRemaining = z.strictObject({
   dailyPct: z.number().nonnegative(),
@@ -50,7 +51,7 @@ export const AnalystOutput = z.strictObject({
   keyLevels: z.array(KeyLevel),
   regimeLabel: RegimeLabel,
   regimeNote: z.string().max(80),
-  reasoningSummary: z.string().max(200).optional(),
+  reasoningSummary: z.string().max(AnalystReasoningSummaryMaxChars).optional(),
   supportingEvidence: z.string().max(1200).optional(),
   withholdMinutes: z.number().int().min(0).max(60).optional(),
   freshnessLag: z.number().int().nonnegative().optional(),

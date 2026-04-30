@@ -17,6 +17,7 @@ import { classifyRegime } from './regime-classifier.ts';
 
 const ANALYST_GENERATION_MAX_ATTEMPTS = 3;
 const ANALYST_GENERATION_RETRY_MAX_OUTPUT_TOKENS = 4096;
+const ANALYST_REASONING_SUMMARY_PROMPT_TARGET_CHARS = 200;
 export const DEFAULT_ANALYST_REQUEST_TIMEOUT_MS = 90_000;
 const ANALYST_SAFE_FALLBACK_THESIS =
   'ANALYST_SAFE_FALLBACK: structured generation failed after retry escalation; neutral HOLD emitted.';
@@ -422,8 +423,7 @@ function buildAnalystPrompt({
     confluence,
     bars: recentBars,
     calendarLookahead,
-    instruction:
-      'Return only the model-generated Analyst fields as JSON. Use the AnalystOutput field types exactly: keyLevels is an array of objects with name, price, and timeframe; supportingEvidence is one string. Do not include regimeLabel, confidence, confluenceScore, regimeNote, or cacheStats; runtime computes and injects those deterministic fields.',
+    instruction: `Return only the model-generated Analyst fields as JSON. Use the AnalystOutput field types exactly: keyLevels is an array of objects with name, price, and timeframe; reasoningSummary is a concise string of <=${ANALYST_REASONING_SUMMARY_PROMPT_TARGET_CHARS} characters; supportingEvidence is one string. Do not include regimeLabel, confidence, confluenceScore, regimeNote, or cacheStats; runtime computes and injects those deterministic fields.`,
   });
 }
 

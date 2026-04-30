@@ -57,6 +57,8 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(requests.at(-1)?.system).toContain('v_ankit_classic');
     expect(requests.at(-1)?.prompt).toContain('calendarLookahead');
     expect(requests.at(-1)?.prompt).toContain('JSON');
+    expect(requests.at(-1)?.prompt).toContain('reasoningSummary');
+    expect(requests.at(-1)?.prompt).toContain('200');
     expect(requests.at(-1)?.prompt).toContain('Do not include regimeLabel');
     expect(output?.regimeLabel).toBe('A_session_break');
     expect(output?.confidence).toBe(output?.confluenceScore ? output.confluenceScore / 100 : 0);
@@ -134,6 +136,33 @@ describe('createVAnkitClassicAnalyst', () => {
 
     expect(requests).toHaveLength(1);
     expect(output.regimeLabel).not.toBe('outside_active_window');
+  });
+
+  test('accepts generated reasoningSummary text above the old 200-char replay crash boundary', async () => {
+    const params = await loadPersonaConfig();
+    const reasoningSummary = 'r'.repeat(250);
+    const analyst = createVAnkitClassicAnalyst({
+      generator: async () => ({
+        object: {
+          ...draftOutput(),
+          reasoningSummary,
+        },
+        usage: usageFixture(),
+      }),
+    });
+    const bar = barsFromCloses([2300]).at(-1)!;
+
+    const output = await analyst.analyze({
+      bar,
+      persona: params,
+      context: {
+        runId: 'analyst-long-reasoning-summary-spec',
+        paramsHash: 'params-hash',
+        decidedAt: new Date(bar.tsEnd).toISOString(),
+      },
+    });
+
+    expect(output.reasoningSummary).toBe(reasoningSummary);
   });
 
   test('extracts OpenRouter credits-USD usage cost from provider metadata', () => {

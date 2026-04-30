@@ -2,6 +2,43 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 19:51 Europe/Amsterdam — [ANKA-391](/ANKA/issues/ANKA-391) Analyst reasoningSummary replay guard — trader v0.9.4 / contracts v3.4.1
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-391](/ANKA/issues/ANKA-391).
+
+**What was done**
+
+- Fetched/read `https://bun.com/llms.txt` before editing Bun-runtime TypeScript.
+- Widened `AnalystOutput.reasoningSummary` from 200 to 500 chars in the shared persona contract.
+- Kept the runtime-only Analyst wrapper instruction asking the model to keep `reasoningSummary` concise at <=200 chars; persona prompt markdown and params stayed untouched.
+- Added shared-contract and Analyst integration regressions proving 250+ char summaries no longer throw and the prompt guard remains present.
+- Bumped `@ankit-prop/contracts` `3.4.0` -> `3.4.1` and `@ankit-prop/trader` `0.9.3` -> `0.9.4`; appended the root `CHANGELOG.md` entry.
+
+**Findings**
+
+- The issue brief still names `services/trader/CHANGELOG.md`, but this branch has no service-local changelog. Existing trader package entries live in root `CHANGELOG.md`, so the new entry followed that convention.
+- Codebase retrieval returned HTTP 429 once; targeted reads of the issue, BLUEPRINT, Analyst source/spec, and contracts source/spec supplied the context.
+
+**Decisions**
+
+- Used the issue-recommended A+B shape: widen the contract to avoid sporadic replay crashes, and keep a prompt-side brevity hint so generated summaries usually stay under the old line length.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 55 warnings. Found 37 infos.`; existing repo-wide diagnostics remain).
+- `bun run --cwd services/trader lint` -> exit 0 (`Found 28 warnings.`; existing non-null assertion warnings remain).
+- `bun test packages/shared-contracts/src/personas.spec.ts services/trader/src/analyst/index.spec.ts` -> 38 pass / 0 fail / 122 expects.
+- `bun run --cwd services/trader test` -> 68 pass / 0 fail / 266 expects.
+- `bun run --cwd services/trader typecheck` -> exit 0.
+- Partial live 7d replay smoke `anka391-codex-20260430T174900Z` intentionally stopped after 154 decisions through `2026-04-21T12:50:00.000Z`; 11 active Analyst bars, submitted OPEN at `12:05`, submitted CLOSE at `12:30`, 152 HOLD decisions, 0 rail rejects, max observed `reasoningSummary` length 132 chars, no `Too big` schema throw past the previously failing `12:00` active-window bar.
+- `git diff --check` -> exit 0.
+- Debug scan over changed source/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 with Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
+**Open endings**
+
+- Full end-to-end [ANKA-341](/ANKA/issues/ANKA-341) 7d replay remains for FoundingEngineer after CodeReviewer and QAEngineer sign off, per the issue reviewer chain.
+
 ## 2026-04-30 18:05 Europe/Amsterdam — [ANKA-389](/ANKA/issues/ANKA-389) Analyst JSON keyword for OpenAI/Azure validator — trader v0.9.3
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_status_changed` wake for [ANKA-389](/ANKA/issues/ANKA-389).

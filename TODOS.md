@@ -48,6 +48,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 - [x] **T008.e.3** Accumulate Analyst retry usage and OpenRouter cost telemetry across all billed attempts — _[ANKA-368](/ANKA/issues/ANKA-368), unblocks [ANKA-365](/ANKA/issues/ANKA-365) re-review_.
 - [x] **T008.e.4** Skip Analyst LLM calls on deterministic `outside_active_window` bars and preserve zero-cost Reflector rollups — _[ANKA-371](/ANKA/issues/ANKA-371), unblocks [ANKA-341](/ANKA/issues/ANKA-341) replay retry_.
 - [x] **T008.e.5** Add per-call Analyst `generateObject` timeout, retry hung requests, and emit zero-cost timeout fallbacks — _[ANKA-374](/ANKA/issues/ANKA-374), unblocks [ANKA-341](/ANKA/issues/ANKA-341) replay retry_.
+- [x] **T008.e.6** Widen Analyst `reasoningSummary` contract and prompt guard to prevent 7d replay schema crashes — _[ANKA-391](/ANKA/issues/ANKA-391), unblocks [ANKA-341](/ANKA/issues/ANKA-341) replay retry_.
 - [x] **T008.f** Implement deterministic `v_ankit_classic` Trader policy + Judge v0 allow-list gates, params-sourced thresholds, and runner/replay wiring — _[ANKA-339](/ANKA/issues/ANKA-339), advances [ANKA-318](/ANKA/issues/ANKA-318)_.
 
 ## Phase 5 — `news`

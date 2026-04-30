@@ -145,6 +145,18 @@ describe('persona pipeline contracts', () => {
     expect(AnalystOutput.safeParse({ ...analystOutput, confluenceScore: 101 }).success).toBe(false);
   });
 
+  test('AnalystOutput accepts replay-safe reasoning summaries above the old 200-char cap', () => {
+    const reasoningSummary = 'r'.repeat(500);
+
+    expect(AnalystOutput.parse({ ...analystOutput, reasoningSummary }).reasoningSummary).toBe(
+      reasoningSummary,
+    );
+    expect(
+      AnalystOutput.safeParse({ ...analystOutput, reasoningSummary: `${reasoningSummary}x` })
+        .success,
+    ).toBe(false);
+  });
+
   test('stage outputs accept optional billed OpenRouter credits-USD cost', () => {
     expect(AnalystOutput.parse({ ...analystOutput, costUsd: 0.0123 }).costUsd).toBe(0.0123);
     expect(TraderOutput.parse({ ...holdOutput, costUsd: 0 }).costUsd).toBe(0);
