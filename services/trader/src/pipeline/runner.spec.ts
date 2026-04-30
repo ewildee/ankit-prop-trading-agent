@@ -59,6 +59,29 @@ describe('runDecision', () => {
     }
   });
 
+  test('HOLD with explicit risk context evaluates judge and records judge rejection telemetry', async () => {
+    const record = await runDecision(BAR, await loadPersonaConfig(), {
+      ...depsWithJudgeInput(),
+      trader: traderWith({
+        action: 'HOLD',
+        rationale: 'stub hold',
+        reason: 'stub_hold',
+        cacheStats: ZERO_CACHE_STATS,
+      }),
+      judge: createVAnkitClassicJudge(),
+    });
+
+    expect(() => DecisionRecord.parse(record)).not.toThrow();
+    expect(record.traderOutput.action).toBe('HOLD');
+    expect(record.judgeOutput?.verdict).toBe('REJECT');
+    expect(record.judgeOutput?.reason).toBe('trader_hold');
+    expect(record.judgeOutput?.rejectedRules).toContain('confluence_too_weak');
+    expect(record.gatewayDecision?.status).toBe('not_submitted');
+    if (record.gatewayDecision?.status === 'not_submitted') {
+      expect(record.gatewayDecision.reason).toBe('judge_reject');
+    }
+  });
+
   test('OPEN with judge reject produces not_submitted judge telemetry', async () => {
     const record = await runDecision(BAR, await loadPersonaConfig(), {
       ...depsWithJudgeInput(),

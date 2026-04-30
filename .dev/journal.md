@@ -2,6 +2,31 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 12:00 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) QA runner HOLD judge-reject coverage — v0.4.58 / trader v0.5.1
+
+**Agent:** QAEngineer (codex_local). **Run:** scoped `issue_commented` wake after CodexExecutor implementation and FE stale-blocker triage.
+
+**What was done**
+
+- Re-read BLUEPRINT §0.2, §9, §13, §13.5, and §22.
+- Fetched and read `https://bun.com/llms.txt` at 12:00 Europe/Amsterdam before editing Bun test code.
+- Added runner coverage for explicit risk-context `HOLD` through the real `v_ankit_classic` Judge, asserting `trader_hold`, `confluence_too_weak`, and replay gateway `not_submitted/judge_reject`.
+- Bumped root `ankit-prop-umbrella` `0.4.57` -> `0.4.58` and `@ankit-prop/trader` `0.5.0` -> `0.5.1`.
+
+**Findings**
+
+- Existing policy specs covered the Judge's direct `HOLD` rejection and the runner's unjudged no-context `HOLD`, but not the FE-requested explicit-context runner/gateway telemetry path.
+
+**Verification**
+
+- Mutation check: temporarily restored the old replay-gateway ordering that treats `HOLD` before judge rejection; `bun test services/trader/src/pipeline/runner.spec.ts` failed on the new regression (`Expected: "judge_reject"`, `Received: "hold"`), then passed after restoration.
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; formatted one long spec assertion).
+- `bun test services/trader/src/trader/policy.spec.ts services/trader/src/judge/policy.spec.ts services/trader/src/pipeline/runner.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 25 pass / 0 fail / 650 expects.
+- `bun test` -> 624 pass / 0 fail / 11631 expects.
+- `bun run typecheck` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
+- `git diff --check` -> exit 0.
+
 ## 2026-04-30 11:44 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) Trader policy v0 + Judge v0 — v0.4.57 / trader v0.5.0
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_blockers_resolved` wake after [ANKA-335](/ANKA/issues/ANKA-335) blocker cleared.

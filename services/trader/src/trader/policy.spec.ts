@@ -104,7 +104,8 @@ describe('createVAnkitClassicTrader', () => {
     });
 
     expect(output.action).not.toBe('AMEND');
-    if (output.action !== 'AMEND') expect(persona.v0RuntimeActionAllowList).toContain(output.action);
+    if (output.action !== 'AMEND')
+      expect(persona.v0RuntimeActionAllowList).toContain(output.action);
   });
 });
 

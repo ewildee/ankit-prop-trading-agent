@@ -2,6 +2,31 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.58 / @ankit-prop/trader@0.5.1 — 2026-04-30 12:00 Europe/Amsterdam — Runner HOLD judge-reject QA coverage
+
+**Initiated by:** QAEngineer, covering [ANKA-339](/ANKA/issues/ANKA-339) before CodeReviewer handoff.
+
+**Why:** The v0 Trader/Judge handoff explicitly changed runner semantics for `HOLD` when risk context is present; QA needed a regression that proves those holds are judged and surfaced as `not_submitted/judge_reject` telemetry instead of the older unjudged `hold` path.
+
+**Added** — `test(svc:trader/instance-pipeline)`
+
+- `services/trader/src/pipeline/runner.spec.ts` — covers explicit risk-context `HOLD` through the real `v_ankit_classic` Judge, asserting `trader_hold`, `confluence_too_weak`, and replay gateway `judge_reject` telemetry.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.57` -> `0.4.58`.
+- `@ankit-prop/trader` `0.5.0` -> `0.5.1`.
+
+**Verification**
+
+- Mutation check: temporarily restored the old replay-gateway ordering that treats `HOLD` before judge rejection; `bun test services/trader/src/pipeline/runner.spec.ts` failed on the new regression (`Expected: "judge_reject"`, `Received: "hold"`), then passed after restoration.
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; formatted one long spec assertion).
+- `bun test services/trader/src/trader/policy.spec.ts services/trader/src/judge/policy.spec.ts services/trader/src/pipeline/runner.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 25 pass / 0 fail / 650 expects.
+- `bun test` -> 624 pass / 0 fail / 11631 expects.
+- `bun run typecheck` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
+- `git diff --check` -> exit 0.
+
 ## 0.4.57 / @ankit-prop/trader@0.5.0 — 2026-04-30 11:44 Europe/Amsterdam — Trader policy v0 + Judge v0
 
 **Initiated by:** CodexExecutor, implementing [ANKA-339](/ANKA/issues/ANKA-339) under the [ANKA-318](/ANKA/issues/ANKA-318) trader vertical-slice umbrella.
