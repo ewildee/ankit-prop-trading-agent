@@ -2,6 +2,37 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 16:48 Europe/Amsterdam — [ANKA-341](/ANKA/issues/ANKA-341) Analyst model swap to openai/gpt-5.4-mini per board directive
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped issue-comment wake on board directive `b4afb497`.
+
+**What was done**
+
+- Killed the in-flight `runId=anka341-fe-20260430T143614Z` (148 bars flushed; pid 92550 had stalled on bar 148 / Prague active-window first-attempt timeout-retry sequence per [ANKA-374](/ANKA/issues/ANKA-374)).
+- Edited `services/trader/strategy/v_ankit_classic/params.yaml:14` — `analyst.model: moonshotai/kimi-k2.6` → `openai/gpt-5.4-mini`. No other persona field touched.
+- Bumped `services/trader` `0.9.0` → `0.9.1` (config-only). Root umbrella version unchanged.
+- Appended CHANGELOG entry under the new trader version.
+
+**Findings**
+
+- The Kimi-hung path was not hypothetical: bar 144 (UTC 12:00, regime `unknown`) emitted with `costUsd: 0` via the [ANKA-374](/ANKA/issues/ANKA-374) timeout fallback. Run was alive but each timeout chain costs ~270s. The board (comment `b4afb497`) cut the cord and directed the model swap to `openai/gpt-5.4-mini`.
+
+**Contradictions**
+
+- ANKA-341 §"Out of scope" forbids tuning `params.yaml.v_ankit_classic` to make the gate pass. This commit edits that file. Resolution: the change is a board-directed model swap, not an FE-side threshold/weight tune. BLUEPRINT §F protects against unilateral FE drift, not against board-issued infrastructure swaps. Logged here for transparency.
+
+**Decisions**
+
+- No new ADR. The model-swap commit is in-scope under the board's explicit directive.
+
+**Unexpected behaviour**
+
+- None during the swap itself. The next replay rerun will reveal whether `openai/gpt-5.4-mini` is (a) routable on OpenRouter and (b) "smart enough" for the v_ankit_classic Analyst prompt.
+
+**Next**
+
+- Commit + push, then rerun the 7d XAUUSD replay against the new tip. Capture cost telemetry and the qualitative read for the gate-report doc.
+
 ## 2026-04-30 16:34 Europe/Amsterdam — [ANKA-374](/ANKA/issues/ANKA-374) PR #39 FF-merge into ANKA-318
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped issue-mention wake post QA PASS.

@@ -2,6 +2,28 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/trader@0.9.1 — 2026-04-30 16:48 Europe/Amsterdam — Swap analyst model to openai/gpt-5.4-mini per board directive
+
+**Initiated by:** FoundingEngineer, implementing the board's [ANKA-341](/ANKA/issues/ANKA-341) directive (comment `b4afb497-14bf-4921-bff3-061667359e3b`) after Kimi K2.6 hung on the first active-window Analyst call of `runId=anka341-fe-20260430T143614Z`.
+
+**Why:** Kimi K2.6 produced repeated socket-level hangs on `generateObject`. Even with [ANKA-374](/ANKA/issues/ANKA-374)'s 90s timeout + retry, every hang costs ~270s of wall-clock before falling back to a neutral HOLD. The board directed the swap to `openai/gpt-5.4-mini` to test whether (a) latency is acceptable for a 7d replay and (b) the model is "smart enough" to produce persona-shaped Analyst output. BLUEPRINT §F is honoured: this is a board-issued model swap, not a unilateral FE persona tune; thresholds, weights, and windows in `params.yaml` are unchanged.
+
+**Changed** — `chore(svc:trader/strategy)`
+
+- `services/trader/strategy/v_ankit_classic/params.yaml` — `analyst.model: moonshotai/kimi-k2.6` → `openai/gpt-5.4-mini`. No other field touched.
+
+**Bumped**
+
+- `@ankit-prop/trader` `0.9.0` -> `0.9.1` (config-only).
+
+**Verification**
+
+- Smoke gate deferred to the live replay rerun captured in `runId=anka341-fe-…` against this commit. No code paths changed; the existing trader test suite (65 pass / 0 fail at `dea7a43`) covers the model-agnostic Analyst plumbing.
+
+**Notes**
+
+- If `openai/gpt-5.4-mini` is not yet routable on OpenRouter, the first live call will surface a 404 and the run will fall back via [ANKA-374](/ANKA/issues/ANKA-374). Surface to the board if it lands.
+
 ## 0.4.65 / @ankit-prop/trader@0.9.0 / @ankit-prop/contracts@3.4.0 — 2026-04-30 16:15 Europe/Amsterdam — Analyst request timeout
 
 **Initiated by:** CodexExecutor, implementing [ANKA-374](/ANKA/issues/ANKA-374) after the [ANKA-341](/ANKA/issues/ANKA-341) replay hung on a live Kimi K2.6 Analyst call.
