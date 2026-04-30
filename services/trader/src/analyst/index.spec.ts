@@ -125,7 +125,7 @@ describe('createVAnkitClassicAnalyst', () => {
         if (requests.length < 3) {
           throw noObjectGeneratedLengthError({
             usage: usageFixture(),
-            providerMetadata: openRouterUsageCostFixture(0.01),
+            providerMetadata: openRouterUsageCostFixture(0.005),
           });
         }
         return {
@@ -156,7 +156,8 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(requests[2]?.maxOutputTokens).toBe(4096);
     expect(output.bias).toBe('long');
     expect(output.fallbackReason).toBeUndefined();
-    expect(output.costUsd).toBe(0.012345);
+    expect(output.cacheStats).toEqual(expectedCacheStats(3));
+    expect(output.costUsd).toBeCloseTo(0.005 + 0.005 + 0.012345);
   });
 
   test('emits neutral fallback with failed-call telemetry after repeated NoObjectGenerated length failures', async () => {
@@ -186,14 +187,72 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(output.confluenceScore).toBe(0);
     expect(output.thesis).toContain('ANALYST_SAFE_FALLBACK');
     expect(output.fallbackReason).toBe('no_object_generated_length');
-    expect(output.cacheStats).toEqual({
-      inputCachedTokens: 10,
-      inputFreshTokens: 80,
-      inputCacheWriteTokens: 5,
-      outputTokens: 40,
-      thinkingTokens: 7,
+    expect(output.cacheStats).toEqual(expectedCacheStats(3));
+    expect(output.costUsd).toBeCloseTo(0.0456 * 3);
+  });
+
+  test('keeps cost undefined on unpriced retry failure before priced success', async () => {
+    const params = await loadPersonaConfig();
+    const requests: AnalystGenerationRequest[] = [];
+    const analyst = createVAnkitClassicAnalyst({
+      generator: async (request) => {
+        requests.push(request);
+        if (requests.length === 1) {
+          throw noObjectGeneratedLengthError({
+            usage: usageFixture(),
+            providerMetadata: undefined,
+          });
+        }
+        return {
+          object: draftOutput(),
+          usage: usageFixture(),
+          providerMetadata: openRouterUsageCostFixture(0.01),
+        };
+      },
     });
-    expect(output.costUsd).toBe(0.0456);
+    const bar = barsFromCloses([2300]).at(-1)!;
+
+    const output = await analyst.analyze({
+      bar,
+      persona: params,
+      context: {
+        runId: 'analyst-partial-cost-spec',
+        paramsHash: 'params-hash',
+        decidedAt: new Date(bar.tsEnd).toISOString(),
+      },
+    });
+
+    expect(output.bias).toBe('long');
+    expect(output.cacheStats).toEqual(expectedCacheStats(2));
+    expect(output.costUsd).toBe(0.01);
+  });
+
+  test('keeps cost undefined when all retry failures omit provider pricing', async () => {
+    const params = await loadPersonaConfig();
+    const analyst = createVAnkitClassicAnalyst({
+      generator: async () => {
+        throw noObjectGeneratedLengthError({
+          usage: usageFixture(),
+          providerMetadata: undefined,
+        });
+      },
+    });
+    const bar = barsFromCloses([2300]).at(-1)!;
+
+    const output = await analyst.analyze({
+      bar,
+      persona: params,
+      context: {
+        runId: 'analyst-unpriced-fallback-spec',
+        paramsHash: 'params-hash',
+        decidedAt: new Date(bar.tsEnd).toISOString(),
+      },
+    });
+
+    expect(output.bias).toBe('neutral');
+    expect(output.fallbackReason).toBe('no_object_generated_length');
+    expect(output.cacheStats).toEqual(expectedCacheStats(3));
+    expect(output.costUsd).toBeUndefined();
   });
 
   test('malformed generator output fails with structured validation detail before overlay', async () => {
@@ -311,6 +370,16 @@ function usageFixture(): LanguageModelUsage {
   };
 }
 
+function expectedCacheStats(multiplier: number) {
+  return {
+    inputCachedTokens: 10 * multiplier,
+    inputFreshTokens: 80 * multiplier,
+    inputCacheWriteTokens: 5 * multiplier,
+    outputTokens: 40 * multiplier,
+    thinkingTokens: 7 * multiplier,
+  };
+}
+
 function openRouterUsageCostFixture(cost: number): ProviderMetadata {
   return {
     openrouter: {
@@ -326,13 +395,13 @@ function noObjectGeneratedLengthError({
   providerMetadata,
 }: {
   readonly usage: LanguageModelUsage;
-  readonly providerMetadata: ProviderMetadata;
+  readonly providerMetadata: ProviderMetadata | undefined;
 }): Error {
   return Object.assign(new Error('No object generated'), {
     name: 'AI_NoObjectGeneratedError',
     finishReason: 'length',
     usage,
-    providerMetadata,
+    ...(providerMetadata ? { providerMetadata } : {}),
   });
 }
 

@@ -2,6 +2,33 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.63 / @ankit-prop/trader@0.7.1 — 2026-04-30 14:59 Europe/Amsterdam — Analyst retry telemetry accumulation
+
+**Initiated by:** CodexExecutor, addressing CodeReviewer CHANGES_REQUESTED on [ANKA-365](/ANKA/issues/ANKA-365) via child [ANKA-368](/ANKA/issues/ANKA-368).
+
+**Why:** OpenRouter bills retryable failed completions, but the Analyst retry path reported only the final success or final failure telemetry. That under-reported cache usage and cost against the phase cost ceiling.
+
+**Changed** — `fix(svc:trader/analyst)`
+
+- `services/trader/src/analyst/index.ts` — accumulates derived `cacheStats` bucket-by-bucket for every billed retry attempt plus the final success or fallback.
+- `services/trader/src/analyst/index.ts` — sums OpenRouter priced attempts into `costUsd`, treating missing per-attempt cost as zero only after at least one priced attempt exists; all-unpriced attempts still report `undefined`.
+- `services/trader/src/analyst/index.spec.ts` — extends retry-success and persistent-fallback coverage, then adds partial-pricing and all-unpriced fallback regressions.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.62` -> `0.4.63`.
+- `@ankit-prop/trader` `0.7.0` -> `0.7.1`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 42 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied on the final run).
+- `bun run lint` -> exit 0 (`Found 42 warnings. Found 37 infos.` — same pre-existing repo-wide diagnostics).
+- `bun test services/trader/src/analyst/index.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts services/trader/src/reflector/aggregate.spec.ts services/trader/src/reflector/report.spec.ts packages/shared-contracts/src/personas.spec.ts` -> 37 pass / 0 fail / 171 expects.
+- `bun run typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+- Debug scan over changed Analyst source/spec/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 with the Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
 ## 0.4.62 / @ankit-prop/trader@0.7.0 / @ankit-prop/contracts@3.3.0 — 2026-04-30 14:43 Europe/Amsterdam — Analyst retry and safe fallback
 
 **Initiated by:** CodexExecutor, implementing [ANKA-365](/ANKA/issues/ANKA-365) after the [ANKA-341](/ANKA/issues/ANKA-341) replay crashed on bar #1 when Kimi K2.6 spent the full structured-output budget on reasoning and returned no object.

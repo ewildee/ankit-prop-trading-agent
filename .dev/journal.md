@@ -2,6 +2,44 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 14:59 Europe/Amsterdam — [ANKA-368](/ANKA/issues/ANKA-368) Analyst retry telemetry accumulation — trader v0.7.1
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` child fix after CodeReviewer CHANGES_REQUESTED on [ANKA-365](/ANKA/issues/ANKA-365).
+
+**What was done**
+
+- Fetched/read `https://bun.com/llms.txt` before editing Bun-runtime TypeScript.
+- Confirmed [ANKA-368](/ANKA/issues/ANKA-368) targets the existing [ANKA-318](/ANKA/issues/ANKA-318) execution worktree because `origin/main` does not yet contain the retry implementation.
+- Changed `generateWithRetry` to accumulate derived `cacheStats` and OpenRouter `costUsd` across every retryable failed attempt plus the final success or fallback.
+- Extended Analyst specs for retry-success accumulation, all-failure fallback accumulation, partially priced retries, and all-unpriced fallback.
+- Bumped root `0.4.62` -> `0.4.63` and `@ankit-prop/trader` `0.7.0` -> `0.7.1`.
+
+**Findings**
+
+- The prior parent implementation intentionally preserved last failure context, but `analyze` consumed only one attempt's telemetry for the emitted `AnalystOutput`.
+
+**Contradictions**
+
+- None in the blueprint; the change aligns [ANKA-365](/ANKA/issues/ANKA-365)'s cost-telemetry acceptance with the implementation.
+
+**Decisions**
+
+- Sum telemetry after `cacheStatsFromUsage` rather than raw AI SDK usage so aggregate-only and detailed attempts compose correctly.
+- Keep `costUsd` optional: missing per-attempt prices count as zero only when at least one attempt exposes a cost.
+
+**Unexpected behaviour**
+
+- The scoped issue did not expose an execution workspace, but the parent did; the initial fresh [ANKA-368](/ANKA/issues/ANKA-368) worktree from `origin/main` was removed unused.
+- `bun run lint:fix` and `bun run lint` still report pre-existing repo-wide warnings outside this issue; both exit 0.
+
+**Adaptations**
+
+- Continued on the parent [ANKA-318](/ANKA/issues/ANKA-318) branch to patch the unmerged retry diff under review.
+
+**Open endings**
+
+- [ANKA-368](/ANKA/issues/ANKA-368) needs commit/push, then CodeReviewer and QAEngineer handoff.
+
 ## 2026-04-30 14:43 Europe/Amsterdam — [ANKA-365](/ANKA/issues/ANKA-365) Analyst retry + safe fallback — trader v0.7.0 / contracts v3.3.0
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for the [ANKA-341](/ANKA/issues/ANKA-341) first-bar no-object crash.

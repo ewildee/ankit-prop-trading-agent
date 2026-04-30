@@ -111,7 +111,7 @@ export function createVAnkitClassicAnalyst(
       if (!generation.success) {
         return fallbackAnalystOutput({
           regimeLabel,
-          failedGeneration: generation.failure,
+          telemetry: generation.telemetry,
         });
       }
 
@@ -128,8 +128,8 @@ export function createVAnkitClassicAnalyst(
         confidence: confluence.confidence,
         confluenceScore: confluence.score,
         regimeNote: confluence.regimeNote,
-        cacheStats: cacheStatsFromUsage(generation.result.usage),
-        costUsd: openRouterCostUsdFromProviderMetadata(generation.result.providerMetadata),
+        cacheStats: generation.telemetry.cacheStats,
+        costUsd: generation.telemetry.costUsd,
       });
       if (!parsed.success) {
         throw new Error(`AnalystOutput validation failed: ${JSON.stringify(parsed.error.issues)}`);
@@ -207,11 +207,13 @@ export function buildOpenRouterAnalystProviderOptions(request: AnalystGeneration
 type AnalystGenerationSuccess = {
   readonly success: true;
   readonly result: AnalystGenerationResult;
+  readonly telemetry: AnalystGenerationTelemetry;
 };
 
 type AnalystGenerationFailure = {
   readonly success: false;
   readonly failure: RetryableAnalystGenerationFailure;
+  readonly telemetry: AnalystGenerationTelemetry;
 };
 
 type RetryableAnalystGenerationFailure = {
@@ -219,24 +221,37 @@ type RetryableAnalystGenerationFailure = {
   readonly providerMetadata?: ProviderMetadata;
 };
 
+type AnalystGenerationTelemetry = {
+  readonly cacheStats: CacheLayerStats;
+  readonly costUsd?: number;
+};
+
 async function generateWithRetry(
   generator: AnalystGenerator,
   baseRequest: AnalystGenerationRequest,
 ): Promise<AnalystGenerationSuccess | AnalystGenerationFailure> {
   let lastRetryableFailure: RetryableAnalystGenerationFailure | null = null;
+  let telemetry = zeroGenerationTelemetry();
 
   for (const request of analystGenerationAttempts(baseRequest)) {
     try {
-      return { success: true, result: await generator(request) };
+      const result = await generator(request);
+      telemetry = addGenerationTelemetry(telemetry, telemetryFromGenerationResult(result));
+      return { success: true, result, telemetry };
     } catch (error) {
       if (!isRetryableNoObjectLengthFailure(error)) throw error;
       lastRetryableFailure = retryableAnalystGenerationFailureFromError(error);
+      telemetry = addGenerationTelemetry(
+        telemetry,
+        telemetryFromRetryableFailure(lastRetryableFailure),
+      );
     }
   }
 
   return {
     success: false,
     failure: lastRetryableFailure ?? {},
+    telemetry,
   };
 }
 
@@ -265,10 +280,10 @@ function analystGenerationAttempts(
 
 function fallbackAnalystOutput({
   regimeLabel,
-  failedGeneration,
+  telemetry,
 }: {
   readonly regimeLabel: AnalystOutputType['regimeLabel'];
-  readonly failedGeneration: RetryableAnalystGenerationFailure;
+  readonly telemetry: AnalystGenerationTelemetry;
 }): AnalystOutputType {
   const parsed = AnalystOutput.parse({
     thesis: ANALYST_SAFE_FALLBACK_THESIS,
@@ -279,10 +294,8 @@ function fallbackAnalystOutput({
     regimeLabel,
     regimeNote: 'analyst safe fallback',
     fallbackReason: 'no_object_generated_length',
-    cacheStats: failedGeneration.usage
-      ? cacheStatsFromUsage(failedGeneration.usage)
-      : zeroCacheStats(),
-    costUsd: openRouterCostUsdFromProviderMetadata(failedGeneration.providerMetadata),
+    cacheStats: telemetry.cacheStats,
+    costUsd: telemetry.costUsd,
   });
   return parsed;
 }
@@ -358,6 +371,56 @@ function zeroCacheStats(): CacheLayerStats {
     inputCacheWriteTokens: ZERO,
     outputTokens: ZERO,
     thinkingTokens: ZERO,
+  };
+}
+
+function zeroGenerationTelemetry(): AnalystGenerationTelemetry {
+  return {
+    cacheStats: zeroCacheStats(),
+  };
+}
+
+function telemetryFromGenerationResult(
+  result: AnalystGenerationResult,
+): AnalystGenerationTelemetry {
+  const costUsd = openRouterCostUsdFromProviderMetadata(result.providerMetadata);
+  return {
+    cacheStats: cacheStatsFromUsage(result.usage),
+    ...(costUsd === undefined ? {} : { costUsd }),
+  };
+}
+
+function telemetryFromRetryableFailure(
+  failure: RetryableAnalystGenerationFailure,
+): AnalystGenerationTelemetry {
+  const costUsd = openRouterCostUsdFromProviderMetadata(failure.providerMetadata);
+  return {
+    cacheStats: failure.usage ? cacheStatsFromUsage(failure.usage) : zeroCacheStats(),
+    ...(costUsd === undefined ? {} : { costUsd }),
+  };
+}
+
+function addGenerationTelemetry(
+  left: AnalystGenerationTelemetry,
+  right: AnalystGenerationTelemetry,
+): AnalystGenerationTelemetry {
+  const costUsd =
+    left.costUsd === undefined && right.costUsd === undefined
+      ? undefined
+      : (left.costUsd ?? ZERO) + (right.costUsd ?? ZERO);
+  return {
+    cacheStats: addCacheStats(left.cacheStats, right.cacheStats),
+    ...(costUsd === undefined ? {} : { costUsd }),
+  };
+}
+
+function addCacheStats(left: CacheLayerStats, right: CacheLayerStats): CacheLayerStats {
+  return {
+    inputCachedTokens: left.inputCachedTokens + right.inputCachedTokens,
+    inputFreshTokens: left.inputFreshTokens + right.inputFreshTokens,
+    inputCacheWriteTokens: left.inputCacheWriteTokens + right.inputCacheWriteTokens,
+    outputTokens: left.outputTokens + right.outputTokens,
+    thinkingTokens: left.thinkingTokens + right.thinkingTokens,
   };
 }
 
