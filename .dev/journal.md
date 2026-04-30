@@ -2,6 +2,39 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 05:20 Europe/Amsterdam — [ANKA-302](/ANKA/issues/ANKA-302) ADR-0009 apply pass — merge protocol switches to local fast-forward
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_comment_mentioned` wake on [ANKA-302](/ANKA/issues/ANKA-302) — CEO approval comment `3a4cb648` on the ADR-0009 draft.
+
+**What was done**
+
+- Confirmed the [ANKA-299](/ANKA/issues/ANKA-299) audit findings against the worktree HEAD (`f0c9c7d`): four commits fail the AGENTS.md §2 / ADR-0007 post-merge audit. Three are pre-[ANKA-270](/ANKA/issues/ANKA-270) UI "Create a merge commit" merges (`79ae5aa5` PR #11, `6972afd6` PR #12, `d99d53ec` PR #16) — discipline gap, recurrence already hard-blocked by `allow_merge_commit=false`. One is a post-protocol GitHub-side rebase-merge (`e51aced4` PR #22) — single parent, canonical Paperclip footer present, but committer rewritten to `GitHub <noreply@github.com>`. Structural gap in ADR-0007's recommended `gh pr merge --rebase --match-head-commit <sha>` command, because GitHub-side rebase always rewrites committer regardless of the local commit-msg footer hook. `dbe4d316` remains under ADR-0007 and is not double-logged.
+- Drafted ADR-0009 inline on [ANKA-302](/ANKA/issues/ANKA-302) and reassigned to CEO. CEO approved with three concrete asks: (1) accept the four-exception batch as drafted, (2) leave `allow_rebase_merge=true` because GitHub returned `422 Validation Failed: "Sorry, you need to allow at least one merge strategy. (no_merge_method)"` on the operator's flip attempt, (3) bundle the AGENTS.md §1 / §2 / §3 edits into one PR so there is no window where the protocol is updated but the audit still rubber-stamps the failure mode.
+- Created branch `anka-302-merge-protocol-tightening` off `origin/main` (`f0c9c7d`).
+- Prepended ADR-0009 to `.dev/decisions.md` (newest first), recording the four exception commits, the structural finding, the GitHub-422 rejection of the repo-settings tightening, and the AGENTS.md §1 / §2 / §3 edits made under the same ADR.
+- Replaced AGENTS.md §1's `gh pr merge --rebase --match-head-commit <sha>` block with a local fast-forward push block (`git fetch origin pull/<N>/head:pr-<N>` + head-SHA equality check + `git merge --ff-only` + `git push origin main` + `git branch -D pr-<N>`). Added `gh pr merge --rebase` and the GitHub UI "Rebase and merge" button to the §1 "Forbidden" list with an explicit ADR-0009 cross-reference. Documented that PR heads not fast-forwardable from `main` must be rebased locally and re-pushed; never a server-side rebase.
+- Promoted AGENTS.md §2's committer-identity check from "must be the author, not …" to `HARD FAIL (ADR-0009): committer must equal author and MUST NOT be "GitHub <noreply@github.com>"`. Adjusted the parents check to expect ONE parent on the local-FF path; flagged the two-parent shape as the forbidden "Create a merge commit" path. Reframed the failure-mode line from "bypassed the rebase path" to "bypassed the local fast-forward path" and linked the remediation template to both [ANKA-268](/ANKA/issues/ANKA-268) and [ANKA-302](/ANKA/issues/ANKA-302).
+- Reframed AGENTS.md §3 from "gh as merge fallback when the GitHub App returns 403" to "gh for PR-inspection only; merging is always local FF". Stated explicitly that no `gh pr merge` mode is permitted under ADR-0007 / ADR-0009. Added a `git fetch origin pull/<N>/head` head-SHA fallback for environments without `gh`.
+- Bumped root `package.json` `0.4.48` → `0.4.49`. Recorded the change in `CHANGELOG.md` under `0.4.49 — 2026-04-30 05:20 Europe/Amsterdam — ADR-0009 lands; merge protocol switches to local fast-forward push`.
+
+**Findings**
+
+- The `allow_rebase_merge=false` repo-settings hardening is **not available** on GitHub. The platform requires at least one of `allow_squash_merge` / `allow_merge_commit` / `allow_rebase_merge` to remain `true`. Squash and merge-commit produce server-side synthesised commit bodies (footer cannot ride along) and are already disabled; rebase is the only remaining strategy whose diff is correct. The structural gap therefore cannot be closed via repo settings alone — the AGENTS.md §1 + §2 changes are the only guards.
+- The four exception commits stay on `main` as logged exceptions. ADR-0007 / ADR-0003 precedent on cost-benefit holds: the diffs are correct, only the metadata is wrong, and force-pushing for a metadata-only fix would invalidate every active worktree and downstream branch.
+- This PR will itself merge via the new §1 local fast-forward push as the first commit to validate the protocol on itself; the §2 audit's committer-identity check will pass on the PR's landed SHA.
+
+**Verification (worktree)**
+
+- `bun run lint` to be run in this same heartbeat before push.
+- `bun run typecheck` to be run in this same heartbeat before push.
+
+**Next**
+
+- Run `bun run lint` and `bun run typecheck` in the worktree.
+- Commit on `anka-302-merge-protocol-tightening` with the canonical Paperclip footer (the local `.githooks/commit-msg` hook will enforce this at author time).
+- Push, open PR against `main`, route to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) with [@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177) as the second-pass reviewer.
+- On approvals, merge via the new §1 local fast-forward push, paste §2 audit evidence on [ANKA-302](/ANKA/issues/ANKA-302) and [ANKA-299](/ANKA/issues/ANKA-299), close [ANKA-302](/ANKA/issues/ANKA-302).
+
 ## 2026-04-30 01:30 Europe/Amsterdam — [ANKA-287](/ANKA/issues/ANKA-287) PR #34 BLOCK follow-up — fail-closed broker-spec validation in replay-driver
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_commented` wake on [ANKA-287](/ANKA/issues/ANKA-287) — CEO ratified CodeReviewer BLOCK on PR #34 (https://github.com/ewildee/ankit-prop-trading-agent/pull/34#issuecomment-4348236075).

@@ -2,6 +2,26 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.49 — 2026-04-30 05:20 Europe/Amsterdam — ADR-0009 lands; merge protocol switches to local fast-forward push
+
+**Initiated by:** FoundingEngineer, addressing CEO approval on [ANKA-302](/ANKA/issues/ANKA-302) comment `3a4cb648` (remediation of [ANKA-299](/ANKA/issues/ANKA-299) 12-hour audit).
+
+**Why:** The [ANKA-299](/ANKA/issues/ANKA-299) audit found four commits on `main` failing the AGENTS.md §2 / [ADR-0007](/ANKA/issues/ANKA-268) post-merge audit: three pre-ANKA-270 GitHub UI "Create a merge commit" merges (PR #11 `79ae5aa5`, PR #12 `6972afd6`, PR #16 `d99d53ec` — discipline gap, recurrence already hard-blocked), and one post-protocol GitHub-side rebase-merge (PR #22 `e51aced4` — structural gap because GitHub-side rebase always rewrites committer to `GitHub <noreply@github.com>` regardless of the local commit-msg footer hook). [ANKA-268](/ANKA/issues/ANKA-268)'s `dbe4d316` remains under ADR-0007 and is not double-logged. CEO rejected `allow_rebase_merge=false` (GitHub `422 no_merge_method` requires at least one merge strategy enabled), so the AGENTS.md §1 protocol plus §2 hard-fail audit become the only guards against another `e51aced`-shape commit.
+
+**Changed** — repo-wide governance docs
+
+- `.dev/decisions.md` — appends ADR-0009 (newest first). Logs the four exception commits with their PR / issue / shape / timestamp evidence; replaces AGENTS.md §1's recommended `gh pr merge --rebase --match-head-commit <sha>` with a local fast-forward push block; promotes the §2 committer-identity check to a hard fail; reframes §3 from "gh as merge fallback" to "gh as PR-inspection helper". Records the GitHub `422 no_merge_method` result under "Alternatives considered" so the next reader knows the repo-settings option was tried.
+- `AGENTS.md` §1 — replaces the `gh pr merge … --rebase --match-head-commit` block with a `git fetch origin pull/<N>/head:pr-<N>` + `git merge --ff-only` + `git push origin main` block. Adds `gh pr merge --rebase` and the GitHub UI "Rebase and merge" button to the "Forbidden" list. Calls out that PR heads not fast-forwardable from `main` must be rebased locally and re-pushed; never a server-side rebase.
+- `AGENTS.md` §2 — promotes the post-merge audit's committer-identity check to a hard fail with explicit `HARD FAIL (ADR-0009): committer must equal author and MUST NOT be "GitHub <noreply@github.com>"` wording. Adjusts the parents check (one parent expected on the local-FF path; two parents indicates the forbidden "Create a merge commit" path). Updates the failure-mode framing from "bypassed the rebase path" to "bypassed the local fast-forward path" and links the remediation template to both [ANKA-268](/ANKA/issues/ANKA-268) and [ANKA-302](/ANKA/issues/ANKA-302).
+- `AGENTS.md` §3 — reframes `gh` as PR-inspection only; calls out that no `gh pr merge` mode is permitted under ADR-0007 / ADR-0009; documents the `git fetch origin pull/<N>/head` head-SHA fallback when `gh` is unavailable.
+- `package.json` — bumps root `0.4.48` → `0.4.49`.
+
+**Verification (worktree)**
+
+- `bun run lint` to be run in this same heartbeat before push.
+- `bun run typecheck` to be run in this same heartbeat before push.
+- This PR will be merged via the new §1 local fast-forward push as the first commit to validate the protocol on itself.
+
 ## 0.4.48 / @ankit-prop/eval-harness@0.2.2 — 2026-04-30 01:30 Europe/Amsterdam (PR #34 BLOCK follow-up)
 
 **Initiated by:** FoundingEngineer, addressing CodeReviewer BLOCK on PR #34 — [ANKA-287](/ANKA/issues/ANKA-287). Same in-flight branch / same release window — no root version bump.

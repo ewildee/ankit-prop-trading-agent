@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Each ADR captures: context, decision, alternatives, consequences._
 
+## ADR-0009 — Four post-protocol GitHub-merge commits logged as exceptions; switch merge path to local fast-forward
+
+- **Date:** 2026-04-30 05:20 Europe/Amsterdam
+- **Status:** Accepted (CEO approval recorded on [ANKA-302](/ANKA/issues/ANKA-302) comment `3a4cb648`)
+- **Context:** [ANKA-299](/ANKA/issues/ANKA-299) 12-hour audit found four merged commits on `main` that fail the AGENTS.md §2 / [ADR-0007](/ANKA/issues/ANKA-268) post-merge audit, all merged 2026-04-29:
+  - `79ae5aa50229bdd245de4bea2aef271b3fe66b0b` (PR [#11](https://github.com/ewildee/ankit-prop-trading-agent/pull/11), `feat(infra:http): adopt Elysia Eden Treaty foundation`, [ANKA-131](/ANKA/issues/ANKA-131)) — 07:53. Two parents, committer `GitHub <noreply@github.com>`, no canonical Paperclip footer.
+  - `6972afd624fc5cbf8b6aef6df1d4ed28364f9475` (PR [#12](https://github.com/ewildee/ankit-prop-trading-agent/pull/12), `migrate(svc:gateway/health): move health endpoint to Elysia`, [ANKA-133](/ANKA/issues/ANKA-133)) — 08:24. Same shape.
+  - `d99d53ec5665ccda0981d780f0833bb914cd3c31` (PR [#16](https://github.com/ewildee/ankit-prop-trading-agent/pull/16), `feat(svc:news/restricted-window-evaluator): add pm5 tier-1 gate`, [ANKA-163](/ANKA/issues/ANKA-163)) — 10:22. Same shape.
+  - `e51aced4df05d8a498cc3039ff28eedea4961ece` (PR [#22](https://github.com/ewildee/ankit-prop-trading-agent/pull/22), `fix(svc:news/calendar-fetcher): reject invalid FTMO event dates`, [ANKA-231](/ANKA/issues/ANKA-231)) — 16:51. Single parent, **canonical Paperclip footer present** (rebase replays original commit body), committer `GitHub <noreply@github.com>`.
+
+  The first three are 2-parent UI "Create a merge commit" merges that landed after the AGENTS.md `--rebase`-only protocol committed in `bad012bd` (2026-04-29 05:12) but before [ANKA-270](/ANKA/issues/ANKA-270) flipped `allow_merge_commit=false` server-side (2026-04-29 ~20:49). Discipline gap, recurrence already hard-blocked by ANKA-270.
+
+  `e51aced4` is a single-parent rebase-merge result (`gh pr merge --rebase` or the GitHub UI "Rebase and merge" button). Even after ANKA-270 — which left `allow_rebase_merge=true` — this shape can recur because GitHub-side rebase always rewrites committer to `GitHub <noreply@github.com>` regardless of what the local `commit-msg` hook enforced at author time. ADR-0007's AGENTS.md §1 explicitly recommended `gh pr merge <N> --rebase --match-head-commit <sha>` as the canonical merge path, which was the protocol used to land `e51aced4`. **Structural gap, not a discipline gap, in the §1 recommended command.**
+
+  [ANKA-268](/ANKA/issues/ANKA-268)'s `dbe4d316e5f3afe6a32de3a6b66084cc80445f6f` (PR [#13](https://github.com/ewildee/ankit-prop-trading-agent/pull/13)) remains a logged exception under ADR-0007 and is not double-logged here; included in the [ANKA-299](/ANKA/issues/ANKA-299) audit window for trail completeness only.
+
+  Branch protection on `main` is not configured (`gh api repos/ewildee/ankit-prop-trading-agent/branches/main/protection` returns 404). Required-status-check / push-actor restrictions remain operator-owned and out of scope for this ADR.
+- **Decision:** Do not rewrite `main` history. Document the four commits above as logged exceptions under this ADR. Replace AGENTS.md §1's recommended merge command with a local fast-forward push that preserves committer = author, and update AGENTS.md §3 so `gh` is reframed as a PR-inspection helper rather than a merge path. Tighten AGENTS.md §1's "Forbidden" list to explicitly include `gh pr merge --rebase` and the GitHub UI "Rebase and merge" button. Promote AGENTS.md §2's committer-identity check from "must be the author" to a hard fail (`HARD FAIL (ADR-0009): committer must equal author and MUST NOT be "GitHub <noreply@github.com>"`). Land all four edits — ADR text, §1, §2, §3 — atomically in a single PR so there is no window where the protocol is updated but the audit still rubber-stamps the failure mode. The PR itself merges via the new local fast-forward path as the first commit to validate the protocol on itself.
+- **Alternatives considered:**
+  - _Force-push `main` to drop the four exceptions._ Rejected — same cost-benefit as ADR-0003 / ADR-0007: invalidates every active worktree and downstream branch for a metadata-only fix; diffs are correct.
+  - _Keep AGENTS.md `gh pr merge --rebase` and rely on operator discipline._ Rejected — GitHub-side rebase **always** rewrites committer, so the §2 audit's committer-identity check is guaranteed to fail every merge. The recommended command must produce audit-passing commits or the audit is theatre.
+  - _Add the canonical footer to `e51aced` via a follow-up empty commit._ Rejected (same reasoning as ADR-0007's alt 3) — the canonical footer is already present on `e51aced`; the defect is committer identity, which a follow-up commit cannot retroactively fix.
+  - _Tighten repo settings to `allow_rebase_merge=false` so no GitHub-side merge button is available at all._ **Rejected because GitHub forbids it.** Operator attempt returned `422 Validation Failed: "Sorry, you need to allow at least one merge strategy. (no_merge_method)"`. GitHub requires at least one of `allow_squash_merge` / `allow_merge_commit` / `allow_rebase_merge` to remain `true`. Squash and merge-commit produce server-side synthesised commit bodies and have already been disabled by [ANKA-270](/ANKA/issues/ANKA-270); rebase is the only remaining strategy whose diff is correct and must therefore stay enabled. The structural gap cannot be closed via repo settings alone — the AGENTS.md §1 protocol replacement plus the §2 hard-fail audit are the only guards.
+  - _Route the §2 audit-script tightening to a separate child issue._ Rejected — splitting a 2-line edit on the same `AGENTS.md` change adds review overhead with no benefit, and creates a window where §1 is updated but §2 still passes for the failure mode.
+- **Consequences:**
+  - `main` history stays stable for collaborators and worktrees. The four commits become known logged exceptions under this ADR plus `.dev/journal.md`.
+  - AGENTS.md §1 canonical merge path is now `git fetch origin pull/<N>/head:pr-<N>` + `git merge --ff-only` + `git push origin main`; every commit landing on `main` keeps committer = author. AGENTS.md §1 "Forbidden" list now explicitly includes `gh pr merge --rebase` and the GitHub UI "Rebase and merge" button.
+  - AGENTS.md §2 audit's committer-identity check is a hard fail; the new merge path makes the check structurally meaningful instead of a guaranteed failure.
+  - AGENTS.md §3 reframes `gh` as PR-inspection only; merging is always local FF.
+  - Branch-protection / required-status-check / push-actor restrictions on `main` remain operator-owned and out of scope. Optional follow-up: linear-history requirement + restricted push actors as a future hardening (deferred until requested).
+  - The repo-local `.githooks/commit-msg` guard (ADR-0003), [ADR-0006](/ANKA/issues/ANKA-147)'s local-check-only verification gate, and ADR-0007's post-merge audit step all stay unchanged in spirit; ADR-0009 only updates the recommended commands and tightens the audit's failure semantics.
+
 ## ADR-0008 — Market-data interface shape & cTrader-slot-in expectation
 
 - **Date:** 2026-04-29 18:25 Europe/Amsterdam

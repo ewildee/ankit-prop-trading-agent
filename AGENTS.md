@@ -140,24 +140,48 @@ current settings (`gh api repos/ewildee/ankit-prop-trading-agent`):
   enforcement.) Documented at
   <https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/configuring-pull-request-merges/configuring-commit-merging-for-pull-requests>.
 
-The only safe strategy on this repo is therefore:
+The only safe strategy on this repo is therefore a **local
+fast-forward push** — never a GitHub-side merge button, never
+`gh pr merge`. After CodeReviewer + QAEngineer APPROVE on the
+PR's QA-reviewed head SHA `<sha>`:
 
-- `gh pr merge <N> --rebase --match-head-commit <sha>` — fast-forwards
-  or replays the PR's per-commit messages exactly, including the
-  canonical footer that the local `commit-msg` hook already enforced
-  at author time. No GitHub-side commit body is synthesised.
+```sh
+git fetch origin
+git checkout main && git pull --ff-only origin main
+git fetch origin pull/<N>/head:pr-<N>
+[ "$(git rev-parse pr-<N>)" = "<sha>" ] || { echo "head moved"; exit 1; }
+git merge --ff-only pr-<N>
+git push origin main
+git branch -D pr-<N>
+```
 
-Forbidden until a future CEO-approved server-side footer guard exists:
+Every commit landing on `main` keeps committer = author, so the
+local `.githooks/commit-msg` Paperclip-footer guard at author time
+is the only commit body that ever lands. No GitHub-side rebase or
+synthetic merge body is involved.
+
+If the PR head is not fast-forwardable from current `main`, the
+author rebases the PR branch **locally** and re-pushes the PR head;
+we never land a server-side rebase. Re-run CodeReviewer +
+QAEngineer on the rebased head before re-attempting the FF push.
+
+Forbidden until a future CEO-approved server-side footer + committer
+identity guard exists:
 
 - `gh pr merge --squash` and the GitHub UI "Squash and merge" button.
 - `gh pr merge --merge` and the GitHub UI "Create a merge commit"
   button.
+- `gh pr merge --rebase` and the GitHub UI "Rebase and merge" button
+  — GitHub-side rebase rewrites committer to
+  `GitHub <noreply@github.com>`, which fails the §2 audit's
+  committer-identity check (ADR-0009).
 
-If the PR's stated strategy in its description is `--squash` or
-`--merge`, override it to `--rebase` and note the override in the
-issue thread. Both `--squash` and `--merge` become available again
-only after a fresh ADR supersedes ADR-0006 with an equivalent
-server-side footer validation path.
+If the PR's stated strategy in its description is any GitHub-side
+merge mode, override it to the local fast-forward path above and
+note the override in the issue thread. Server-side merge modes
+become available again only after a fresh ADR supersedes ADR-0006
+with an equivalent server-side footer + committer-identity
+validation path.
 
 ### 2. Post-merge audit (mandatory, ADR-0007)
 
@@ -175,33 +199,40 @@ against the landed commit `<sha>` and pastes the output into the
 Paperclip issue thread before closing:
 
 ```sh
-git rev-list --parents -n 1 <sha>      # exactly TWO parents on a rebase merge of a multi-commit PR; ONE parent is only acceptable on a fast-forward of a single-commit PR
-git show --no-patch --pretty=fuller <sha>   # committer must be the author, not "GitHub <noreply@github.com>"
-git log -n 1 --format=%B <sha> | grep -F 'Co-Authored-By: Paperclip <noreply@paperclip.ing>'   # must match exactly
+git rev-list --parents -n 1 <sha>      # HARD FAIL: must have exactly ONE parent. A two-parent merge commit indicates the GitHub-side "Create a merge commit" path, forbidden under ADR-0007 / ADR-0009.
+git show --no-patch --pretty=fuller <sha>   # HARD FAIL (ADR-0009): committer must equal author and MUST NOT be "GitHub <noreply@github.com>". The GitHub-side rebase / squash / merge buttons all rewrite committer to "GitHub <noreply@github.com>"; only the local fast-forward push path defined in §1 preserves committer identity.
+git log -n 1 --format=%B <sha> | grep -F 'Co-Authored-By: Paperclip <noreply@paperclip.ing>'   # HARD FAIL: canonical Paperclip footer must match exactly (the local .githooks/commit-msg hook enforces this at author time; absence indicates a server-side synthesised commit body).
 ```
 
-Failure on any line means the merge bypassed the rebase path. Open a
-remediation issue immediately (template: [ANKA-268](/ANKA/issues/ANKA-268))
+Failure on any line means the merge bypassed the local fast-forward
+path. Open a remediation issue immediately (template:
+[ANKA-268](/ANKA/issues/ANKA-268) / [ANKA-302](/ANKA/issues/ANKA-302))
 and route to FoundingEngineer; do **not** force-push `main` without a
 fresh CEO-approved ADR.
 
-### 3. Fallback: `gh` CLI when the GitHub App returns 403
+### 3. PR inspection with `gh`; merge is always local FF
 
 The default agent merge path (MCP `_merge_pull_request` / GitHub App)
 returns `403 Resource not accessible by integration` because the App
-installation lacks `Pull requests: write` on this repo.
+installation lacks `Pull requests: write` on this repo. Under ADR-0009
+this is moot: no GitHub-side merge path is permitted on this repo
+regardless of App permissions, and the canonical merge path is the
+local fast-forward push block in §1.
 
-Until the App permissions are widened, use `gh` (authed as the
-operator with admin) as the canonical merge path:
+Use `gh` (authed as the operator) only to inspect PR state before
+running the §1 block:
 
 1. Verify the head: `gh pr view <N> --json headRefOid,mergeable,mergeStateStatus,state`.
 2. Confirm it matches the QA-reviewed SHA recorded on the issue.
-3. Merge with the allowed strategy above (`--rebase --match-head-commit <sha>` only — never `--squash` or `--merge` until a fresh ADR supersedes ADR-0006 with an equivalent server-side footer-validation path).
-4. Record the merge commit SHA on the corresponding Paperclip issue.
+3. Run the §1 local fast-forward push block against `<sha>`. Do not
+   use `gh pr merge` in any mode (`--rebase` / `--squash` / `--merge`
+   are all forbidden under ADR-0007 / ADR-0009).
+4. Run the §2 audit against the landed SHA and paste the output into
+   the Paperclip issue thread before closing.
 
-Do not retry the MCP merge tool on 403 — fall through to `gh`
-immediately. If `gh` is also unavailable in the agent's environment,
-escalate to the board via comment.
+If `gh` is unavailable, the head SHA can be obtained directly via
+`git fetch origin pull/<N>/head:pr-<N> && git rev-parse pr-<N>` and
+matched against the QA-reviewed SHA recorded on the issue.
 
 ## Build phases (BLUEPRINT §22)
 
