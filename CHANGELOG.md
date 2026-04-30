@@ -2,6 +2,31 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/trader@0.9.2 — 2026-04-30 17:39 Europe/Amsterdam — Analyst schema-free JSON output mode
+
+**Initiated by:** CodexExecutor, implementing [ANKA-385](/ANKA/issues/ANKA-385) under the [ANKA-380](/ANKA/issues/ANKA-380) Option B directive for the parent [ANKA-341](/ANKA/issues/ANKA-341) replay.
+
+**Why:** Azure rejected the Analyst structured-output JSON schema for an optional `KeyLevel.timeframe` field. The fix keeps the `openai/gpt-5.4-mini` model and retry ladder, but moves the OpenRouter Analyst call onto AI SDK `6.0.168`'s schema-free JSON output path so provider-side strict schema validation is bypassed.
+
+**Changed** — `feat(svc:trader/analyst)`
+
+- `services/trader/src/analyst/index.ts` — replaced the strict-schema `generateObject` call with `generateText` plus `Output.json`, then kept runtime validation through `AnalystGenerationOutput.safeParse`.
+- `services/trader/src/analyst/index.ts` — left OpenRouter routing fallback semantics at provider defaults; `buildOpenRouterAnalystProviderOptions` returns usage and reasoning options only, with no `provider` routing block.
+- `services/trader/src/analyst/index.spec.ts` — pinned the schema-free JSON response format, absence of provider routing pins, retry-ladder behaviour, and params-sourced Analyst model expectation.
+
+**Bumped**
+
+- `@ankit-prop/trader` `0.9.1` -> `0.9.2`.
+
+**Verification**
+
+- `bun run --cwd services/trader lint:fix` -> exit 0 (`Found 27 warnings.`; existing non-null assertion warnings remain).
+- `bun run --cwd services/trader lint` -> exit 0 (`Found 27 warnings.`; no fixes applied).
+- `bun run --cwd services/trader test` -> 67 pass / 0 fail / 262 expects.
+- `bun run --cwd services/trader typecheck` -> exit 0.
+- Live smoke `.dev/runs/anka380-smoke.ts` with root `.env` `OPENROUTER_API_KEY` -> parsed JSON output; `bias=neutral`; `providerCostUsd=0.00045441`.
+- `bun run --cwd services/trader start` -> exit 0 with Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
 ## @ankit-prop/trader@0.9.1 — 2026-04-30 16:48 Europe/Amsterdam — Swap analyst model to openai/gpt-5.4-mini per board directive
 
 **Initiated by:** FoundingEngineer, implementing the board's [ANKA-341](/ANKA/issues/ANKA-341) directive (comment `b4afb497-14bf-4921-bff3-061667359e3b`) after Kimi K2.6 hung on the first active-window Analyst call of `runId=anka341-fe-20260430T143614Z`.

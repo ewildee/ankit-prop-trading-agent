@@ -9,7 +9,7 @@ import {
 } from '@ankit-prop/contracts';
 import type { Bar } from '@ankit-prop/market-data';
 import { createOpenRouter } from '@openrouter/ai-sdk-provider';
-import { generateObject, type LanguageModelUsage, type ProviderMetadata } from 'ai';
+import { generateText, type LanguageModelUsage, Output, type ProviderMetadata } from 'ai';
 import type { AnalystStage, AnalystStageInput } from '../pipeline/stages.ts';
 import { scoreConfluence } from './confluence-score.ts';
 import { ZERO } from './constants.ts';
@@ -189,15 +189,12 @@ export function createOpenRouterAnalystGenerator(
   });
 
   return async (request) => {
-    const result = await generateObject({
+    const result = await generateText({
       model: provider(request.model, {
         plugins: [{ id: 'response-healing' }],
         usage: { include: true },
       }),
-      schema: AnalystGenerationOutput,
-      schemaName: 'AnalystGenerationOutput',
-      schemaDescription:
-        'Validated model-generated Analyst fields for v_ankit_classic; runtime fills deterministic telemetry fields.',
+      output: buildOpenRouterAnalystGenerationOutputMode(),
       system: request.system,
       prompt: request.prompt,
       maxOutputTokens: request.maxOutputTokens,
@@ -205,11 +202,20 @@ export function createOpenRouterAnalystGenerator(
       providerOptions: buildOpenRouterAnalystProviderOptions(request),
     });
     return {
-      object: result.object,
+      object: result.output,
       usage: result.usage,
       ...(result.providerMetadata ? { providerMetadata: result.providerMetadata } : {}),
     };
   };
+}
+
+export function buildOpenRouterAnalystGenerationOutputMode() {
+  // ai@6.0.168 exposes schema-free JSON mode through generateText output.json.
+  return Output.json({
+    name: 'AnalystGenerationOutput',
+    description:
+      'Validated model-generated Analyst fields for v_ankit_classic; runtime fills deterministic telemetry fields.',
+  });
 }
 
 export function buildOpenRouterAnalystProviderOptions(
