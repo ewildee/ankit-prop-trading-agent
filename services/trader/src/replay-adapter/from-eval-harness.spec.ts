@@ -5,7 +5,12 @@ import { join } from 'node:path';
 import { DecisionRecord } from '@ankit-prop/contracts';
 import type { AccountConfig, SymbolMeta } from '@ankit-prop/eval-harness';
 import { CachedFixtureProvider } from '@ankit-prop/market-data';
+import { createInProcessReplayGateway } from '../gateway/in-process.ts';
 import { loadPersonaConfig } from '../persona-config/loader.ts';
+import { createAnalystStub } from '../pipeline/stubs/analyst.stub.ts';
+import { createJudgeStub } from '../pipeline/stubs/judge.stub.ts';
+import { createReflectorStub } from '../pipeline/stubs/reflector.stub.ts';
+import { createTraderStub } from '../pipeline/stubs/trader.stub.ts';
 import { runTraderReplay } from './from-eval-harness.ts';
 
 const FIXTURE_ROOT = 'data/market-data/twelvedata/v1.0.0-2026-04-28';
@@ -44,6 +49,14 @@ describe('runTraderReplay', () => {
         account: ACCOUNT,
         symbolMetas: await symbolMetas(provider, ['XAUUSD']),
         logPath: join(tmp, 'decisions.jsonl'),
+        deps: {
+          runId: 'replay-adapter-spec',
+          analyst: createAnalystStub(),
+          trader: createTraderStub(),
+          judge: createJudgeStub(),
+          gateway: createInProcessReplayGateway(),
+          reflector: createReflectorStub(),
+        },
       });
 
       expect(result.decisions.length).toBeGreaterThanOrEqual(200);

@@ -2,6 +2,39 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.53 / @ankit-prop/contracts@2.0.0 / @ankit-prop/trader@0.3.0 — 2026-04-30 11:13 Europe/Amsterdam — Analyst v_ankit_classic v0
+
+**Initiated by:** CodexExecutor, implementing [ANKA-338](/ANKA/issues/ANKA-338) under the [ANKA-318](/ANKA/issues/ANKA-318) trader vertical-slice umbrella, with board direction to use Vercel AI SDK v6 + OpenRouter.
+
+**Why:** The vertical-slice trader needs a real Analyst stage for `v_ankit_classic` before the Trader/Judge children can consume non-stub regime, confluence, and LLM-cost telemetry.
+
+**Added** — `feat(svc:trader/instance-pipeline)`
+
+- `services/trader/src/analyst/` — adds deterministic regime classification, deterministic v1 confluence scoring, and an OpenRouter-backed `generateObject` Analyst stage with a mockable generator seam.
+- `services/trader/strategy/v_ankit_classic/params.yaml` — adds Analyst model/lookback/regime thresholds sourced from params rather than inline persona-path literals.
+- `services/trader/strategy/v_ankit_classic/prompts/analyst.md` — adds the static Analyst system prompt.
+- `services/trader/src/replay-adapter/from-eval-harness.ts` — defaults `v_ankit_classic` replay deps to the real Analyst while tests inject stubs to avoid live LLM calls.
+- `packages/shared-contracts/src/personas.ts` — adds `AnalystRuntimeConfig` and requires `PersonaConfig.analyst`, a breaking config-contract change.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.52` → `0.4.53`.
+- `@ankit-prop/contracts` `1.0.0` → `2.0.0`.
+- `@ankit-prop/trader` `0.2.1` → `0.3.0`.
+
+**Verification**
+
+- `bun install` -> exit 0 (`Checked 96 installs across 99 packages (no changes)`).
+- `bun run lint:fix` -> exit 0 (`Found 34 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; Biome formatted touched files).
+- `bun run typecheck` -> exit 0.
+- `bun test services/trader/src packages/shared-contracts/src/personas.spec.ts packages/shared-contracts/src/index.spec.ts` -> 37 pass / 0 fail / 685 expects.
+- `bun test` -> 601 pass / 0 fail / 11558 expects.
+- `git diff --check` -> exit 0.
+- Persona-path numeric grep over production `services/trader/src/analyst/*.ts` plus the Analyst prompt -> no matches.
+- Debug leftovers scan over changed Analyst/trader/contract source and params files (`console.log|debugger|TODO|HACK`) -> no matches.
+- Manual OpenRouter smoke sourced the shared-root `.env` key without printing it and ran a 1-bar Analyst fixture through `moonshotai/kimi-k2.6`; structured output parsed with populated `cacheStats` (`inputFreshTokens=365`, `outputTokens=1997`, `thinkingTokens=1669`).
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
 ## 0.4.52 / @ankit-prop/trader@0.2.1 — 2026-04-30 10:38 Europe/Amsterdam — PR #38 BLOCK follow-up
 
 **Initiated by:** CodexExecutor, addressing local-board repair brief `a22851f2` for CodeReviewer BLOCK on PR [#38](https://github.com/ewildee/ankit-prop-trading-agent/pull/38) ([ANKA-335](/ANKA/issues/ANKA-335)).

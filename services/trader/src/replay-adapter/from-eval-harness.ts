@@ -8,6 +8,7 @@ import {
   type SymbolMeta,
 } from '@ankit-prop/eval-harness';
 import type { Bar, IMarketDataProvider } from '@ankit-prop/market-data';
+import { createVAnkitClassicAnalyst } from '../analyst/index.ts';
 import { createInProcessReplayGateway } from '../gateway/in-process.ts';
 import { runDecision } from '../pipeline/runner.ts';
 import type { PipelineDeps } from '../pipeline/stages.ts';
@@ -61,7 +62,7 @@ export async function runTraderReplay(input: TraderReplayInput): Promise<TraderR
   await mkdir(dirname(logPath), { recursive: true });
   if (input.truncateLog ?? true) await rm(logPath, { force: true });
 
-  const deps = input.deps ?? createStubbedPipelineDeps(input.runId);
+  const deps = input.deps ?? createDefaultPipelineDeps(input.runId, input.persona);
   const decisions = [];
   for (const bar of bars) {
     const decision = await runDecision(bar, input.persona, { ...deps, runId: input.runId });
@@ -72,10 +73,11 @@ export async function runTraderReplay(input: TraderReplayInput): Promise<TraderR
   return { runId: input.runId, logPath, decisions };
 }
 
-function createStubbedPipelineDeps(runId: string): PipelineDeps {
+function createDefaultPipelineDeps(runId: string, persona: PersonaConfig): PipelineDeps {
   return {
     runId,
-    analyst: createAnalystStub(),
+    analyst:
+      persona.personaId === 'v_ankit_classic' ? createVAnkitClassicAnalyst() : createAnalystStub(),
     trader: createTraderStub(),
     judge: createJudgeStub(),
     gateway: createInProcessReplayGateway(),

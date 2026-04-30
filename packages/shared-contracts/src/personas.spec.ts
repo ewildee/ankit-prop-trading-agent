@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { composeRailVerdict } from './hard-rails.ts';
 import {
   AnalystOutput,
+  AnalystRuntimeConfig,
   DecisionRecord,
   GatewayDecision,
   JudgeInput,
@@ -142,6 +143,32 @@ describe('persona pipeline contracts', () => {
 
     expect(AnalystOutput.safeParse(missingConfluence).success).toBe(false);
     expect(AnalystOutput.safeParse({ ...analystOutput, confluenceScore: 101 }).success).toBe(false);
+  });
+
+  test('AnalystRuntimeConfig carries model, lookback, and regime thresholds', () => {
+    const parsed = AnalystRuntimeConfig.parse({
+      model: 'moonshotai/kimi-k2.6',
+      maxOutputTokens: 1200,
+      barLookback: 18,
+      calendarLookaheadLimit: 8,
+      regime: {
+        minSeriesBars: 6,
+        breakoutClosePosition: 0.72,
+        trendMoveAtrMultiple: 1.4,
+        retraceBodyAtrMaximum: 0.65,
+        consolidationRangeAtrMaximum: 2.2,
+        reversalWickBodyMultiple: 1.8,
+        macroEventLookaheadMinutes: 120,
+      },
+    });
+
+    expect(parsed.model).toBe('moonshotai/kimi-k2.6');
+    expect(
+      AnalystRuntimeConfig.safeParse({
+        ...parsed,
+        regime: { ...parsed.regime, breakoutClosePosition: 1.2 },
+      }).success,
+    ).toBe(false);
   });
 
   test('TraderOutput is canonical HOLD | OPEN | CLOSE | AMEND and excludes TRAIL', () => {
@@ -336,6 +363,21 @@ describe('PersonaConfig', () => {
       decisionCadence: '5m',
       actionCadence: 'bar_close',
       v0RuntimeActionAllowList: ['HOLD', 'OPEN', 'CLOSE'],
+      analyst: {
+        model: 'moonshotai/kimi-k2.6',
+        maxOutputTokens: 1200,
+        barLookback: 18,
+        calendarLookaheadLimit: 8,
+        regime: {
+          minSeriesBars: 6,
+          breakoutClosePosition: 0.72,
+          trendMoveAtrMultiple: 1.4,
+          retraceBodyAtrMaximum: 0.65,
+          consolidationRangeAtrMaximum: 2.2,
+          reversalWickBodyMultiple: 1.8,
+          macroEventLookaheadMinutes: 120,
+        },
+      },
       windowPrague: {
         macroSynthesis: '08:00',
         preSessionStart: '13:00',

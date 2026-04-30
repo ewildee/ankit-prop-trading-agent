@@ -10,6 +10,20 @@ actionCadence: bar_close
 # through the gateway adapter is implemented.
 v0RuntimeActionAllowList: [HOLD, OPEN, CLOSE]
 
+analyst:
+  model: moonshotai/kimi-k2.6
+  maxOutputTokens: 1200
+  barLookback: 18
+  calendarLookaheadLimit: 8
+  regime:
+    minSeriesBars: 6
+    breakoutClosePosition: 0.72
+    trendMoveAtrMultiple: 1.4
+    retraceBodyAtrMaximum: 0.65
+    consolidationRangeAtrMaximum: 2.2
+    reversalWickBodyMultiple: 1.8
+    macroEventLookaheadMinutes: 120
+
 windowPrague:
   macroSynthesis: "08:00"
   preSessionStart: "13:00"

@@ -54,6 +54,23 @@ export const AnalystOutput = z.strictObject({
 });
 export type AnalystOutput = z.infer<typeof AnalystOutput>;
 
+export const AnalystRuntimeConfig = z.strictObject({
+  model: z.string().min(1),
+  maxOutputTokens: z.number().int().positive(),
+  barLookback: z.number().int().positive(),
+  calendarLookaheadLimit: z.number().int().nonnegative(),
+  regime: z.strictObject({
+    minSeriesBars: z.number().int().positive(),
+    breakoutClosePosition: z.number().min(0).max(1),
+    trendMoveAtrMultiple: z.number().positive(),
+    retraceBodyAtrMaximum: z.number().positive(),
+    consolidationRangeAtrMaximum: z.number().positive(),
+    reversalWickBodyMultiple: z.number().positive(),
+    macroEventLookaheadMinutes: z.number().int().nonnegative(),
+  }),
+});
+export type AnalystRuntimeConfig = z.infer<typeof AnalystRuntimeConfig>;
+
 export const TRADER_ACTIONS = ['HOLD', 'OPEN', 'CLOSE', 'AMEND'] as const;
 export type TraderAction = (typeof TRADER_ACTIONS)[number];
 
@@ -187,6 +204,7 @@ export const PersonaConfig = z.strictObject({
   decisionCadence: z.string().min(1),
   actionCadence: z.enum(['bar_close']),
   v0RuntimeActionAllowList: z.array(z.enum(V0_TRADER_RUNTIME_ACTIONS)).nonempty(),
+  analyst: AnalystRuntimeConfig,
   windowPrague: z.strictObject({
     macroSynthesis: z.string().min(1),
     preSessionStart: z.string().min(1),

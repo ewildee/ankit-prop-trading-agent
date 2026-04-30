@@ -2,6 +2,49 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 11:13 Europe/Amsterdam — [ANKA-338](/ANKA/issues/ANKA-338) Analyst v_ankit_classic v0 — v0.4.53 / contracts v2.0.0 / trader v0.3.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_blockers_resolved` wake, then board comments redirecting the LLM integration to Vercel AI SDK v6 + OpenRouter.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 10:49 Europe/Amsterdam before editing Bun-runtime TypeScript.
+- Added blueprint-pinned `ai@6.0.168` and `@openrouter/ai-sdk-provider@2.8.1` to `@ankit-prop/trader`.
+- Added required `PersonaConfig.analyst` / `AnalystRuntimeConfig` and `v_ankit_classic` params for model, lookback, and regime thresholds.
+- Added deterministic Analyst regime classification, deterministic confluence scoring, OpenRouter `generateObject` Analyst stage with response-healing and usage accounting, and the static Analyst prompt.
+- Wired default replay deps to use the real Analyst for `v_ankit_classic`; tests inject stubs so local checks never make live LLM calls.
+
+**Findings**
+
+- The original issue text asked for Anthropic SDK, but the board clarified that OpenRouter + Vercel AI SDK v6 is the intended path and that non-Claude models are expected. The implementation uses `moonshotai/kimi-k2.6` from params.
+- The worktree has no local `.env`, but the shared root `.env` has `OPENROUTER_API_KEY`; the live smoke sourced it without printing secrets.
+
+**Decisions**
+
+- `PersonaConfig.analyst` is required, so `@ankit-prop/contracts` moves to `2.0.0` as a breaking config-contract bump.
+- Calendar lookahead is currently `[]` at the Analyst seam because the per-bar pipeline has no news client dependency yet; the classifier already accepts lookahead for the future [ANKA-341](/ANKA/issues/ANKA-341) replay path.
+
+**Unexpected behaviour**
+
+- OpenRouter smoke returned a high reasoning-token count for the one-bar fixture (`thinkingTokens=1669`), confirming usage telemetry is populated and that downstream cost reporting needs to include reasoning tokens.
+
+**Verification**
+
+- `bun install` -> exit 0 (`Checked 96 installs across 99 packages (no changes)`).
+- `bun run lint:fix` -> exit 0 (`Found 34 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; Biome formatted touched files).
+- `bun run typecheck` -> exit 0.
+- `bun test services/trader/src packages/shared-contracts/src/personas.spec.ts packages/shared-contracts/src/index.spec.ts` -> 37 pass / 0 fail / 685 expects.
+- `bun test` -> 601 pass / 0 fail / 11558 expects.
+- `git diff --check` -> exit 0.
+- Persona-path numeric grep over production `services/trader/src/analyst/*.ts` plus the Analyst prompt -> no matches.
+- Debug leftovers scan over changed Analyst/trader/contract source and params files -> no matches.
+- Manual OpenRouter 1-bar smoke -> parsed `AnalystOutput` with populated `cacheStats`.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
+**Open endings**
+
+- Handoff to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) after commit/push. FE should review the prompt/schema mapping as requested by [ANKA-338](/ANKA/issues/ANKA-338).
+
 ## 2026-04-30 10:38 Europe/Amsterdam — [ANKA-335](/ANKA/issues/ANKA-335) PR #38 BLOCK follow-up — v0.4.52 / trader v0.2.1
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_comment_mentioned` wake for local-board repair brief `a22851f2`.
