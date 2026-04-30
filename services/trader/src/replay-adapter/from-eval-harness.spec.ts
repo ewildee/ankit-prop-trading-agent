@@ -144,6 +144,38 @@ describe('runTraderReplay', () => {
     }
   });
 
+  test('completes a multi-bar replay when analyst generation repeatedly falls back', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
+    try {
+      const bars = barsWithRepeatedLongSignals().slice(0, 3);
+      const provider = new StaticMarketDataProvider(bars);
+      const persona = await loadPersonaConfig();
+      const result = await runTraderReplay({
+        runId: 'replay-adapter-analyst-fallback-spec',
+        persona,
+        provider,
+        symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+        window: ONE_DAY_WINDOW,
+        account: ACCOUNT,
+        symbolMetas: await provider.listSymbols(),
+        logPath: join(tmp, 'decisions.jsonl'),
+        reportOutputDir: tmp,
+        analystGenerator: analystGeneratorAlwaysNoObjectLength(),
+      });
+
+      expect(result.decisions).toHaveLength(bars.length);
+      expect(result.report?.aggregate.analystFallbackCount).toBe(bars.length);
+      for (const decision of result.decisions) {
+        expect(decision.analystOutput.bias).toBe('neutral');
+        expect(decision.analystOutput.fallbackReason).toBe('no_object_generated_length');
+        expect(decision.traderOutput.action).toBe('HOLD');
+        expect(decision.gatewayDecision?.status).toBe('not_submitted');
+      }
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
   test('keeps the daily risk budget across UTC midnight within one Prague day and resets at the Prague boundary', async () => {
     const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
     try {
@@ -261,6 +293,28 @@ function analystGeneratorForBiases(
         totalTokens: 0,
       },
     };
+  };
+}
+
+function analystGeneratorAlwaysNoObjectLength(): AnalystGenerator {
+  return async () => {
+    throw Object.assign(new Error('No object generated'), {
+      name: 'AI_NoObjectGeneratedError',
+      finishReason: 'length',
+      usage: {
+        inputTokens: 10,
+        outputTokens: 20,
+        totalTokens: 30,
+        reasoningTokens: 20,
+      },
+      providerMetadata: {
+        openrouter: {
+          usage: {
+            cost: 0.001,
+          },
+        },
+      },
+    });
   };
 }
 

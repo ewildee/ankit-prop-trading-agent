@@ -15,6 +15,11 @@ import { scoreConfluence } from './confluence-score.ts';
 import { ZERO } from './constants.ts';
 import { classifyRegime } from './regime-classifier.ts';
 
+const ANALYST_GENERATION_MAX_ATTEMPTS = 3;
+const ANALYST_GENERATION_RETRY_MAX_OUTPUT_TOKENS = 4096;
+const ANALYST_SAFE_FALLBACK_THESIS =
+  'ANALYST_SAFE_FALLBACK: structured generation failed after retry escalation; neutral HOLD emitted.';
+
 const SERVICE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ANALYST_PROMPT_PATH = resolve(
   SERVICE_ROOT,
@@ -28,6 +33,7 @@ const AnalystGenerationOutput = AnalystOutput.omit({
   confluenceScore: true,
   regimeLabel: true,
   regimeNote: true,
+  fallbackReason: true,
   cacheStats: true,
   costUsd: true,
 });
@@ -36,6 +42,7 @@ export type AnalystGenerationRequest = {
   readonly model: string;
   readonly maxOutputTokens: number;
   readonly reasoningMaxTokens?: number;
+  readonly reasoningStrategy?: 'max_tokens' | 'effort_low' | 'none';
   readonly system: string;
   readonly prompt: string;
 };
@@ -84,7 +91,7 @@ export function createVAnkitClassicAnalyst(
         params: input.persona,
       });
       const staticPrompt = await readFile(promptPath, 'utf8');
-      const generation = await generator({
+      const baseGenerationRequest = {
         model: input.persona.analyst.model,
         maxOutputTokens: input.persona.analyst.maxOutputTokens,
         system: staticPrompt,
@@ -98,9 +105,17 @@ export function createVAnkitClassicAnalyst(
         ...(input.persona.analyst.reasoningMaxTokens
           ? { reasoningMaxTokens: input.persona.analyst.reasoningMaxTokens }
           : {}),
-      });
+      } satisfies AnalystGenerationRequest;
+      const generation = await generateWithRetry(generator, baseGenerationRequest);
 
-      const parsedGeneration = AnalystGenerationOutput.safeParse(generation.object);
+      if (!generation.success) {
+        return fallbackAnalystOutput({
+          regimeLabel,
+          failedGeneration: generation.failure,
+        });
+      }
+
+      const parsedGeneration = AnalystGenerationOutput.safeParse(generation.result.object);
       if (!parsedGeneration.success) {
         throw new Error(
           `Analyst generation output validation failed: ${JSON.stringify(parsedGeneration.error.issues)}`,
@@ -113,8 +128,8 @@ export function createVAnkitClassicAnalyst(
         confidence: confluence.confidence,
         confluenceScore: confluence.score,
         regimeNote: confluence.regimeNote,
-        cacheStats: cacheStatsFromUsage(generation.usage),
-        costUsd: openRouterCostUsdFromProviderMetadata(generation.providerMetadata),
+        cacheStats: cacheStatsFromUsage(generation.result.usage),
+        costUsd: openRouterCostUsdFromProviderMetadata(generation.result.providerMetadata),
       });
       if (!parsed.success) {
         throw new Error(`AnalystOutput validation failed: ${JSON.stringify(parsed.error.issues)}`);
@@ -162,18 +177,133 @@ export function createOpenRouterAnalystGenerator(
 }
 
 export function buildOpenRouterAnalystProviderOptions(request: AnalystGenerationRequest) {
+  const openrouter: {
+    usage: { include: boolean };
+    reasoning?: {
+      max_tokens?: number;
+      effort?: 'low';
+      exclude: boolean;
+    };
+  } = {
+    usage: { include: true },
+  };
+  if (request.reasoningStrategy === 'effort_low') {
+    openrouter.reasoning = {
+      effort: 'low',
+      exclude: true,
+    };
+  } else if (request.reasoningStrategy !== 'none' && request.reasoningMaxTokens) {
+    openrouter.reasoning = {
+      max_tokens: request.reasoningMaxTokens,
+      exclude: true,
+    };
+  }
+
   return {
-    openrouter: {
-      usage: { include: true },
-      ...(request.reasoningMaxTokens
-        ? {
-            reasoning: {
-              max_tokens: request.reasoningMaxTokens,
-              exclude: true,
-            },
-          }
-        : {}),
+    openrouter,
+  };
+}
+
+type AnalystGenerationSuccess = {
+  readonly success: true;
+  readonly result: AnalystGenerationResult;
+};
+
+type AnalystGenerationFailure = {
+  readonly success: false;
+  readonly failure: RetryableAnalystGenerationFailure;
+};
+
+type RetryableAnalystGenerationFailure = {
+  readonly usage?: LanguageModelUsage;
+  readonly providerMetadata?: ProviderMetadata;
+};
+
+async function generateWithRetry(
+  generator: AnalystGenerator,
+  baseRequest: AnalystGenerationRequest,
+): Promise<AnalystGenerationSuccess | AnalystGenerationFailure> {
+  let lastRetryableFailure: RetryableAnalystGenerationFailure | null = null;
+
+  for (const request of analystGenerationAttempts(baseRequest)) {
+    try {
+      return { success: true, result: await generator(request) };
+    } catch (error) {
+      if (!isRetryableNoObjectLengthFailure(error)) throw error;
+      lastRetryableFailure = retryableAnalystGenerationFailureFromError(error);
+    }
+  }
+
+  return {
+    success: false,
+    failure: lastRetryableFailure ?? {},
+  };
+}
+
+function analystGenerationAttempts(
+  baseRequest: AnalystGenerationRequest,
+): ReadonlyArray<AnalystGenerationRequest> {
+  const doubledOutputTokens = Math.min(
+    baseRequest.maxOutputTokens * 2,
+    ANALYST_GENERATION_RETRY_MAX_OUTPUT_TOKENS,
+  );
+  const attempts: AnalystGenerationRequest[] = [
+    { ...baseRequest, reasoningStrategy: 'max_tokens' },
+    {
+      ...baseRequest,
+      reasoningStrategy: 'effort_low',
+      maxOutputTokens: doubledOutputTokens,
     },
+    {
+      ...baseRequest,
+      reasoningStrategy: 'none',
+      maxOutputTokens: ANALYST_GENERATION_RETRY_MAX_OUTPUT_TOKENS,
+    },
+  ];
+  return attempts.slice(0, ANALYST_GENERATION_MAX_ATTEMPTS);
+}
+
+function fallbackAnalystOutput({
+  regimeLabel,
+  failedGeneration,
+}: {
+  readonly regimeLabel: AnalystOutputType['regimeLabel'];
+  readonly failedGeneration: RetryableAnalystGenerationFailure;
+}): AnalystOutputType {
+  const parsed = AnalystOutput.parse({
+    thesis: ANALYST_SAFE_FALLBACK_THESIS,
+    bias: 'neutral',
+    confidence: ZERO,
+    confluenceScore: ZERO,
+    keyLevels: [],
+    regimeLabel,
+    regimeNote: 'analyst safe fallback',
+    fallbackReason: 'no_object_generated_length',
+    cacheStats: failedGeneration.usage
+      ? cacheStatsFromUsage(failedGeneration.usage)
+      : zeroCacheStats(),
+    costUsd: openRouterCostUsdFromProviderMetadata(failedGeneration.providerMetadata),
+  });
+  return parsed;
+}
+
+function isRetryableNoObjectLengthFailure(error: unknown): boolean {
+  if (!isRecord(error)) return false;
+  return (
+    (error.name === 'AI_NoObjectGeneratedError' || error.name === 'NoObjectGeneratedError') &&
+    error.finishReason === 'length'
+  );
+}
+
+function retryableAnalystGenerationFailureFromError(
+  error: unknown,
+): RetryableAnalystGenerationFailure {
+  if (!isRecord(error)) return {};
+  return {
+    ...(isLanguageModelUsage(error.usage) ? { usage: error.usage } : {}),
+    ...(isProviderMetadata(error.providerMetadata)
+      ? { providerMetadata: error.providerMetadata }
+      : {}),
   };
 }
 
@@ -221,6 +351,16 @@ function cacheStatsFromUsage(usage: LanguageModelUsage): CacheLayerStats {
   };
 }
 
+function zeroCacheStats(): CacheLayerStats {
+  return {
+    inputCachedTokens: ZERO,
+    inputFreshTokens: ZERO,
+    inputCacheWriteTokens: ZERO,
+    outputTokens: ZERO,
+    thinkingTokens: ZERO,
+  };
+}
+
 export function openRouterCostUsdFromProviderMetadata(
   providerMetadata: ProviderMetadata | undefined,
 ): number | undefined {
@@ -234,4 +374,12 @@ export function openRouterCostUsdFromProviderMetadata(
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isLanguageModelUsage(value: unknown): value is LanguageModelUsage {
+  return isRecord(value);
+}
+
+function isProviderMetadata(value: unknown): value is ProviderMetadata {
+  return isRecord(value);
 }

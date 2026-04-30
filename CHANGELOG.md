@@ -2,6 +2,35 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.62 / @ankit-prop/trader@0.7.0 / @ankit-prop/contracts@3.3.0 — 2026-04-30 14:43 Europe/Amsterdam — Analyst retry and safe fallback
+
+**Initiated by:** CodexExecutor, implementing [ANKA-365](/ANKA/issues/ANKA-365) after the [ANKA-341](/ANKA/issues/ANKA-341) replay crashed on bar #1 when Kimi K2.6 spent the full structured-output budget on reasoning and returned no object.
+
+**Why:** OpenRouter's `reasoning.max_tokens` hint is best-effort for Kimi K2.6. A single `AI_NoObjectGeneratedError` with `finishReason: "length"` must not terminate the 7d replay or drop billed failed-call telemetry.
+
+**Changed** — `feat(svc:trader/analyst)` / `feat(svc:trader/reflector)` / `feat(pkg:contracts/personas)`
+
+- `services/trader/src/analyst/index.ts` — wraps Analyst generation in a 3-attempt retry sequence: params-sourced `reasoning.max_tokens`, then OpenRouter `reasoning.effort: "low"` with doubled output budget, then no reasoning hint with a 4096-token output cap.
+- `services/trader/src/analyst/index.ts` — emits a neutral `ANALYST_SAFE_FALLBACK` output after repeated no-object length failures, carrying failed-call `cacheStats` and OpenRouter `costUsd` when exposed.
+- `packages/shared-contracts/src/personas.ts` — adds optional `AnalystOutput.fallbackReason` and required `RunAggregate.analystFallbackCount` so gate reports disclose fallback bars.
+- `services/trader/src/reflector/aggregate.ts` and `services/trader/src/reflector/report.ts` — fold fallback counts into JSON and markdown reports.
+- Specs cover retry escalation, persistent neutral fallback telemetry, replay continuation across multiple fallback bars, aggregate fallback counts, and contract schema boundaries.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.61` -> `0.4.62`.
+- `@ankit-prop/trader` `0.6.0` -> `0.7.0`.
+- `@ankit-prop/contracts` `3.2.0` -> `3.3.0`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 40 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied on the final run).
+- `bun test services/trader/src/analyst/index.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts services/trader/src/reflector/aggregate.spec.ts services/trader/src/reflector/report.spec.ts packages/shared-contracts/src/personas.spec.ts` -> 35 pass / 0 fail / 163 expects.
+- `bun test` -> 638 pass / 0 fail / 11145 expects.
+- `bun run typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 with the Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
 ## 0.4.61 / @ankit-prop/trader@0.6.0 / @ankit-prop/contracts@3.2.0 — 2026-04-30 14:15 Europe/Amsterdam — OpenRouter cost telemetry and replay JSONL flush
 
 **Initiated by:** CodexExecutor, implementing [ANKA-361](/ANKA/issues/ANKA-361) after the [ANKA-341](/ANKA/issues/ANKA-341) replay cost abort proved the Reflector was projecting Kimi usage through Claude Sonnet 4.5 rates.

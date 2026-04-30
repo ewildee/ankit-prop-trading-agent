@@ -45,6 +45,7 @@ export function renderReportMarkdown(report: ReflectorAggregate): string {
     `- Window: ${aggregate.startedAt} -> ${aggregate.endedAt ?? 'open'}`,
     `- Decisions: ${aggregate.decisionCount}`,
     `- Trades: ${aggregate.tradeCount}`,
+    `- Analyst fallbacks: ${aggregate.analystFallbackCount}`,
     `- Gateway breaches: ${aggregate.breachCount}`,
     `- Realized PnL: ${formatUsd(aggregate.realizedPnl)}`,
     `- Sortino rolling 60d: ${formatRatio(aggregate.sortinoRolling60d)}`,

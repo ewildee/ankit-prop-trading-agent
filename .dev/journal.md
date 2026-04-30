@@ -2,6 +2,44 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 14:43 Europe/Amsterdam — [ANKA-365](/ANKA/issues/ANKA-365) Analyst retry + safe fallback — trader v0.7.0 / contracts v3.3.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for the [ANKA-341](/ANKA/issues/ANKA-341) first-bar no-object crash.
+
+**What was done**
+
+- Fetched/read `https://bun.com/llms.txt` before editing Bun-runtime TypeScript.
+- Added a bounded Analyst retry path for `AI_NoObjectGeneratedError` / `finishReason: "length"`: params-sourced `reasoning.max_tokens`, then OpenRouter low reasoning effort with doubled output tokens, then no reasoning hint with a 4096 output cap.
+- Added neutral `ANALYST_SAFE_FALLBACK` output when retries are exhausted, preserving failed-call usage as `cacheStats` and OpenRouter billed cost when provider metadata exposes it.
+- Added `AnalystOutput.fallbackReason` and `RunAggregate.analystFallbackCount`, then surfaced the fallback count in Reflector JSON/markdown reports.
+- Added specs for retry success, persistent fallback, replay continuation across fallback bars, contract parsing, and Reflector aggregation.
+
+**Findings**
+
+- The prior reasoning cap cannot be load-bearing for Kimi K2.6 because OpenRouter may pass it through without the model honoring it.
+- The replay adapter already supports continuing once the Analyst returns a valid output; the missing piece was a valid neutral output on bounded generation failure.
+
+**Contradictions**
+
+- BLUEPRINT §6.3 already says Analyst failures return neutral output and log; the current implementation still crashed on no-object length failures. This change aligns the implementation with the blueprint.
+
+**Decisions**
+
+- Keep malformed successful model JSON fail-closed; only no-object length failures are retryable and fall back.
+- Track fallbacks with an explicit optional contract field instead of parsing thesis text, so aggregate disclosure is stable.
+
+**Unexpected behaviour**
+
+- `bun run lint:fix` still reports pre-existing repo-wide warnings outside this issue; it exits 0 and no unsafe repo-wide lint rewrites were applied.
+
+**Adaptations**
+
+- Did not raise `params.yaml.analyst.maxOutputTokens`; the retry path widens output budget per attempt without changing persona thresholds or defaults.
+
+**Open endings**
+
+- [ANKA-365](/ANKA/issues/ANKA-365) needs CodeReviewer review and QAEngineer spec adequacy review; FoundingEngineer reruns the [ANKA-341](/ANKA/issues/ANKA-341) replay after approval.
+
 ## 2026-04-30 14:15 Europe/Amsterdam — [ANKA-361](/ANKA/issues/ANKA-361) OpenRouter cost telemetry + replay flush — trader v0.6.0 / contracts v3.2.0
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for the [ANKA-341](/ANKA/issues/ANKA-341) cost-axis sibling.

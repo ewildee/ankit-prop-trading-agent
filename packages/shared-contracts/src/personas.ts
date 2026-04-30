@@ -54,6 +54,7 @@ export const AnalystOutput = z.strictObject({
   supportingEvidence: z.string().max(1200).optional(),
   withholdMinutes: z.number().int().min(0).max(60).optional(),
   freshnessLag: z.number().int().nonnegative().optional(),
+  fallbackReason: z.enum(['no_object_generated_length']).optional(),
   cacheStats: CacheLayerStats,
   costUsd: StageCostUsd,
 });
@@ -359,6 +360,7 @@ export const RunAggregate = z.strictObject({
   llmCostUsd: RunLlmCostUsd,
   breachCount: z.number().int().nonnegative(),
   tradeCount: z.number().int().nonnegative(),
+  analystFallbackCount: z.number().int().nonnegative(),
   realizedPnl: z.number(),
   traderActions: z.record(z.enum(TRADER_ACTIONS), z.number().int().nonnegative()),
   judgeVerdicts: z.record(z.enum(['APPROVE', 'REJECT']), z.number().int().nonnegative()),

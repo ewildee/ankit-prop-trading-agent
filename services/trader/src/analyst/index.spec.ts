@@ -86,6 +86,116 @@ describe('createVAnkitClassicAnalyst', () => {
     });
   });
 
+  test('passes low-effort and disabled reasoning retry options through OpenRouter provider options', async () => {
+    const params = await loadPersonaConfig();
+
+    expect(
+      buildOpenRouterAnalystProviderOptions({
+        model: params.analyst.model,
+        maxOutputTokens: params.analyst.maxOutputTokens,
+        reasoningStrategy: 'effort_low',
+        system: 'system',
+        prompt: 'prompt',
+      }).openrouter.reasoning,
+    ).toEqual({
+      effort: 'low',
+      exclude: true,
+    });
+
+    expect(
+      buildOpenRouterAnalystProviderOptions({
+        model: params.analyst.model,
+        maxOutputTokens: params.analyst.maxOutputTokens,
+        reasoningStrategy: 'none',
+        system: 'system',
+        prompt: 'prompt',
+        ...(params.analyst.reasoningMaxTokens
+          ? { reasoningMaxTokens: params.analyst.reasoningMaxTokens }
+          : {}),
+      }).openrouter.reasoning,
+    ).toBeUndefined();
+  });
+
+  test('retries NoObjectGenerated length failures with reasoning escalation before returning generated output', async () => {
+    const params = await loadPersonaConfig();
+    const requests: AnalystGenerationRequest[] = [];
+    const analyst = createVAnkitClassicAnalyst({
+      generator: async (request) => {
+        requests.push(request);
+        if (requests.length < 3) {
+          throw noObjectGeneratedLengthError({
+            usage: usageFixture(),
+            providerMetadata: openRouterUsageCostFixture(0.01),
+          });
+        }
+        return {
+          object: draftOutput(),
+          usage: usageFixture(),
+          providerMetadata: openRouterUsageCostFixture(0.012345),
+        };
+      },
+    });
+    const bar = barsFromCloses([2300]).at(-1)!;
+
+    const output = await analyst.analyze({
+      bar,
+      persona: params,
+      context: {
+        runId: 'analyst-retry-spec',
+        paramsHash: 'params-hash',
+        decidedAt: new Date(bar.tsEnd).toISOString(),
+      },
+    });
+
+    expect(requests.map((request) => request.reasoningStrategy)).toEqual([
+      'max_tokens',
+      'effort_low',
+      'none',
+    ]);
+    expect(requests[1]?.maxOutputTokens).toBe(2400);
+    expect(requests[2]?.maxOutputTokens).toBe(4096);
+    expect(output.bias).toBe('long');
+    expect(output.fallbackReason).toBeUndefined();
+    expect(output.costUsd).toBe(0.012345);
+  });
+
+  test('emits neutral fallback with failed-call telemetry after repeated NoObjectGenerated length failures', async () => {
+    const params = await loadPersonaConfig();
+    const analyst = createVAnkitClassicAnalyst({
+      generator: async () => {
+        throw noObjectGeneratedLengthError({
+          usage: usageFixture(),
+          providerMetadata: openRouterUsageCostFixture(0.0456),
+        });
+      },
+    });
+    const bar = barsFromCloses([2300]).at(-1)!;
+
+    const output = await analyst.analyze({
+      bar,
+      persona: params,
+      context: {
+        runId: 'analyst-fallback-spec',
+        paramsHash: 'params-hash',
+        decidedAt: new Date(bar.tsEnd).toISOString(),
+      },
+    });
+
+    expect(output.bias).toBe('neutral');
+    expect(output.confidence).toBe(0);
+    expect(output.confluenceScore).toBe(0);
+    expect(output.thesis).toContain('ANALYST_SAFE_FALLBACK');
+    expect(output.fallbackReason).toBe('no_object_generated_length');
+    expect(output.cacheStats).toEqual({
+      inputCachedTokens: 10,
+      inputFreshTokens: 80,
+      inputCacheWriteTokens: 5,
+      outputTokens: 40,
+      thinkingTokens: 7,
+    });
+    expect(output.costUsd).toBe(0.0456);
+  });
+
   test('malformed generator output fails with structured validation detail before overlay', async () => {
     const params = await loadPersonaConfig();
     const analyst = createVAnkitClassicAnalyst({
@@ -209,6 +319,21 @@ function openRouterUsageCostFixture(cost: number): ProviderMetadata {
       },
     },
   } as unknown as ProviderMetadata;
+}
+
+function noObjectGeneratedLengthError({
+  usage,
+  providerMetadata,
+}: {
+  readonly usage: LanguageModelUsage;
+  readonly providerMetadata: ProviderMetadata;
+}): Error {
+  return Object.assign(new Error('No object generated'), {
+    name: 'AI_NoObjectGeneratedError',
+    finishReason: 'length',
+    usage,
+    providerMetadata,
+  });
 }
 
 function barsFromCloses(closes: number[]): Bar[] {

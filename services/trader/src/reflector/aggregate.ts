@@ -35,10 +35,12 @@ export function aggregateDecisionRecords(
     GATEWAY_OUTCOMES.map((outcome) => [outcome, 0]),
   ) as Record<(typeof GATEWAY_OUTCOMES)[number], number>;
   const realizedPnlPoints: RealizedPnlPoint[] = [];
+  let analystFallbackCount = 0;
   let breachCount = 0;
   let tradeCount = 0;
 
   for (const record of records) {
+    if (record.analystOutput.fallbackReason) analystFallbackCount += 1;
     traderActions[record.traderOutput.action] += 1;
     if (record.judgeOutput) judgeVerdicts[record.judgeOutput.verdict] += 1;
 
@@ -75,6 +77,7 @@ export function aggregateDecisionRecords(
     llmCostUsd: summarizeLlmCost(records),
     breachCount,
     tradeCount,
+    analystFallbackCount,
     realizedPnl: realizedPnlPoints.reduce((sum, point) => sum + point.realizedPnl, 0),
     traderActions,
     judgeVerdicts,

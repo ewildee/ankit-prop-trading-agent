@@ -152,6 +152,18 @@ describe('persona pipeline contracts', () => {
     expect(AnalystOutput.safeParse({ ...analystOutput, costUsd: -0.01 }).success).toBe(false);
   });
 
+  test('AnalystOutput accepts the safe-fallback marker used by replay telemetry', () => {
+    const parsed = AnalystOutput.parse({
+      ...analystOutput,
+      bias: 'neutral',
+      confidence: 0,
+      confluenceScore: 0,
+      fallbackReason: 'no_object_generated_length',
+    });
+
+    expect(parsed.fallbackReason).toBe('no_object_generated_length');
+  });
+
   test('AnalystRuntimeConfig carries model, lookback, and regime thresholds', () => {
     const parsed = AnalystRuntimeConfig.parse({
       model: 'moonshotai/kimi-k2.6',
@@ -334,6 +346,7 @@ describe('persona pipeline contracts', () => {
       },
       breachCount: 0,
       tradeCount: 3,
+      analystFallbackCount: 1,
       realizedPnl: 184.55,
       traderActions: { HOLD: 8, OPEN: 3, CLOSE: 1, AMEND: 0 },
       judgeVerdicts: { APPROVE: 4, REJECT: 0 },
@@ -349,6 +362,7 @@ describe('persona pipeline contracts', () => {
       'llmCostUsd',
       'breachCount',
       'tradeCount',
+      'analystFallbackCount',
       'realizedPnl',
     ] as const) {
       const { [key]: _removed, ...missingMetric } = aggregate;

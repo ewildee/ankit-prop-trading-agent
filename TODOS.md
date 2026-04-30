@@ -44,6 +44,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 - [x] **T008.d.1** Fix Analyst structured-output schema so runtime-owned fields are injected after model generation without accepting unknown provider keys — _[ANKA-357](/ANKA/issues/ANKA-357), unblocks [ANKA-341](/ANKA/issues/ANKA-341)_.
 - [x] **T008.e** Implement Reflector v0 aggregate reports: DecisionRecord JSONL ingestion, RunAggregate folding, Sortino-rolling-60d, Claude-rate LLM cost telemetry, report writer, replay/reflect commands — _[ANKA-340](/ANKA/issues/ANKA-340), unblocks [ANKA-341](/ANKA/issues/ANKA-341)_.
 - [x] **T008.e.1** Source Reflector cost telemetry from OpenRouter provider metadata and flush replay decisions JSONL per bar — _[ANKA-361](/ANKA/issues/ANKA-361), unblocks [ANKA-341](/ANKA/issues/ANKA-341) replay retry_.
+- [x] **T008.e.2** Retry Kimi no-object Analyst length failures and disclose neutral fallback bars in Reflector aggregates — _[ANKA-365](/ANKA/issues/ANKA-365), unblocks [ANKA-341](/ANKA/issues/ANKA-341) replay retry_.
 - [x] **T008.f** Implement deterministic `v_ankit_classic` Trader policy + Judge v0 allow-list gates, params-sourced thresholds, and runner/replay wiring — _[ANKA-339](/ANKA/issues/ANKA-339), advances [ANKA-318](/ANKA/issues/ANKA-318)_.
 
 ## Phase 5 — `news`

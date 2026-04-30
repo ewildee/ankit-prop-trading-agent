@@ -43,6 +43,7 @@ describe('writeReflectorReport', () => {
       const markdown = await readFile(report.reportMdPath, 'utf8');
       expect(markdown).toContain('# Reflector report: reflector-spec-run');
       expect(markdown).toContain('- Trades: 2');
+      expect(markdown).toContain('- Analyst fallbacks: 0');
       expect(markdown).toContain('- Gateway breaches: 0');
       expect(markdown).toContain('- Realized PnL: $125.000000');
       expect(markdown).toContain('- LLM cost: $0.000000');
