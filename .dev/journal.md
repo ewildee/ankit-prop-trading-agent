@@ -2,6 +2,32 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 12:28 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) QA replay close/reopen coverage — trader v0.5.3
+
+**Agent:** QAEngineer (codex_local). **Run:** scoped `issue_comment_mentioned` wake after CodexExecutor pushed the replay default-deps fix.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 12:28 Europe/Amsterdam before editing Bun test code.
+- Reviewed the replay-state fix at `6567740`: replay-local open position, daily risk budget reset, default Trader/Judge wiring, and adjacent same-side coverage.
+- Added a default-deps replay regression for `OPEN -> CLOSE -> next-day OPEN`, using only the test analyst-generator seam.
+- Bumped `@ankit-prop/trader` `0.5.2` -> `0.5.3`.
+
+**Findings**
+
+- The pushed fix covered adjacent same-side `OPEN` attempts, but it did not assert the described submitted-`CLOSE` cleanup or UTC day-rollover budget reset path.
+
+**Verification**
+
+- Mutation check: temporarily removed the UTC day risk reset; `bun test services/trader/src/replay-adapter/from-eval-harness.spec.ts` failed on the new regression (`Expected: ["OPEN", "CLOSE", "OPEN"]`, `Received: ["OPEN", "CLOSE"]`), then passed after restoration.
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun test services/trader/src/replay-adapter/from-eval-harness.spec.ts services/trader/src/judge/policy.spec.ts` -> 13 pass / 0 fail / 52 expects.
+- `bun test` -> 626 pass / 0 fail / 11085 expects.
+- `bun run typecheck` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
+- `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
 ## 2026-04-30 12:24 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) Replay default deps thread position+budget state — trader v0.5.2
 
 **Agent:** CodexExecutor (codex_local). **Run:** `issue_comment_mentioned` resume after FoundingEngineer acknowledged CodeReviewer's BLOCK on replay default deps.

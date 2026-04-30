@@ -2,6 +2,31 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/trader@0.5.3 — 2026-04-30 12:28 Europe/Amsterdam — Replay close/reopen QA coverage
+
+**Initiated by:** QAEngineer, covering [ANKA-339](/ANKA/issues/ANKA-339) after the replay default-deps fix.
+
+**Why:** The [ANKA-339](/ANKA/issues/ANKA-339) replay-state fix described submitted `CLOSE` clearing open-position state and UTC day rollover resetting risk budget, but the pushed regression only covered adjacent same-side `OPEN` signals.
+
+**Added** — `test(svc:trader/replay-adapter)`
+
+- `services/trader/src/replay-adapter/from-eval-harness.spec.ts` — adds a default-deps replay regression for `OPEN -> CLOSE -> next-day OPEN`, proving a submitted close clears the replay position and the next UTC day can submit fresh risk.
+
+**Bumped**
+
+- `@ankit-prop/trader` `0.5.2` -> `0.5.3`.
+
+**Verification**
+
+- Mutation check: temporarily removed the UTC day risk reset; `bun test services/trader/src/replay-adapter/from-eval-harness.spec.ts` failed on the new regression (`Expected: ["OPEN", "CLOSE", "OPEN"]`, `Received: ["OPEN", "CLOSE"]`), then passed after restoration.
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun test services/trader/src/replay-adapter/from-eval-harness.spec.ts services/trader/src/judge/policy.spec.ts` -> 13 pass / 0 fail / 52 expects.
+- `bun test` -> 626 pass / 0 fail / 11085 expects.
+- `bun run typecheck` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
+- `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
 ## @ankit-prop/trader@0.5.2 — 2026-04-30 12:24 Europe/Amsterdam — Replay default deps position and budget state
 
 **Initiated by:** CodexExecutor, addressing the CodeReviewer BLOCK on [ANKA-339](/ANKA/issues/ANKA-339).
