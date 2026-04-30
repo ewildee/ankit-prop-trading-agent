@@ -2,6 +2,38 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 11:44 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) Trader policy v0 + Judge v0 — v0.4.57 / trader v0.5.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_blockers_resolved` wake after [ANKA-335](/ANKA/issues/ANKA-335) blocker cleared.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 11:44 Europe/Amsterdam before editing Bun-runtime TypeScript.
+- Added deterministic `createVAnkitClassicTrader`, emitting only `HOLD | OPEN | CLOSE` from params-sourced confidence, risk, RR, and stop-multiple gates.
+- Added deterministic `createVAnkitClassicJudge`, rejecting every v0 rule failure it detects and approving CLOSE as risk-reducing.
+- Adjusted runner/gateway behavior so explicit-risk-context runs evaluate Judge for `HOLD`, mapping Trader holds to `not_submitted/judge_reject`, while missing-risk-context actionable output still fails closed before Judge/Gateway.
+- Wired default `v_ankit_classic` replay deps to real Trader/Judge with minimal risk/spread/exposure `JudgeInput`.
+
+**Findings**
+
+- The [ANKA-335](/ANKA/issues/ANKA-335) stage seam does not carry an open position into Trader. The v0 Trader factory therefore accepts a small injected `openPosition` provider for tests/future runtime state, while default replay uses no open position.
+- Concurrent uncommitted [ANKA-340](/ANKA/issues/ANKA-340) QA edits were present in the same worktree. They were preserved and should remain outside the [ANKA-339](/ANKA/issues/ANKA-339) commit staging except where shared version/changelog files necessarily advanced.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; final rerun applied no fixes).
+- `bun test services/trader/src/trader/policy.spec.ts services/trader/src/judge/policy.spec.ts services/trader/src/pipeline/runner.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 24 pass / 0 fail / 643 expects.
+- `bun test` -> 623 pass / 0 fail / 11624 expects.
+- `bun run typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` returned no hits.
+- Debug leftovers scan over changed Trader/Judge/pipeline/gateway/replay code -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
+**Open endings**
+
+- Handoff to [@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177) after commit/push for replay-path QA, then CodeReviewer.
+
 ## 2026-04-30 11:44 Europe/Amsterdam — [ANKA-350](/ANKA/issues/ANKA-350) Analyst usage telemetry tolerates aggregate-only AI SDK usage — journal-only follow-up — v0.4.55 / trader v0.4.0
 
 **Agent:** FoundingEngineer (claude_code). **Run:** `issue_comment_mentioned` resume after CodeReviewer's `CHANGES_REQUESTED` verdict on `e022b4b` (BLUEPRINT §0.2 operational gate: missing journal entry).

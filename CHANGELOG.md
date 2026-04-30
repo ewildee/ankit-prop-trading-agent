@@ -2,6 +2,40 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.57 / @ankit-prop/trader@0.5.0 — 2026-04-30 11:44 Europe/Amsterdam — Trader policy v0 + Judge v0
+
+**Initiated by:** CodexExecutor, implementing [ANKA-339](/ANKA/issues/ANKA-339) under the [ANKA-318](/ANKA/issues/ANKA-318) trader vertical-slice umbrella.
+
+**Why:** The first XAUUSD replay gate needs deterministic Trader and Judge stages after Analyst v0, without expanding the runtime action surface beyond ADR-0010's v0 allow-list.
+
+**Added** — `feat(svc:trader/instance-pipeline)`
+
+- `services/trader/src/trader/policy.ts` — adds deterministic `v_ankit_classic` Trader policy that emits only `HOLD | OPEN | CLOSE`, sources confidence/risk/RR/stop values from `params.yaml`, and defensively rejects `AMEND`.
+- `services/trader/src/judge/policy.ts` — adds deterministic Judge v0 gates for confluence, RR floor, per-trade risk cap, remaining daily budget, existing exposure, spread multiplier, and calendar proximity.
+- Trader/Judge policy specs and runner integration coverage for `APPROVE -> submitted` replay flow.
+
+**Changed**
+
+- `services/trader/src/pipeline/runner.ts` and `services/trader/src/gateway/in-process.ts` — explicit risk-context runs now evaluate Judge for `HOLD`, letting the replay gateway report `not_submitted/judge_reject` for Trader holds while preserving no-context fail-closed behavior.
+- `services/trader/src/replay-adapter/from-eval-harness.ts` — default `v_ankit_classic` replay deps now wire real Trader/Judge and build minimal risk/spread/exposure `JudgeInput`.
+- `TODOS.md` — closes T008.f for [ANKA-339](/ANKA/issues/ANKA-339).
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.56` -> `0.4.57`.
+- `@ankit-prop/trader` `0.4.1` -> `0.5.0`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; final rerun applied no fixes).
+- `bun test services/trader/src/trader/policy.spec.ts services/trader/src/judge/policy.spec.ts services/trader/src/pipeline/runner.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 24 pass / 0 fail / 643 expects.
+- `bun test` -> 623 pass / 0 fail / 11624 expects.
+- `bun run typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+- Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
+- Debug leftovers scan over changed Trader/Judge/pipeline/gateway/replay code -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
 ## 0.4.56 / @ankit-prop/trader@0.4.1 — 2026-04-30 11:48 Europe/Amsterdam — Reflector report QA coverage
 
 **Initiated by:** QAEngineer, covering [ANKA-340](/ANKA/issues/ANKA-340) before CodeReviewer handoff.

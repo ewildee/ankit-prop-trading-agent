@@ -1,4 +1,5 @@
 export { createInProcessReplayGateway } from './gateway/in-process.ts';
+export { createVAnkitClassicJudge } from './judge/policy.ts';
 export type { LoadPersonaConfigOptions } from './persona-config/loader.ts';
 export { loadPersonaConfig, resolvePersonaConfigPath } from './persona-config/loader.ts';
 export { runDecision } from './pipeline/runner.ts';
@@ -39,3 +40,4 @@ export type { RealizedPnlPoint, SortinoSummary } from './reflector/sortino.ts';
 export { computeSortinoRolling60d } from './reflector/sortino.ts';
 export type { TraderReplayInput, TraderReplayResult } from './replay-adapter/from-eval-harness.ts';
 export { runTraderReplay } from './replay-adapter/from-eval-harness.ts';
+export { createVAnkitClassicTrader } from './trader/policy.ts';

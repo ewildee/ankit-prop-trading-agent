@@ -8,8 +8,10 @@ import {
   type SymbolMeta,
 } from '@ankit-prop/eval-harness';
 import type { Bar, IMarketDataProvider } from '@ankit-prop/market-data';
+import { ZERO } from '../analyst/constants.ts';
 import { createVAnkitClassicAnalyst } from '../analyst/index.ts';
 import { createInProcessReplayGateway } from '../gateway/in-process.ts';
+import { createVAnkitClassicJudge } from '../judge/policy.ts';
 import { runDecision } from '../pipeline/runner.ts';
 import type { PipelineDeps } from '../pipeline/stages.ts';
 import { createAnalystStub } from '../pipeline/stubs/analyst.stub.ts';
@@ -17,6 +19,7 @@ import { createJudgeStub } from '../pipeline/stubs/judge.stub.ts';
 import { createReflectorStub } from '../pipeline/stubs/reflector.stub.ts';
 import { createTraderStub } from '../pipeline/stubs/trader.stub.ts';
 import { type ReflectorReport, writeReflectorReport } from '../reflector/report.ts';
+import { createVAnkitClassicTrader } from '../trader/policy.ts';
 
 export type TraderReplayInput = {
   readonly runId: string;
@@ -66,7 +69,7 @@ export async function runTraderReplay(input: TraderReplayInput): Promise<TraderR
   await mkdir(dirname(logPath), { recursive: true });
   if (input.truncateLog ?? true) await rm(logPath, { force: true });
 
-  const deps = input.deps ?? createDefaultPipelineDeps(input.runId, input.persona);
+  const deps = input.deps ?? createDefaultPipelineDeps(input);
   const decisions = [];
   for (const bar of bars) {
     const decision = await runDecision(bar, input.persona, { ...deps, runId: input.runId });
@@ -87,14 +90,47 @@ export async function runTraderReplay(input: TraderReplayInput): Promise<TraderR
   return { runId: input.runId, logPath, decisions, report };
 }
 
-function createDefaultPipelineDeps(runId: string, persona: PersonaConfig): PipelineDeps {
+function createDefaultPipelineDeps(input: TraderReplayInput): PipelineDeps {
+  const symbolMeta = input.symbolMetas.find((meta) => meta.symbol === input.persona.instrument);
   return {
-    runId,
+    runId: input.runId,
     analyst:
-      persona.personaId === 'v_ankit_classic' ? createVAnkitClassicAnalyst() : createAnalystStub(),
-    trader: createTraderStub(),
-    judge: createJudgeStub(),
+      input.persona.personaId === 'v_ankit_classic'
+        ? createVAnkitClassicAnalyst()
+        : createAnalystStub(),
+    trader:
+      input.persona.personaId === 'v_ankit_classic'
+        ? createVAnkitClassicTrader({
+            currentEquity: () => input.account.initialCapital,
+            recentAtrPips: (stageInput) => Math.abs(stageInput.bar.high - stageInput.bar.low),
+          })
+        : createTraderStub(),
+    judge:
+      input.persona.personaId === 'v_ankit_classic'
+        ? createVAnkitClassicJudge()
+        : createJudgeStub(),
     gateway: createInProcessReplayGateway(),
     reflector: createReflectorStub(),
+    buildJudgeInput(stageInput) {
+      return {
+        traderOutput: stageInput.traderOutput,
+        analystOutput: stageInput.analystOutput,
+        riskBudgetRemaining: {
+          dailyPct: input.persona.risk.maxPerTradePct,
+          overallPct: input.persona.risk.maxPerTradePct,
+        },
+        openExposure: {
+          totalPct: ZERO,
+          sameDirectionPct: ZERO,
+        },
+        recentDecisions: [],
+        calendarLookahead: [],
+        spreadStats: {
+          current: symbolMeta?.typicalSpreadPips ?? input.persona.filters.maxSpreadMultiplier,
+          typical: symbolMeta?.typicalSpreadPips ?? input.persona.filters.maxSpreadMultiplier,
+        },
+        strategyParams: stageInput.persona as unknown as Record<string, unknown>,
+      };
+    },
   };
 }

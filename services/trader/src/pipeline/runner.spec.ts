@@ -7,7 +7,9 @@ import {
 } from '@ankit-prop/contracts';
 import type { Bar } from '@ankit-prop/market-data';
 import { createInProcessReplayGateway } from '../gateway/in-process.ts';
+import { createVAnkitClassicJudge } from '../judge/policy.ts';
 import { loadPersonaConfig } from '../persona-config/loader.ts';
+import { createVAnkitClassicTrader } from '../trader/policy.ts';
 import { runDecision } from './runner.ts';
 import type {
   GatewayStage,
@@ -96,6 +98,59 @@ describe('runDecision', () => {
     if (record.gatewayDecision?.status === 'submitted') {
       expect(record.gatewayDecision.railVerdict.outcome).toBe('allow');
     }
+  });
+
+  test('v_ankit_classic real trader and judge can approve an OPEN through the runner', async () => {
+    const persona = await loadPersonaConfig();
+    const record = await runDecision(BAR, persona, {
+      ...depsWithJudgeInput(),
+      analyst: {
+        analyze() {
+          return {
+            thesis:
+              'XAUUSD has enough bullish confluence for the deterministic v0 trader and judge fixture.',
+            bias: 'long',
+            confidence: persona.scoring.threshold / 100,
+            confluenceScore: persona.judge.threshold,
+            keyLevels: [{ name: 'fixture support', price: BAR.low, timeframe: persona.timeframe }],
+            regimeLabel: 'B_trend_retrace',
+            regimeNote: 'fixture',
+            cacheStats: ZERO_CACHE_STATS,
+          };
+        },
+      },
+      trader: createVAnkitClassicTrader({
+        currentEquity: () => 100_000,
+        recentAtrPips: () => 120,
+      }),
+      judge: createVAnkitClassicJudge(),
+      buildJudgeInput(input): JudgeInput {
+        return {
+          traderOutput: input.traderOutput,
+          analystOutput: input.analystOutput,
+          riskBudgetRemaining: {
+            dailyPct: persona.risk.maxPerTradePct,
+            overallPct: persona.risk.maxPerTradePct,
+          },
+          openExposure: {
+            totalPct: 0,
+            sameDirectionPct: 0,
+          },
+          recentDecisions: [],
+          calendarLookahead: [],
+          spreadStats: {
+            current: 1,
+            typical: 1,
+          },
+          strategyParams: persona as unknown as Record<string, unknown>,
+        };
+      },
+    });
+
+    expect(() => DecisionRecord.parse(record)).not.toThrow();
+    expect(record.traderOutput.action).toBe('OPEN');
+    expect(record.judgeOutput?.verdict).toBe('APPROVE');
+    expect(record.gatewayDecision?.status).toBe('submitted');
   });
 
   test('CLOSE after judge approve also reaches the replay gateway', async () => {

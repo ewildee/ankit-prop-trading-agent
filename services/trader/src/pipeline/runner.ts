@@ -36,7 +36,7 @@ export async function runDecision(
     });
   } else {
     judgeOutput =
-      traderOutput.action === 'HOLD'
+      deps.buildJudgeInput === undefined
         ? null
         : JudgeOutput.parse(
             await deps.judge.evaluate({

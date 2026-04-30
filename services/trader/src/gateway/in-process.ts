@@ -20,6 +20,14 @@ function decideInProcess(
   judgeOutput: JudgeOutput | null,
   decidedAt: string,
 ): GatewayDecision {
+  if (judgeOutput?.verdict !== 'APPROVE' && judgeOutput !== null) {
+    return {
+      status: 'not_submitted',
+      reason: 'judge_reject',
+      traderOutput,
+      railVerdict: null,
+    };
+  }
   if (traderOutput.action === 'HOLD') {
     return {
       status: 'not_submitted',
@@ -28,7 +36,7 @@ function decideInProcess(
       railVerdict: null,
     };
   }
-  if (judgeOutput?.verdict !== 'APPROVE') {
+  if (judgeOutput === null) {
     return {
       status: 'not_submitted',
       reason: 'judge_reject',

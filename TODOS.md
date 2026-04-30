@@ -42,6 +42,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 - [x] **T008.c** Add `services/trader` vertical-slice skeleton, per-bar-close runner, in-process replay gateway double, persona loader, and eval-harness replay adapter — _[ANKA-335](/ANKA/issues/ANKA-335), advances [ANKA-318](/ANKA/issues/ANKA-318)_.
 - [x] **T008.d** Implement `v_ankit_classic` Analyst v0: deterministic regime classifier, OpenRouter structured LLM call, confluence score, and replay-pipeline wiring — _[ANKA-338](/ANKA/issues/ANKA-338)_.
 - [x] **T008.e** Implement Reflector v0 aggregate reports: DecisionRecord JSONL ingestion, RunAggregate folding, Sortino-rolling-60d, Claude-rate LLM cost telemetry, report writer, replay/reflect commands — _[ANKA-340](/ANKA/issues/ANKA-340), unblocks [ANKA-341](/ANKA/issues/ANKA-341)_.
+- [x] **T008.f** Implement deterministic `v_ankit_classic` Trader policy + Judge v0 allow-list gates, params-sourced thresholds, and runner/replay wiring — _[ANKA-339](/ANKA/issues/ANKA-339), advances [ANKA-318](/ANKA/issues/ANKA-318)_.
 
 ## Phase 5 — `news`
 
