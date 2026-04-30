@@ -2,6 +2,25 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 18:31 Europe/Amsterdam — [ANKA-389](/ANKA/issues/ANKA-389) PR #41 rebase-merged into ANKA-318 base; ANKA-391 filed for orthogonal schema-cap blocker
+
+**Agent:** FoundingEngineer (claude_local). **Run:** `7a9c450e-ef64-4c5a-a51e-da5eb8bda25c` (resume `78de6d35-6e77-4073-878c-1f66d466e2f7` after `transient_failure_retry`). **Wake:** `issue_comment_mentioned` after [@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177) PASS verdict (comment `38117a09`).
+
+**What was done**
+
+- Reviewer chain on PR #41 (`feat(svc:trader/analyst): add 'JSON' keyword to wrapper instruction for json_object validator`) signed off: CodeReviewer APPROVE earlier, QAEngineer PASS at 16:18Z. Both reviewers pasted local-check evidence per §31 (focused Analyst spec 18/0/67, trader suite 67/0/263, typecheck exit 0, lint exit 0). No SecurityReviewer (in-code wrapper change, no new secrets surface).
+- ANKA-341 7d replay rerun against PR head `97c43d4ca3df14236d5a5f71291fe7f9364bde60` from worktree `.paperclip/worktrees/ANKA-389` (cwd = worktree root so `FIXTURE_ROOT=data/market-data/twelvedata/v1.0.0-2026-04-28` resolves; `.env` symlinked from repo root for `OPENROUTER_API_KEY`). Run `anka341-fe-20260430T162700Z` logged 143 pre-window 5m XAUUSD bars (`2026-04-21T00:05Z → 11:55Z`) cleanly with `gatewayDecision.reason=judge_reject`/`trader_hold` (Analyst skipped, cost=0). First active-window bar (`2026-04-21T12:00Z` = 14:00 Prague) cleared the Azure 400 — the previous `Response input messages must contain the word 'json'` validator no longer fires. Prior heartbeat-killed run `anka341-fe-20260430T162144Z` (153 decisions before SIGHUP) recorded successful Analyst output for active-window bars 12:00–12:45Z with non-zero `costUsd` (0.004, 0.0063, 0.0043) and parsed `bias=neutral`.
+- PR was draft → `gh pr ready 41` → `gh pr merge 41 --rebase --match-head-commit 97c43d4ca3df14236d5a5f71291fe7f9364bde60` to land on the in-flight base `ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay`. Merge commit `b9138af002f5f95345253967638bb93a0f4ff5de` recorded by GitHub at 2026-04-30T16:31:16Z. PR head was 1 commit (`97c43d4`) — clean rebase, no rewrite.
+- Filed sibling issue [ANKA-391](/ANKA/issues/ANKA-391) under parent ANKA-380 for the orthogonal blocker the rerun then surfaced: `Analyst generation output validation failed: too_big maximum=200 path=["reasoningSummary"]` from `packages/shared-contracts/src/personas.ts:53` (`z.string().max(200).optional()`). Cap sits at the model's typical output length (observed 93–195 chars on the killed run; sometimes >200 chars from `openai/gpt-5.4-mini` post-`d69b632` swap), so the throw is intermittent and blocks 7d replay completion. Recommended A+B fix (widen cap to 500 + instruct model to keep it tight).
+
+**Why**
+
+ANKA-380 board directive (Option B') required injecting the literal word `JSON` into the in-code Analyst user-prompt instruction so the OpenAI/Azure `text.format: json_object` input validator stops 400-ing on every active-window call. PR #41 satisfies the directive: behavioural acceptance items 1–4 all met (instruction string contains `JSON`, spec asserts the substring, retry/timeout/JSON-mode specs green, lint+typecheck+test clean), live smoke proven via the full `createVAnkitClassicAnalyst()` stage on an active-window bar (per QA verdict), and the 7d replay rerun confirms the Azure 400 fault is gone in production. The schema-cap throw is a separate fault that surfaced *because* the model now responds — tracked as ANKA-391.
+
+**Next action**
+
+- ANKA-391 (CodexExecutor) takes the schema-cap fix; FoundingEngineer reruns the ANKA-341 7d replay end-to-end after that lands.
+
 ## 2026-04-30 17:52 Europe/Amsterdam — [ANKA-385](/ANKA/issues/ANKA-385) PR #40 rebase-merged into ANKA-318 base branch
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `dd20a9ed-b9ff-4e88-86f9-965d9529782f`. **Wake:** `issue_comment_mentioned` after [@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177) PASS verdict (comment `3f5c7759`).
