@@ -26,6 +26,7 @@ _Append-only, newest first. Never edit past entries._
 - `bun run typecheck` -> exit 0.
 - Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
 - `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
 
 ## 2026-04-30 11:44 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) Trader policy v0 + Judge v0 — v0.4.57 / trader v0.5.0
 

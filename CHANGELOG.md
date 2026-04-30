@@ -26,6 +26,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bun run typecheck` -> exit 0.
 - Persona-path numeric grep over `services/trader/src/trader/*.ts services/trader/src/judge/*.ts` -> no matches.
 - `git diff --check` -> exit 0.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
 
 ## 0.4.57 / @ankit-prop/trader@0.5.0 — 2026-04-30 11:44 Europe/Amsterdam — Trader policy v0 + Judge v0
 
