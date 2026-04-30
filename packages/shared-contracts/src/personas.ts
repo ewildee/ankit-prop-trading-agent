@@ -54,7 +54,7 @@ export const AnalystOutput = z.strictObject({
   supportingEvidence: z.string().max(1200).optional(),
   withholdMinutes: z.number().int().min(0).max(60).optional(),
   freshnessLag: z.number().int().nonnegative().optional(),
-  fallbackReason: z.enum(['no_object_generated_length']).optional(),
+  fallbackReason: z.enum(['no_object_generated_length', 'request_timeout']).optional(),
   cacheStats: CacheLayerStats,
   costUsd: StageCostUsd,
 });
@@ -64,6 +64,7 @@ export const AnalystRuntimeConfig = z.strictObject({
   model: z.string().min(1),
   maxOutputTokens: z.number().int().positive(),
   reasoningMaxTokens: z.number().int().positive().optional(),
+  requestTimeoutMs: z.number().int().positive().optional(),
   barLookback: z.number().int().positive(),
   calendarLookaheadLimit: z.number().int().nonnegative(),
   regime: z.strictObject({

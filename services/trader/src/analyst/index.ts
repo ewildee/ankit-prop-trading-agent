@@ -17,6 +17,7 @@ import { classifyRegime } from './regime-classifier.ts';
 
 const ANALYST_GENERATION_MAX_ATTEMPTS = 3;
 const ANALYST_GENERATION_RETRY_MAX_OUTPUT_TOKENS = 4096;
+export const DEFAULT_ANALYST_REQUEST_TIMEOUT_MS = 90_000;
 const ANALYST_SAFE_FALLBACK_THESIS =
   'ANALYST_SAFE_FALLBACK: structured generation failed after retry escalation; neutral HOLD emitted.';
 const OUTSIDE_ACTIVE_WINDOW_THESIS =
@@ -45,6 +46,8 @@ export type AnalystGenerationRequest = {
   readonly maxOutputTokens: number;
   readonly reasoningMaxTokens?: number;
   readonly reasoningStrategy?: 'max_tokens' | 'effort_low' | 'none';
+  readonly requestTimeoutMs: number;
+  readonly abortSignal?: AbortSignal;
   readonly system: string;
   readonly prompt: string;
 };
@@ -58,6 +61,16 @@ export type AnalystGenerationResult = {
 export type AnalystGenerator = (
   request: AnalystGenerationRequest,
 ) => Promise<AnalystGenerationResult>;
+
+export class RequestTimeoutError extends Error {
+  readonly requestTimeoutMs: number;
+
+  constructor(requestTimeoutMs: number) {
+    super(`Analyst generateObject timed out after ${requestTimeoutMs}ms`);
+    this.name = 'RequestTimeoutError';
+    this.requestTimeoutMs = requestTimeoutMs;
+  }
+}
 
 export type CreateVAnkitClassicAnalystOptions = {
   readonly generator?: AnalystGenerator;
@@ -99,6 +112,8 @@ export function createVAnkitClassicAnalyst(
       const baseGenerationRequest = {
         model: input.persona.analyst.model,
         maxOutputTokens: input.persona.analyst.maxOutputTokens,
+        requestTimeoutMs:
+          input.persona.analyst.requestTimeoutMs ?? DEFAULT_ANALYST_REQUEST_TIMEOUT_MS,
         system: staticPrompt,
         prompt: buildAnalystPrompt({
           input,
@@ -116,6 +131,7 @@ export function createVAnkitClassicAnalyst(
       if (!generation.success) {
         return fallbackAnalystOutput({
           regimeLabel,
+          fallbackReason: generation.failure.fallbackReason,
           telemetry: generation.telemetry,
         });
       }
@@ -185,6 +201,7 @@ export function createOpenRouterAnalystGenerator(
       system: request.system,
       prompt: request.prompt,
       maxOutputTokens: request.maxOutputTokens,
+      ...(request.abortSignal ? { abortSignal: request.abortSignal } : {}),
       providerOptions: buildOpenRouterAnalystProviderOptions(request),
     });
     return {
@@ -195,7 +212,9 @@ export function createOpenRouterAnalystGenerator(
   };
 }
 
-export function buildOpenRouterAnalystProviderOptions(request: AnalystGenerationRequest) {
+export function buildOpenRouterAnalystProviderOptions(
+  request: Pick<AnalystGenerationRequest, 'reasoningMaxTokens' | 'reasoningStrategy'>,
+) {
   const openrouter: {
     usage: { include: boolean };
     reasoning?: {
@@ -236,6 +255,7 @@ type AnalystGenerationFailure = {
 };
 
 type RetryableAnalystGenerationFailure = {
+  readonly fallbackReason: NonNullable<AnalystOutputType['fallbackReason']>;
   readonly usage?: LanguageModelUsage;
   readonly providerMetadata?: ProviderMetadata;
 };
@@ -254,11 +274,11 @@ async function generateWithRetry(
 
   for (const request of analystGenerationAttempts(baseRequest)) {
     try {
-      const result = await generator(request);
+      const result = await generateAnalystObjectWithTimeout(generator, request);
       telemetry = addGenerationTelemetry(telemetry, telemetryFromGenerationResult(result));
       return { success: true, result, telemetry };
     } catch (error) {
-      if (!isRetryableNoObjectLengthFailure(error)) throw error;
+      if (!isRetryableAnalystGenerationFailure(error)) throw error;
       lastRetryableFailure = retryableAnalystGenerationFailureFromError(error);
       telemetry = addGenerationTelemetry(
         telemetry,
@@ -269,9 +289,33 @@ async function generateWithRetry(
 
   return {
     success: false,
-    failure: lastRetryableFailure ?? {},
+    failure: lastRetryableFailure ?? { fallbackReason: 'request_timeout' },
     telemetry,
   };
+}
+
+export async function generateAnalystObjectWithTimeout(
+  generator: AnalystGenerator,
+  request: AnalystGenerationRequest,
+): Promise<AnalystGenerationResult> {
+  const controller = new AbortController();
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      const error = new RequestTimeoutError(request.requestTimeoutMs);
+      reject(error);
+      controller.abort(error);
+    }, request.requestTimeoutMs);
+  });
+
+  try {
+    return await Promise.race([
+      generator({ ...request, abortSignal: controller.signal }),
+      timeoutPromise,
+    ]);
+  } finally {
+    if (timeoutId !== undefined) clearTimeout(timeoutId);
+  }
 }
 
 function analystGenerationAttempts(
@@ -299,9 +343,11 @@ function analystGenerationAttempts(
 
 function fallbackAnalystOutput({
   regimeLabel,
+  fallbackReason,
   telemetry,
 }: {
   readonly regimeLabel: AnalystOutputType['regimeLabel'];
+  readonly fallbackReason: NonNullable<AnalystOutputType['fallbackReason']>;
   readonly telemetry: AnalystGenerationTelemetry;
 }): AnalystOutputType {
   const parsed = AnalystOutput.parse({
@@ -312,11 +358,15 @@ function fallbackAnalystOutput({
     keyLevels: [],
     regimeLabel,
     regimeNote: 'analyst safe fallback',
-    fallbackReason: 'no_object_generated_length',
+    fallbackReason,
     cacheStats: telemetry.cacheStats,
-    costUsd: telemetry.costUsd,
+    costUsd: telemetry.costUsd ?? ZERO,
   });
   return parsed;
+}
+
+function isRetryableAnalystGenerationFailure(error: unknown): boolean {
+  return error instanceof RequestTimeoutError || isRetryableNoObjectLengthFailure(error);
 }
 
 function isRetryableNoObjectLengthFailure(error: unknown): boolean {
@@ -330,8 +380,12 @@ function isRetryableNoObjectLengthFailure(error: unknown): boolean {
 function retryableAnalystGenerationFailureFromError(
   error: unknown,
 ): RetryableAnalystGenerationFailure {
-  if (!isRecord(error)) return {};
+  if (error instanceof RequestTimeoutError) {
+    return { fallbackReason: 'request_timeout' };
+  }
+  if (!isRecord(error)) return { fallbackReason: 'no_object_generated_length' };
   return {
+    fallbackReason: 'no_object_generated_length',
     ...(isLanguageModelUsage(error.usage) ? { usage: error.usage } : {}),
     ...(isProviderMetadata(error.providerMetadata)
       ? { providerMetadata: error.providerMetadata }

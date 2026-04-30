@@ -2,6 +2,45 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 16:15 Europe/Amsterdam — [ANKA-374](/ANKA/issues/ANKA-374) Analyst request timeout — trader v0.9.0 / contracts v3.4.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` child fix for the [ANKA-341](/ANKA/issues/ANKA-341) replay hang.
+
+**What was done**
+
+- Fetched/read `https://bun.com/llms.txt` before editing Bun-runtime TypeScript.
+- Added optional `analyst.requestTimeoutMs` to the shared persona contract while leaving the default code-only at `90_000` ms.
+- Wrapped each Analyst generation attempt in a timeout race that aborts the `generateObject` request signal and makes `RequestTimeoutError` retryable.
+- Set unpriced Analyst safe fallbacks to explicit `costUsd: 0`.
+- Added Analyst and replay specs for timeout rejection, retry-after-hang, persistent timeout fallback, and a 30-bar hanging-attempt stress replay.
+- Bumped root `0.4.64` -> `0.4.65`, `@ankit-prop/trader` `0.8.0` -> `0.9.0`, and `@ankit-prop/contracts` `3.3.0` -> `3.4.0`.
+
+**Findings**
+
+- AI SDK `generateObject` exposes a top-level `abortSignal` in `ai@6.0.168`; no providerOptions nesting is needed.
+- Existing all-unpriced no-object fallback behaviour left `costUsd` undefined, which is the cost-telemetry leak [ANKA-374](/ANKA/issues/ANKA-374) called out.
+
+**Contradictions**
+
+- None. The timeout default is infrastructure, not a persona tuning default, so `params.yaml` remains unchanged.
+
+**Decisions**
+
+- Use a named code default and optional config override instead of writing a default into strategy YAML.
+- Add a distinct `request_timeout` fallback marker so timeout fallbacks are not mislabelled as no-object length failures.
+
+**Unexpected behaviour**
+
+- The fresh worktree had no `node_modules`; `bun install` restored pinned dependencies without changing `bun.lock`.
+
+**Adaptations**
+
+- Added replay-level stress coverage after the unit timeout tests so the [ANKA-341](/ANKA/issues/ANKA-341) driver path is covered, not only the Analyst helper.
+
+**Open endings**
+
+- [ANKA-374](/ANKA/issues/ANKA-374) needs commit/push, then CodeReviewer and QAEngineer handoff.
+
 ## 2026-04-30 15:38 Europe/Amsterdam — [ANKA-371](/ANKA/issues/ANKA-371) Analyst active-window LLM skip — trader v0.8.0
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` child fix for the [ANKA-341](/ANKA/issues/ANKA-341) replay cost gate.

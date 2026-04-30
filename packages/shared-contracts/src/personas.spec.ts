@@ -162,6 +162,9 @@ describe('persona pipeline contracts', () => {
     });
 
     expect(parsed.fallbackReason).toBe('no_object_generated_length');
+    expect(
+      AnalystOutput.parse({ ...analystOutput, fallbackReason: 'request_timeout' }).fallbackReason,
+    ).toBe('request_timeout');
   });
 
   test('AnalystRuntimeConfig carries model, lookback, and regime thresholds', () => {
@@ -169,6 +172,7 @@ describe('persona pipeline contracts', () => {
       model: 'moonshotai/kimi-k2.6',
       maxOutputTokens: 1200,
       reasoningMaxTokens: 128,
+      requestTimeoutMs: 90000,
       barLookback: 18,
       calendarLookaheadLimit: 8,
       regime: {
@@ -183,6 +187,7 @@ describe('persona pipeline contracts', () => {
     });
 
     expect(parsed.model).toBe('moonshotai/kimi-k2.6');
+    expect(parsed.requestTimeoutMs).toBe(90000);
     expect(
       AnalystRuntimeConfig.safeParse({
         ...parsed,

@@ -2,6 +2,37 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.65 / @ankit-prop/trader@0.9.0 / @ankit-prop/contracts@3.4.0 — 2026-04-30 16:15 Europe/Amsterdam — Analyst request timeout
+
+**Initiated by:** CodexExecutor, implementing [ANKA-374](/ANKA/issues/ANKA-374) after the [ANKA-341](/ANKA/issues/ANKA-341) replay hung on a live Kimi K2.6 Analyst call.
+
+**Why:** OpenRouter / upstream provider stalls produced no SDK exception, so [ANKA-365](/ANKA/issues/ANKA-365)'s retry loop never ran and the 7d replay could hang indefinitely.
+
+**Changed** — `feat(svc:trader/analyst)` / `feat(pkg:contracts/personas)`
+
+- `packages/shared-contracts/src/personas.ts` — adds optional `analyst.requestTimeoutMs` and the `request_timeout` Analyst fallback marker.
+- `services/trader/src/analyst/index.ts` — defaults Analyst request timeout to `90_000` ms in code, passes `abortSignal` to `generateObject`, and treats `RequestTimeoutError` as retryable across the existing three-attempt escalation.
+- `services/trader/src/analyst/index.ts` — emits explicit `costUsd: 0` on unpriced safe fallbacks so Reflector cost telemetry does not fall through to Sonnet pricing.
+- Specs cover direct timeout rejection, timeout retry success, persistent timeout fallback, zero-cost fallback telemetry, and a 30-bar replay where half of Analyst generation attempts hang before retrying.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.64` -> `0.4.65`.
+- `@ankit-prop/trader` `0.8.0` -> `0.9.0`.
+- `@ankit-prop/contracts` `3.3.0` -> `3.4.0`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 54 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied on the final run).
+- `bun run lint` -> exit 0 (`Found 54 warnings. Found 37 infos.` — same pre-existing repo-wide diagnostics).
+- `bun run --cwd services/trader test` -> 65 pass / 0 fail / 260 expects.
+- `bun test packages/shared-contracts/src` -> 79 pass / 0 fail / 185 expects.
+- `bun run --cwd services/trader typecheck` -> exit 0.
+- `bun run typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+- Debug scan over changed source/spec/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 with the Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
 ## 0.4.64 / @ankit-prop/trader@0.8.0 — 2026-04-30 15:38 Europe/Amsterdam — Analyst active-window LLM skip
 
 **Initiated by:** CodexExecutor, implementing [ANKA-371](/ANKA/issues/ANKA-371) to unblock the [ANKA-341](/ANKA/issues/ANKA-341) 7d replay cost gate.

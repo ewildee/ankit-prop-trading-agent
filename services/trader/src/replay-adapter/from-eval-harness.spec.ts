@@ -18,6 +18,7 @@ import { runTraderReplay } from './from-eval-harness.ts';
 
 const WINDOW_FROM_MS = Date.parse('2026-04-27T12:00:00.000Z');
 const WINDOW_TO_MS = Date.parse('2026-04-27T13:00:00.000Z');
+const TEST_REPLAY_REQUEST_TIMEOUT_MS = 10;
 const ONE_DAY_WINDOW = {
   fromMs: WINDOW_FROM_MS,
   toMs: WINDOW_TO_MS,
@@ -241,6 +242,56 @@ describe('runTraderReplay', () => {
     }
   });
 
+  test('completes a 30-bar replay when half of analyst generation attempts hang', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
+    try {
+      const bars = barsWithThirtyActiveSignals();
+      const provider = new StaticMarketDataProvider(bars);
+      const persona = personaWithAnalystRequestTimeout(
+        await loadPersonaConfig(),
+        TEST_REPLAY_REQUEST_TIMEOUT_MS,
+      );
+      let generationCalls = 0;
+      const analystGenerator: AnalystGenerator = async () => {
+        generationCalls += 1;
+        if (generationCalls % 2 === 1) {
+          return new Promise<never>(() => {});
+        }
+        return fixtureAnalystGenerator({
+          model: persona.analyst.model,
+          maxOutputTokens: persona.analyst.maxOutputTokens,
+          requestTimeoutMs: TEST_REPLAY_REQUEST_TIMEOUT_MS,
+          system: 'system',
+          prompt: 'prompt',
+        });
+      };
+
+      const result = await runTraderReplay({
+        runId: 'replay-adapter-analyst-timeout-stress-spec',
+        persona,
+        provider,
+        symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+        window: {
+          fromMs: bars[0]?.tsStart ?? WINDOW_FROM_MS,
+          toMs: (bars.at(-1)?.tsEnd ?? WINDOW_FROM_MS) + 1,
+        },
+        account: ACCOUNT,
+        symbolMetas: await provider.listSymbols(),
+        logPath: join(tmp, 'decisions.jsonl'),
+        reflectAtEnd: false,
+        analystGenerator,
+      });
+
+      expect(result.decisions).toHaveLength(30);
+      expect(generationCalls).toBe(60);
+      expect(
+        result.decisions.every((decision) => decision.analystOutput.fallbackReason === undefined),
+      ).toBe(true);
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
   test('keeps the daily risk budget across UTC midnight within one Prague day and resets at the Prague boundary', async () => {
     const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
     try {
@@ -401,6 +452,25 @@ function barsWithRepeatedLongSignals(): Bar[] {
   });
 }
 
+function barsWithThirtyActiveSignals(): Bar[] {
+  const firstStartMs = Date.parse('2026-04-30T12:00:00.000Z');
+  return Array.from({ length: 30 }, (_, index) => {
+    const tsStart = firstStartMs + index * 5 * 60 * 1000;
+    const close = 100 + index * 2;
+    return {
+      symbol: 'XAUUSD',
+      timeframe: '5m',
+      tsStart,
+      tsEnd: tsStart + 5 * 60 * 1000,
+      open: close - 1,
+      high: close + 1,
+      low: close - 2,
+      close,
+      volume: 1000 + index,
+    };
+  });
+}
+
 function barsAcrossOutsideAndActiveWindows(): Bar[] {
   return [barAt('2026-04-30T04:00:00.000Z', 100), barAt('2026-04-30T12:10:00.000Z', 102)];
 }
@@ -479,6 +549,19 @@ function personaWithAllDaySignalWindow(persona: PersonaConfig): PersonaConfig {
         start: '00:00',
         end: '23:59',
       },
+    },
+  };
+}
+
+function personaWithAnalystRequestTimeout(
+  persona: PersonaConfig,
+  requestTimeoutMs: number,
+): PersonaConfig {
+  return {
+    ...persona,
+    analyst: {
+      ...persona.analyst,
+      requestTimeoutMs,
     },
   };
 }

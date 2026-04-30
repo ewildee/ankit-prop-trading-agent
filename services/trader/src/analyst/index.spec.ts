@@ -7,8 +7,14 @@ import type { AnalystGenerationRequest } from './index.ts';
 import {
   buildOpenRouterAnalystProviderOptions,
   createVAnkitClassicAnalyst,
+  DEFAULT_ANALYST_REQUEST_TIMEOUT_MS,
+  generateAnalystObjectWithTimeout,
   openRouterCostUsdFromProviderMetadata,
+  RequestTimeoutError,
 } from './index.ts';
+
+const TEST_REQUEST_TIMEOUT_MS = 20;
+const TEST_TIMEOUT_ASSERTION_LIMIT_MS = 250;
 
 type AnalystGenerationDraft = Omit<
   AnalystOutput,
@@ -46,6 +52,7 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(requests.length).toBe(6);
     expect(requests.at(-1)?.model).toBe('moonshotai/kimi-k2.6');
     expect(requests.at(-1)?.reasoningMaxTokens).toBe(params.analyst.reasoningMaxTokens);
+    expect(requests.at(-1)?.requestTimeoutMs).toBe(DEFAULT_ANALYST_REQUEST_TIMEOUT_MS);
     expect(requests.at(-1)?.system).toContain('v_ankit_classic');
     expect(requests.at(-1)?.prompt).toContain('calendarLookahead');
     expect(requests.at(-1)?.prompt).toContain('Do not include regimeLabel');
@@ -139,11 +146,7 @@ describe('createVAnkitClassicAnalyst', () => {
     const reasoningMaxTokens = params.analyst.reasoningMaxTokens;
     if (reasoningMaxTokens === undefined) throw new Error('test params missing reasoningMaxTokens');
     const options = buildOpenRouterAnalystProviderOptions({
-      model: params.analyst.model,
-      maxOutputTokens: params.analyst.maxOutputTokens,
       reasoningMaxTokens,
-      system: 'system',
-      prompt: 'prompt',
     });
 
     expect(options.openrouter.reasoning).toEqual({
@@ -157,11 +160,7 @@ describe('createVAnkitClassicAnalyst', () => {
 
     expect(
       buildOpenRouterAnalystProviderOptions({
-        model: params.analyst.model,
-        maxOutputTokens: params.analyst.maxOutputTokens,
         reasoningStrategy: 'effort_low',
-        system: 'system',
-        prompt: 'prompt',
       }).openrouter.reasoning,
     ).toEqual({
       effort: 'low',
@@ -170,11 +169,7 @@ describe('createVAnkitClassicAnalyst', () => {
 
     expect(
       buildOpenRouterAnalystProviderOptions({
-        model: params.analyst.model,
-        maxOutputTokens: params.analyst.maxOutputTokens,
         reasoningStrategy: 'none',
-        system: 'system',
-        prompt: 'prompt',
         ...(params.analyst.reasoningMaxTokens
           ? { reasoningMaxTokens: params.analyst.reasoningMaxTokens }
           : {}),
@@ -257,6 +252,98 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(output.costUsd).toBeCloseTo(0.0456 * 3);
   });
 
+  test('aborts a hung generation attempt with a RequestTimeoutError', async () => {
+    const startedAt = performance.now();
+    let abortSignal: AbortSignal | undefined;
+
+    await expect(
+      generateAnalystObjectWithTimeout(
+        (request) => {
+          abortSignal = request.abortSignal;
+          return new Promise<never>(() => {});
+        },
+        baseGenerationRequest({ requestTimeoutMs: TEST_REQUEST_TIMEOUT_MS }),
+      ),
+    ).rejects.toThrow(RequestTimeoutError);
+
+    expect(performance.now() - startedAt).toBeLessThan(TEST_TIMEOUT_ASSERTION_LIMIT_MS);
+    expect(abortSignal?.aborted).toBe(true);
+    expect(abortSignal?.reason).toBeInstanceOf(RequestTimeoutError);
+  });
+
+  test('retries a hung generation attempt before returning generated output', async () => {
+    const params = await loadPersonaConfig();
+    const requests: AnalystGenerationRequest[] = [];
+    const analyst = createVAnkitClassicAnalyst({
+      generator: async (request) => {
+        requests.push(request);
+        if (requests.length === 1) {
+          return new Promise<never>(() => {});
+        }
+        return {
+          object: draftOutput(),
+          usage: usageFixture(),
+          providerMetadata: openRouterUsageCostFixture(0.012345),
+        };
+      },
+    });
+    const bar = barsFromCloses([2300]).at(-1)!;
+
+    const output = await analyst.analyze({
+      bar,
+      persona: withAnalystRequestTimeout(params, TEST_REQUEST_TIMEOUT_MS),
+      context: {
+        runId: 'analyst-timeout-retry-spec',
+        paramsHash: 'params-hash',
+        decidedAt: new Date(bar.tsEnd).toISOString(),
+      },
+    });
+
+    expect(requests.map((request) => request.reasoningStrategy)).toEqual([
+      'max_tokens',
+      'effort_low',
+    ]);
+    expect(requests.every((request) => request.requestTimeoutMs === TEST_REQUEST_TIMEOUT_MS)).toBe(
+      true,
+    );
+    expect(requests.every((request) => request.abortSignal instanceof AbortSignal)).toBe(true);
+    expect(output.bias).toBe('long');
+    expect(output.fallbackReason).toBeUndefined();
+    expect(output.cacheStats).toEqual(expectedCacheStats(1));
+    expect(output.costUsd).toBe(0.012345);
+  });
+
+  test('emits zero-cost neutral fallback after repeated generation timeouts', async () => {
+    const params = await loadPersonaConfig();
+    const requests: AnalystGenerationRequest[] = [];
+    const analyst = createVAnkitClassicAnalyst({
+      generator: (request) => {
+        requests.push(request);
+        return new Promise<never>(() => {});
+      },
+    });
+    const bar = barsFromCloses([2300]).at(-1)!;
+
+    const output = await analyst.analyze({
+      bar,
+      persona: withAnalystRequestTimeout(params, TEST_REQUEST_TIMEOUT_MS),
+      context: {
+        runId: 'analyst-timeout-fallback-spec',
+        paramsHash: 'params-hash',
+        decidedAt: new Date(bar.tsEnd).toISOString(),
+      },
+    });
+
+    expect(requests).toHaveLength(3);
+    expect(output.bias).toBe('neutral');
+    expect(output.confidence).toBe(0);
+    expect(output.confluenceScore).toBe(0);
+    expect(output.thesis).toContain('ANALYST_SAFE_FALLBACK');
+    expect(output.fallbackReason).toBe('request_timeout');
+    expect(output.cacheStats).toEqual(expectedCacheStats(0));
+    expect(output.costUsd).toBe(0);
+  });
+
   test('keeps cost undefined on unpriced retry failure before priced success', async () => {
     const params = await loadPersonaConfig();
     const requests: AnalystGenerationRequest[] = [];
@@ -293,7 +380,7 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(output.costUsd).toBe(0.01);
   });
 
-  test('keeps cost undefined when all retry failures omit provider pricing', async () => {
+  test('sets fallback cost to zero when all retry failures omit provider pricing', async () => {
     const params = await loadPersonaConfig();
     const analyst = createVAnkitClassicAnalyst({
       generator: async () => {
@@ -318,7 +405,7 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(output.bias).toBe('neutral');
     expect(output.fallbackReason).toBe('no_object_generated_length');
     expect(output.cacheStats).toEqual(expectedCacheStats(3));
-    expect(output.costUsd).toBeUndefined();
+    expect(output.costUsd).toBe(0);
   });
 
   test('malformed generator output fails with structured validation detail before overlay', async () => {
@@ -454,6 +541,32 @@ function openRouterUsageCostFixture(cost: number): ProviderMetadata {
       },
     },
   } as unknown as ProviderMetadata;
+}
+
+function baseGenerationRequest(
+  overrides: Partial<AnalystGenerationRequest> = {},
+): AnalystGenerationRequest {
+  return {
+    model: 'moonshotai/kimi-k2.6',
+    maxOutputTokens: 1200,
+    requestTimeoutMs: DEFAULT_ANALYST_REQUEST_TIMEOUT_MS,
+    system: 'system',
+    prompt: 'prompt',
+    ...overrides,
+  };
+}
+
+function withAnalystRequestTimeout<T extends Awaited<ReturnType<typeof loadPersonaConfig>>>(
+  params: T,
+  requestTimeoutMs: number,
+): T {
+  return {
+    ...params,
+    analyst: {
+      ...params.analyst,
+      requestTimeoutMs,
+    },
+  };
 }
 
 function noObjectGeneratedLengthError({
