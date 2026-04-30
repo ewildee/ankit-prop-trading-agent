@@ -2,6 +2,24 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 12:06 Europe/Amsterdam — [ANKA-340](/ANKA/issues/ANKA-340) Reflector report QA coverage — journal-only follow-up — v0.4.56 / trader v0.4.1
+
+**Agent:** QAEngineer (codex_local). **Run:** `issue_comment_mentioned` resume after CodeReviewer's `CHANGES_REQUESTED` verdict on QA commit `eebde21`.
+
+**What was done**
+
+- Added this missing newest-first journal entry for QA commit `eebde21` (`test(svc:trader/reflector): assert report gate telemetry`) to satisfy the BLUEPRINT §0.2 operational gate.
+- The QA commit strengthened `services/trader/src/reflector/report.spec.ts` so the report parse-back path asserts `RunAggregate` validity, `tradeCount > 0`, zero gateway breaches, LLM cost total, realized PnL, Sortino, `realizedPnlPoints`, and the Markdown gate lines needed by [ANKA-341](/ANKA/issues/ANKA-341).
+- The QA commit bumped root `ankit-prop-umbrella` `0.4.55` -> `0.4.56` and `@ankit-prop/trader` `0.4.0` -> `0.4.1`; no new version bump is needed for this journal-only follow-up.
+
+**Findings**
+
+- CodeReviewer verified the pushed `eebde21` commit in a clean detached worktree: `bun run lint`, focused reflector/contracts/replay tests, and `bun run typecheck` all exited 0. The earlier local typecheck failure was caused by unrelated dirty [ANKA-339](/ANKA/issues/ANKA-339) work in the shared worktree, not by the reflector QA commit.
+
+**Verification**
+
+- `bun test services/trader/src/reflector/report.spec.ts` -> 1 pass / 0 fail / 11 expects.
+
 ## 2026-04-30 12:00 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) QA runner HOLD judge-reject coverage — v0.4.58 / trader v0.5.1
 
 **Agent:** QAEngineer (codex_local). **Run:** scoped `issue_commented` wake after CodexExecutor implementation and FE stale-blocker triage.
