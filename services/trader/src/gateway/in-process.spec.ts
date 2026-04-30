@@ -188,6 +188,81 @@ describe('createInProcessReplayGateway', () => {
           reason: 'calendar_unavailable',
         }),
       );
+      expect(decision.railVerdict?.decisions).toContainEqual(
+        expect.objectContaining({
+          rail: 'news_pre_kill_2h',
+          outcome: 'reject',
+          reason: 'calendar_unavailable',
+        }),
+      );
+    }
+  });
+
+  test('fails closed when createInProcessReplayGateway is constructed without calendar context', async () => {
+    const persona = await loadPersonaConfig();
+    const bar = barAt('2026-04-27T12:00:00.000Z');
+    const decision = await createInProcessReplayGateway().decide({
+      bar,
+      persona,
+      context: contextAt(bar.tsEnd),
+      analystOutput: {} as never,
+      traderOutput: openOutput(),
+      judgeOutput: JUDGE_APPROVE,
+    });
+
+    expect(decision.status).toBe('not_submitted');
+    if (decision.status === 'not_submitted') {
+      expect(decision.reason).toBe('rail_block');
+      expect(decision.railVerdict?.decisions).toContainEqual(
+        expect.objectContaining({
+          rail: 'news_blackout_5m',
+          outcome: 'reject',
+          reason: 'calendar_unavailable',
+        }),
+      );
+      expect(decision.railVerdict?.decisions).toContainEqual(
+        expect.objectContaining({
+          rail: 'news_pre_kill_2h',
+          outcome: 'reject',
+          reason: 'calendar_unavailable',
+        }),
+      );
+    }
+  });
+
+  test('pins news_pre_kill_2h to a fixed two-hour window independent of persona lookahead', async () => {
+    const persona = await loadPersonaConfig();
+    const bar = barAt('2026-04-27T12:00:00.000Z');
+    const cases = [
+      { offsetMinutes: 119, outcome: 'reject' },
+      { offsetMinutes: 121, outcome: 'allow' },
+    ] as const;
+
+    for (const { offsetMinutes, outcome } of cases) {
+      const decision = await createInProcessReplayGateway({
+        calendarContext: () => ({
+          calendarLookahead: [
+            calendarItem(
+              persona.instrument,
+              new Date(bar.tsEnd + offsetMinutes * 60 * 1000).toISOString(),
+            ),
+          ],
+        }),
+      }).decide({
+        bar,
+        persona,
+        context: contextAt(bar.tsEnd),
+        analystOutput: {} as never,
+        traderOutput: openOutput(),
+        judgeOutput: JUDGE_APPROVE,
+      });
+
+      expect(decision.railVerdict?.decisions).toContainEqual(
+        expect.objectContaining({
+          rail: 'news_pre_kill_2h',
+          outcome,
+        }),
+      );
     }
   });
 

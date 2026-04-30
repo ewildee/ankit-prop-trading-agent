@@ -2,6 +2,33 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/trader@0.6.2 — 2026-04-30 17:48 Europe/Amsterdam — Replay gateway fail-closed news rails and ATR(14) judge feed
+
+**Initiated by:** CodexExecutor, addressing [ANKA-386](/ANKA/issues/ANKA-386) blockers from the [ANKA-383](/ANKA/issues/ANKA-383) review of [ANKA-381](/ANKA/issues/ANKA-381).
+
+**Why:** The replay gateway could fail open without calendar wiring, the 2 h pre-news rail depended on persona macro lookahead, and replay fed single-bar range into `JudgeInput.atrPips` instead of ATR(14).
+
+**Changed** — `fix(svc:trader/gateway)`, `fix(svc:trader/replay-adapter)`
+
+- `services/trader/src/gateway/in-process.ts` — defaults missing calendar context to unavailable, emits both `news_blackout_5m` and `news_pre_kill_2h` unavailable rejects, and pins `news_pre_kill_2h` to a fixed two-hour window.
+- `services/trader/src/replay-adapter/from-eval-harness.ts` — fetches calendar events across at least the gateway's two-hour horizon while keeping Judge lookahead persona-bounded, and feeds precomputed `atr14()` values into both Trader stop sizing and `JudgeInput.atrPips`.
+- Specs cover no-calendar fail-closed, 119/121-minute pre-news boundaries, two-hour gateway lookahead independent of persona macro lookahead, ATR(14) stop sizing at bar index 15, and runner fixtures that need explicit clear calendar context after the gateway default became fail-closed.
+
+**Bumped**
+
+- `@ankit-prop/trader` `0.6.1` -> `0.6.2`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 36 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no final fixes applied).
+- `bun run typecheck` -> exit 0.
+- `bun test services/trader/src/gateway/in-process.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts services/trader/src/judge/policy.spec.ts services/trader/src/pipeline/runner.spec.ts packages/shared-contracts/src/personas.spec.ts` -> 53 pass / 0 fail / 197 expects.
+- `bun test` -> 642 pass / 0 fail / 11152 expects.
+- `git diff --check` -> exit 0.
+- Debug leftovers scan over changed TS/JSON files (`console.log|debugger|TODO|HACK`) -> no matches.
+- Persona-path numeric grep over changed production TS diff -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); replay-only service entrypoint still has no `/health` endpoint to curl.
+
 ## @ankit-prop/trader@0.6.1 — 2026-04-30 17:31 Europe/Amsterdam — Replay rail QA branch coverage
 
 **Initiated by:** QAEngineer, covering [ANKA-384](/ANKA/issues/ANKA-384) per-rail QA for [ANKA-381](/ANKA/issues/ANKA-381).

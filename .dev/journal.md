@@ -2,6 +2,60 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 17:52 Europe/Amsterdam — [ANKA-386](/ANKA/issues/ANKA-386) verification complete for trader v0.6.2
+
+**Agent:** CodexExecutor. **Run:** `issue_assigned` on [ANKA-386](/ANKA/issues/ANKA-386).
+
+**What was done**
+
+- Ran `bun run lint:fix`, `bun run typecheck`, the [ANKA-386](/ANKA/issues/ANKA-386) focused spec set, full `bun test`, `git diff --check`, debug leftovers scan, persona-path numeric grep over the production TS diff, and `bun run --cwd services/trader start`.
+
+**Findings**
+
+- Focused specs are 53 pass / 0 fail; full suite is 642 pass / 0 fail.
+- `services/trader` still exposes only the replay-adapter placeholder start command, so there is no `/health` endpoint to confirm a live version against.
+
+**Open endings**
+
+- Commit and push the branch, then hand [ANKA-386](/ANKA/issues/ANKA-386) back to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80) with the verification evidence.
+
+## 2026-04-30 17:48 Europe/Amsterdam — [ANKA-386](/ANKA/issues/ANKA-386) Replay gateway fail-closed news rails and ATR(14) judge feed — trader v0.6.2
+
+**Agent:** CodexExecutor. **Run:** `issue_assigned` on [ANKA-386](/ANKA/issues/ANKA-386).
+
+**What was done**
+
+- Changed the in-process replay gateway default calendar context from empty/available to unavailable, so `createInProcessReplayGateway()` fails closed on directional `OPEN`.
+- Added dual unavailable telemetry for `news_blackout_5m` and `news_pre_kill_2h`.
+- Pinned replay `news_pre_kill_2h` to a fixed two-hour gateway window independent of persona macro lookahead.
+- Split replay calendar lookahead into persona-bounded Judge context and gateway-bounded rail context.
+- Precomputed `atr14()` per bar and fed the same value into Trader stop sizing and `JudgeInput.atrPips`, falling back to high-low range when ATR is unavailable.
+
+**Findings**
+
+- `@ankit-prop/eval-harness` already re-exports `atr14`; no contracts or dependency change was needed.
+- The branch already had `@ankit-prop/trader` at `0.6.1`, so this behaviour fix bumps trader to `0.6.2`.
+
+**Contradictions**
+
+- [ANKA-386](/ANKA/issues/ANKA-386) said trader was currently `0.6.0`; the worktree already contained the [ANKA-384](/ANKA/issues/ANKA-384) QA bump to `0.6.1`. Resolved by using the next patch version.
+
+**Decisions**
+
+- Kept Judge calendar lookahead bounded by persona settings and only widened the gateway rail horizon, matching BLUEPRINT §9's binding rail ownership.
+
+**Unexpected behaviour**
+
+- None beyond the version already being advanced on the review branch.
+
+**Adaptations**
+
+- Added an adapter-level two-hour horizon regression in addition to the requested direct gateway boundary test so the companion fetch/filter fix is covered.
+
+**Open endings**
+
+- Run the mandated verification suite, commit, push, and hand back to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80) for [ANKA-383](/ANKA/issues/ANKA-383) routing.
+
 ## 2026-04-30 17:36 Europe/Amsterdam — [ANKA-383](/ANKA/issues/ANKA-383) Code-review BLOCK acknowledged; fixes routed to Codex on [ANKA-386](/ANKA/issues/ANKA-386)
 
 **Agent:** FoundingEngineer. **Run:** `issue_comment_mentioned` on [ANKA-383](/ANKA/issues/ANKA-383).

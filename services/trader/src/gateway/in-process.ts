@@ -11,6 +11,7 @@ import type { GatewayStage, GatewayStageInput } from '../pipeline/stages.ts';
 
 const PRAGUE_HOUR_CYCLE = `h${TWO}${THREE}` as Intl.DateTimeFormatOptions['hourCycle'];
 const FIVE_MINUTES_MS = FIVE * SIXTY * THOUSAND;
+const TWO_HOURS_MS = TWO * SIXTY * SIXTY * THOUSAND;
 
 export type ReplayGatewayCalendarContext = {
   readonly calendarLookahead: ReadonlyArray<CalendarItem>;
@@ -21,16 +22,18 @@ export type CreateInProcessReplayGatewayOptions = {
   readonly calendarContext?: (input: GatewayStageInput) => ReplayGatewayCalendarContext;
 };
 
-const EMPTY_CALENDAR_CONTEXT: ReplayGatewayCalendarContext = {
-  calendarLookahead: [],
-};
-
 export function createInProcessReplayGateway(
   options: CreateInProcessReplayGatewayOptions = {},
 ): GatewayStage {
   return {
     decide(input): GatewayDecision {
-      return decideInProcess(input, options.calendarContext?.(input) ?? EMPTY_CALENDAR_CONTEXT);
+      return decideInProcess(
+        input,
+        options.calendarContext?.(input) ?? {
+          calendarUnavailable: true,
+          calendarLookahead: [],
+        },
+      );
     },
   };
 }
@@ -140,6 +143,15 @@ function replayRailDecisions(
         decidedAt,
       }),
     );
+    decisions.push(
+      RailDecision.parse({
+        rail: 'news_pre_kill_2h',
+        outcome: 'reject',
+        reason: 'calendar_unavailable',
+        detail: { replayOnly: true, instrument: input.persona.instrument },
+        decidedAt,
+      }),
+    );
   } else {
     const blackoutEvent = matchingCalendarEvent(input, calendarContext.calendarLookahead, (event) =>
       isWithinBlackoutWindow(input.bar.tsEnd, event),
@@ -200,7 +212,7 @@ function isWithinBlackoutWindow(nowMs: number, event: CalendarItem): boolean {
 function isPreNewsEvent(nowMs: number, event: CalendarItem): boolean {
   if (!event.restriction && event.impact !== 'high') return false;
   const eventTime = Date.parse(event.date);
-  return Number.isFinite(eventTime) && eventTime >= nowMs;
+  return Number.isFinite(eventTime) && eventTime >= nowMs && eventTime - nowMs <= TWO_HOURS_MS;
 }
 
 function eventMatchesInstrument(event: CalendarItem, instrument: string): boolean {

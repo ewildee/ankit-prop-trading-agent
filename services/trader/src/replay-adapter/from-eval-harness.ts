@@ -9,12 +9,13 @@ import {
 } from '@ankit-prop/contracts';
 import {
   type AccountConfig,
+  atr14,
   type BarStrategy,
   replayWithProvider,
   type SymbolMeta,
 } from '@ankit-prop/eval-harness';
 import type { Bar, CalendarEvent, IMarketDataProvider } from '@ankit-prop/market-data';
-import { SIXTY, THOUSAND, ZERO } from '../analyst/constants.ts';
+import { SIXTY, THOUSAND, TWO, ZERO } from '../analyst/constants.ts';
 import { type AnalystGenerator, createVAnkitClassicAnalyst } from '../analyst/index.ts';
 import { createInProcessReplayGateway } from '../gateway/in-process.ts';
 import { createVAnkitClassicJudge } from '../judge/policy.ts';
@@ -53,6 +54,8 @@ export type TraderReplayResult = {
   readonly report: ReflectorReport | null;
 };
 
+const TWO_HOURS_MS = TWO * SIXTY * SIXTY * THOUSAND;
+
 export async function runTraderReplay(input: TraderReplayInput): Promise<TraderReplayResult> {
   const bars: Bar[] = [];
   const collector: BarStrategy = {
@@ -79,9 +82,11 @@ export async function runTraderReplay(input: TraderReplayInput): Promise<TraderR
   await mkdir(dirname(logPath), { recursive: true });
   if (input.truncateLog ?? true) await rm(logPath, { force: true });
 
+  const atrPipsByBarEnd = buildAtrPipsByBarEnd(bars);
   const replayState = createReplayState(input.persona);
   const replayCalendar = await createReplayCalendar(input);
-  const deps = input.deps ?? createDefaultPipelineDeps(input, replayState, replayCalendar);
+  const deps =
+    input.deps ?? createDefaultPipelineDeps(input, replayState, replayCalendar, atrPipsByBarEnd);
   const decisions = [];
   for (const bar of bars) {
     replayState.advanceDay(bar);
@@ -119,7 +124,8 @@ type ReplayState = {
 };
 
 type ReplayCalendarContext = {
-  readonly calendarLookahead: CalendarItem[];
+  readonly judgeLookahead: CalendarItem[];
+  readonly gatewayLookahead: CalendarItem[];
   readonly calendarUnavailable: boolean;
 };
 
@@ -175,8 +181,10 @@ function createDefaultPipelineDeps(
   input: TraderReplayInput,
   replayState: ReplayState,
   replayCalendar: ReplayCalendar,
+  atrPipsByBarEnd: ReadonlyMap<number, number>,
 ): PipelineDeps {
   const symbolMeta = input.symbolMetas.find((meta) => meta.symbol === input.persona.instrument);
+  const atrPipsFor = (bar: Bar) => atrPipsByBarEnd.get(bar.tsEnd) ?? Math.abs(bar.high - bar.low);
   return {
     runId: input.runId,
     analyst:
@@ -190,7 +198,7 @@ function createDefaultPipelineDeps(
         ? createVAnkitClassicTrader({
             openPosition: () => replayState.openPosition(),
             currentEquity: () => input.account.initialCapital,
-            recentAtrPips: (stageInput) => Math.abs(stageInput.bar.high - stageInput.bar.low),
+            recentAtrPips: (stageInput) => atrPipsFor(stageInput.bar),
           })
         : createTraderStub(),
     judge:
@@ -199,7 +207,11 @@ function createDefaultPipelineDeps(
         : createJudgeStub(),
     gateway: createInProcessReplayGateway({
       calendarContext(stageInput) {
-        return replayCalendar.lookaheadFor(stageInput.bar);
+        const calendar = replayCalendar.lookaheadFor(stageInput.bar);
+        return {
+          calendarUnavailable: calendar.calendarUnavailable,
+          calendarLookahead: calendar.gatewayLookahead,
+        };
       },
     }),
     reflector: createReflectorStub(),
@@ -210,17 +222,18 @@ function createDefaultPipelineDeps(
           ? openPosition.pctEquity
           : ZERO;
       const calendar = replayCalendar.lookaheadFor(stageInput.bar);
+      const atrPips = atrPipsFor(stageInput.bar);
       return {
         traderOutput: stageInput.traderOutput,
         analystOutput: stageInput.analystOutput,
-        atrPips: Math.abs(stageInput.bar.high - stageInput.bar.low),
+        atrPips,
         riskBudgetRemaining: replayState.riskBudgetRemaining(),
         openExposure: {
           totalPct: openPosition?.pctEquity ?? ZERO,
           sameDirectionPct,
         },
         recentDecisions: replayState.recentDecisions(),
-        calendarLookahead: calendar.calendarLookahead,
+        calendarLookahead: calendar.judgeLookahead,
         spreadStats: {
           current: symbolMeta?.typicalSpreadPips ?? input.persona.filters.maxSpreadMultiplier,
           typical: symbolMeta?.typicalSpreadPips ?? input.persona.filters.maxSpreadMultiplier,
@@ -229,6 +242,15 @@ function createDefaultPipelineDeps(
       };
     },
   };
+}
+
+function buildAtrPipsByBarEnd(bars: ReadonlyArray<Bar>): ReadonlyMap<number, number> {
+  const values = new Map<number, number>();
+  bars.forEach((bar, index) => {
+    const atrPips = atr14(bars, index);
+    values.set(bar.tsEnd, atrPips > ZERO ? atrPips : Math.abs(bar.high - bar.low));
+  });
+  return values;
 }
 
 function sameDirectionOpen(
@@ -244,12 +266,14 @@ async function createReplayCalendar(input: TraderReplayInput): Promise<ReplayCal
     return unavailableReplayCalendar();
   }
 
-  const lookaheadMs = input.persona.analyst.regime.macroEventLookaheadMinutes * SIXTY * THOUSAND;
+  const personaLookaheadMs =
+    input.persona.analyst.regime.macroEventLookaheadMinutes * SIXTY * THOUSAND;
+  const gatewayLookaheadMs = Math.max(personaLookaheadMs, TWO_HOURS_MS);
   let events: readonly CalendarEvent[];
   try {
     events = await provider.getEvents({
       fromMs: input.window.fromMs,
-      toMs: input.window.toMs + lookaheadMs,
+      toMs: input.window.toMs + gatewayLookaheadMs,
     });
   } catch {
     return unavailableReplayCalendar();
@@ -262,15 +286,20 @@ async function createReplayCalendar(input: TraderReplayInput): Promise<ReplayCal
 
   return {
     lookaheadFor(bar) {
-      const cutoffMs = bar.tsEnd + lookaheadMs;
+      const judgeCutoffMs = bar.tsEnd + personaLookaheadMs;
+      const gatewayCutoffMs = bar.tsEnd + gatewayLookaheadMs;
+      const upcomingEvents = calendarItems.filter((event) => {
+        const eventTime = Date.parse(event.date);
+        return Number.isFinite(eventTime) && eventTime >= bar.tsEnd;
+      });
       return {
         calendarUnavailable: false,
-        calendarLookahead: calendarItems
-          .filter((event) => {
-            const eventTime = Date.parse(event.date);
-            return Number.isFinite(eventTime) && eventTime >= bar.tsEnd && eventTime <= cutoffMs;
-          })
+        judgeLookahead: upcomingEvents
+          .filter((event) => Date.parse(event.date) <= judgeCutoffMs)
           .slice(ZERO, input.persona.analyst.calendarLookaheadLimit),
+        gatewayLookahead: upcomingEvents.filter(
+          (event) => Date.parse(event.date) <= gatewayCutoffMs,
+        ),
       };
     },
   };
@@ -281,7 +310,8 @@ function unavailableReplayCalendar(): ReplayCalendar {
     lookaheadFor() {
       return {
         calendarUnavailable: true,
-        calendarLookahead: [],
+        judgeLookahead: [],
+        gatewayLookahead: [],
       };
     },
   };

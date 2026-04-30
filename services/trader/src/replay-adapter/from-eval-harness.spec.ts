@@ -3,7 +3,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DecisionRecord, type PersonaConfig } from '@ankit-prop/contracts';
-import type { AccountConfig, SymbolMeta } from '@ankit-prop/eval-harness';
+import { type AccountConfig, atr14, type SymbolMeta } from '@ankit-prop/eval-harness';
 import type {
   Bar,
   CalendarEvent,
@@ -280,7 +280,111 @@ describe('runTraderReplay', () => {
             reason: 'calendar_unavailable',
           }),
         );
+        expect(calendarBlocked.gatewayDecision.railVerdict?.decisions).toContainEqual(
+          expect.objectContaining({
+            rail: 'news_pre_kill_2h',
+            outcome: 'reject',
+            reason: 'calendar_unavailable',
+          }),
+        );
       }
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
+  test('feeds gateway a fixed two-hour calendar horizon independent of persona lookahead', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
+    try {
+      const bars = barsWithRepeatedLongSignals();
+      const eventAnchorBar = bars[0];
+      if (eventAnchorBar === undefined) throw new Error('expected at least one replay bar');
+      const provider = new StaticMarketDataProvider(bars, [
+        {
+          id: 'fomc-two-hour-fixture',
+          timestamp: eventAnchorBar.tsEnd + 119 * 60 * 1000,
+          symbols: ['XAUUSD'],
+          impact: 'high',
+          restricted: true,
+        },
+      ]);
+      const persona = personaWithMacroLookaheadMinutes(await loadReplayFixturePersona(), 30);
+      const result = await runTraderReplay({
+        runId: 'replay-adapter-two-hour-gateway-calendar-spec',
+        persona,
+        provider,
+        symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+        window: {
+          fromMs: WINDOW_FROM_MS,
+          toMs: WINDOW_FROM_MS + bars.length * 5 * 60 * 1000,
+        },
+        account: ACCOUNT,
+        symbolMetas: await provider.listSymbols(),
+        logPath: join(tmp, 'decisions.jsonl'),
+        reflectAtEnd: false,
+        analystGenerator: fixtureAnalystGenerator,
+      });
+
+      const railBlocked = result.decisions.find(
+        (decision) =>
+          decision.traderOutput.action === 'OPEN' &&
+          decision.gatewayDecision?.status === 'not_submitted' &&
+          decision.gatewayDecision.reason === 'rail_block',
+      );
+
+      expect(railBlocked?.judgeOutput?.verdict).toBe('APPROVE');
+      expect(railBlocked?.gatewayDecision?.status).toBe('not_submitted');
+      if (railBlocked?.gatewayDecision?.status === 'not_submitted') {
+        expect(railBlocked.gatewayDecision.railVerdict?.decisions).toContainEqual(
+          expect.objectContaining({
+            rail: 'news_pre_kill_2h',
+            outcome: 'reject',
+            reason: 'tier_one_pre_news_kill',
+          }),
+        );
+      }
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
+  test('feeds ATR(14) into JudgeInput.atrPips and trader stop sizing', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
+    try {
+      const bars = barsWithAtrAboveSingleBarRange();
+      const provider = new StaticMarketDataProvider(bars);
+      const persona = await loadReplayFixturePersona();
+      const result = await runTraderReplay({
+        runId: 'replay-adapter-atr14-spec',
+        persona,
+        provider,
+        symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+        window: {
+          fromMs: WINDOW_FROM_MS,
+          toMs: WINDOW_FROM_MS + bars.length * 5 * 60 * 1000,
+        },
+        account: ACCOUNT,
+        symbolMetas: await provider.listSymbols(),
+        logPath: join(tmp, 'decisions.jsonl'),
+        reflectAtEnd: false,
+        analystGenerator: analystGeneratorForBiases([...Array(15).fill('neutral'), 'long']),
+      });
+
+      const decision = result.decisions[15];
+      const expectedAtrPips = atr14(bars, 15);
+      const atrProbeBar = bars[15];
+      if (atrProbeBar === undefined) throw new Error('expected at least 16 replay bars');
+      const singleBarRange = Math.abs(atrProbeBar.high - atrProbeBar.low);
+
+      expect(expectedAtrPips).not.toBe(singleBarRange);
+      expect(decision?.traderOutput.action).toBe('OPEN');
+      if (decision?.traderOutput.action === 'OPEN') {
+        expect(decision.traderOutput.stopLossPips).toBe(
+          expectedAtrPips * persona.filters.minStopAtrMultiple,
+        );
+      }
+      expect(decision?.judgeOutput?.verdict).toBe('APPROVE');
+      expect(decision?.gatewayDecision?.status).toBe('submitted');
     } finally {
       await rm(tmp, { recursive: true, force: true });
     }
@@ -350,6 +454,24 @@ function barsWithRepeatedLongSignals(): Bar[] {
   });
 }
 
+function barsWithAtrAboveSingleBarRange(): Bar[] {
+  return Array.from({ length: 16 }, (_, index) => {
+    const tsStart = WINDOW_FROM_MS + index * 5 * 60 * 1000;
+    const close = 100 + index * 3;
+    return {
+      symbol: 'XAUUSD',
+      timeframe: '5m',
+      tsStart,
+      tsEnd: tsStart + 5 * 60 * 1000,
+      open: close,
+      high: close + 1,
+      low: close - 1,
+      close,
+      volume: 1000 + index,
+    };
+  });
+}
+
 function barsAcrossPragueDayForCloseThenReopen(): Bar[] {
   // Six contiguous 5m bars at the start of Prague day-28 (22:25Z..22:50Z UTC =
   // 00:25..00:50 Prague day-28) bootstrap the deterministic regime/confluence
@@ -408,6 +530,22 @@ function personaWithAllDaySignalWindow(persona: PersonaConfig): PersonaConfig {
         ...persona.families.sessionBreakout,
         start: '00:00',
         end: '23:59',
+      },
+    },
+  };
+}
+
+function personaWithMacroLookaheadMinutes(
+  persona: PersonaConfig,
+  macroEventLookaheadMinutes: number,
+): PersonaConfig {
+  return {
+    ...persona,
+    analyst: {
+      ...persona.analyst,
+      regime: {
+        ...persona.analyst.regime,
+        macroEventLookaheadMinutes,
       },
     },
   };

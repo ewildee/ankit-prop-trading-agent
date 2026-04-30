@@ -252,6 +252,7 @@ function personaWithImplementedRules(persona: PersonaConfig): PersonaConfig {
 function depsWithJudgeInput(): PipelineDeps {
   return {
     ...baseDeps(),
+    gateway: clearCalendarGateway(),
     buildJudgeInput(input): JudgeInput {
       return {
         traderOutput: input.traderOutput,
@@ -275,6 +276,12 @@ function depsWithJudgeInput(): PipelineDeps {
       };
     },
   };
+}
+
+function clearCalendarGateway(): GatewayStage {
+  return createInProcessReplayGateway({
+    calendarContext: () => ({ calendarLookahead: [] }),
+  });
 }
 
 function openOutput(): TraderOutput {
