@@ -11,6 +11,7 @@ config/*.config.yaml
 data/
 **/data/
 !packages/eval-harness/data/.gitkeep
+.dev/runs/
 
 # Build artefacts
 dist/
