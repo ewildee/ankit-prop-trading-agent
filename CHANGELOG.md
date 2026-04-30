@@ -41,39 +41,7 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - Reviewer's cwd-independent probe: `(cd packages/eval-harness && bun test src/replay-baseline.spec.ts)` → `2 pass / 0 fail`.
 - CLI byte-stability: `bun run packages/eval-harness/src/replay-cli.ts --fixture-root data/market-data/twelvedata/v1.0.0-2026-04-28 --smoke --strategy open_hold_close_v1 --symbol-set xauusd_5m --out /tmp/anka-280-byte-stability.json && cmp -s ...` → byte-identical (the new validation is a no-op for the CLI because `runReplaySnapshot` always supplies metas via `resolveSymbolMetas`).
 
-## 0.4.48 / @ankit-prop/eval-harness@0.2.0 — 2026-04-29 23:56 Europe/Amsterdam
-
-**Initiated by:** CodexExecutor, implementing [ANKA-280](/ANKA/issues/ANKA-280) under parent [ANKA-70](/ANKA/issues/ANKA-70).
-
-**Why:** [ANKA-70](/ANKA/issues/ANKA-70) needs the eval harness to replay the committed TwelveData fixture root through `@ankit-prop/market-data`'s `CachedFixtureProvider`, exercising existing FTMO simulator machinery deterministically without adding strategy logic, fill realism, or calibration knobs.
-
-**Added** — `feat(pkg:eval-harness/replay-driver)`
-
-- `packages/eval-harness/src/replay-driver.ts` — adds `ReplayInput` and `replayWithProvider(input)`. The driver fetches each requested `(symbol, timeframe)` via `provider.getBars({ symbol, timeframe, fromMs, toMs })`, k-way merges bars by `tsStart` with stable symbol/timeframe tie-breaks, fetches optional provider events, and calls existing `backtest()` with default `FTMO_DEFAULT_LINE` / `INTERNAL_DEFAULT_MARGINS`.
-- `packages/eval-harness/src/replay-strategies.ts` — adds deterministic regression strategies `NOOP_V1` and `OPEN_HOLD_CLOSE_V1`; the latter opens one 0.01-lot long and closes on the last bar of its opened symbol via replay preparation.
-- `packages/eval-harness/src/replay-cli.ts` — adds a Bun-native replay CLI runnable with `bun run packages/eval-harness/src/replay-cli.ts`, including `--fixture-root`, `--smoke` / `--full`, `--out`, `--strategy`, and `--symbol-set`; output snapshots use canonical JSON and sha256 trade/breach hashes.
-- `packages/eval-harness/baselines/*.json` — adds committed smoke baselines for `noop_v1` and `open_hold_close_v1` against `v1.0.0-2026-04-28` / `xauusd_5m`.
-
-**Changed** — `pkg:eval-harness`
-
-- `packages/eval-harness/src/backtest.ts` — adds `diagnostics.replayedTrades` so replay snapshots can hash the closed-trade stream while preserving the existing `EvalResult` shape.
-- `packages/eval-harness/src/index.ts` — exports the replay driver and deterministic replay strategies from the public package entrypoint.
-- `packages/eval-harness/src/replay-driver.spec.ts` / `replay-baseline.spec.ts` — cover smoke determinism, FTMO machinery wiring, type-level no-threshold-calibration, multi-symbol merge ordering, provider error pass-through, and committed-baseline equality.
-- `packages/eval-harness/package.json` / `bun.lock` — bump `@ankit-prop/eval-harness` `0.1.5` → `0.2.0`.
-- `biome.json` — excludes only `packages/eval-harness/baselines/*.json` so replay baselines remain byte-identical to the CLI's canonical compact JSON instead of being formatter-expanded.
-- `package.json` — bump root umbrella `0.4.47` → `0.4.48`.
-- `TODOS.md`, `.dev/progress.md`, `.dev/journal.md` — record [ANKA-280](/ANKA/issues/ANKA-280) progress and audit trail.
-
-**Verification**
-
-- `bun run lint:fix` → exit 0; pre-existing unrelated Biome warnings/infos remain, no fixes applied after the baseline ignore.
-- `bun test packages/eval-harness/src/replay-driver.spec.ts packages/eval-harness/src/replay-baseline.spec.ts packages/eval-harness/src/golden.spec.ts packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/backtest.spec.ts` → `26 pass / 0 fail / 8125 expects`.
-- CLI byte-stability check: `bun run packages/eval-harness/src/replay-cli.ts --fixture-root data/market-data/twelvedata/v1.0.0-2026-04-28 --smoke --strategy open_hold_close_v1 --symbol-set xauusd_5m --out /tmp/anka-280-open-hold-close.json && cmp -s /tmp/anka-280-open-hold-close.json packages/eval-harness/baselines/open_hold_close_v1__v1.0.0-2026-04-28__xauusd_5m__smoke.json` → `byte-identical`.
-- `bun run typecheck` → clean.
-- `bun test` → `517 pass / 0 fail / 10649 expects`.
-- `git diff --check` → clean.
-
-## @ankit-prop/dashboard@0.1.3 — 2026-04-29 22:05 Europe/Amsterdam
+## 0.4.48 / @ankit-prop/news@0.5.3 — 2026-04-30 00:29 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, implementing [ANKA-170](/ANKA/issues/ANKA-170) after [ANKA-169](/ANKA/issues/ANKA-169) unblocked the full `svc:news` Elysia app.
 
@@ -99,6 +67,38 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - `bun test` — 552 pass / 0 fail / 2764 expects.
 - `bun test --coverage` — 552 pass / 0 fail / 2764 expects; aggregate covered surface 99.24% functions / 99.45% lines. Lowest included files remain above threshold: `calendar-fetcher.ts` 90.48% functions / 98.36% lines and `routes/calendar.ts` 94.29% functions / 95.19% lines.
 - Service restart/health: `PORT=19270 NEWS_CALENDAR_DB_PATH=/tmp/anka-170-news-calendar.db NODE_ENV=production bun run --cwd services/news start`; `GET /health` returned HTTP 200 with `version:"0.5.3"` and `status:"healthy"`.
+
+## 0.4.48 / @ankit-prop/eval-harness@0.2.0 — 2026-04-29 23:56 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, implementing [ANKA-280](/ANKA/issues/ANKA-280) under parent [ANKA-70](/ANKA/issues/ANKA-70).
+
+**Why:** [ANKA-70](/ANKA/issues/ANKA-70) needs the eval harness to replay the committed TwelveData fixture root through `@ankit-prop/market-data`'s `CachedFixtureProvider`, exercising existing FTMO simulator machinery deterministically without adding strategy logic, fill realism, or calibration knobs.
+
+**Added** — `feat(pkg:eval-harness/replay-driver)`
+
+- `packages/eval-harness/src/replay-driver.ts` — adds `ReplayInput` and `replayWithProvider(input)`. The driver fetches each requested `(symbol, timeframe)` via `provider.getBars({ symbol, timeframe, fromMs, toMs })`, k-way merges bars by `tsStart` with stable symbol/timeframe tie-breaks, fetches optional provider events, and calls existing `backtest()` with default `FTMO_DEFAULT_LINE` / `INTERNAL_DEFAULT_MARGINS`.
+- `packages/eval-harness/src/replay-strategies.ts` — adds deterministic regression strategies `NOOP_V1` and `OPEN_HOLD_CLOSE_V1`; the latter opens one 0.01-lot long and closes on the last bar of its opened symbol via replay preparation.
+- `packages/eval-harness/src/replay-cli.ts` — adds a Bun-native replay CLI runnable with `bun run packages/eval-harness/src/replay-cli.ts`, including `--fixture-root`, `--smoke` / `--full`, `--out`, `--strategy`, and `--symbol-set`; output snapshots use canonical JSON and sha256 trade/breach hashes.
+- `packages/eval-harness/baselines/*.json` — adds committed smoke baselines for `noop_v1` and `open_hold_close_v1` against `v1.0.0-2026-04-28` / `xauusd_5m`.
+
+**Changed** — `pkg:eval-harness`
+
+- `packages/eval-harness/src/backtest.ts` — adds `diagnostics.replayedTrades` so replay snapshots can hash the closed-trade stream while preserving the existing `EvalResult` shape.
+- `packages/eval-harness/src/index.ts` — exports the replay driver and deterministic replay strategies from the public package entrypoint.
+- `packages/eval-harness/src/replay-driver.spec.ts` / `replay-baseline.spec.ts` — cover smoke determinism, FTMO machinery wiring, type-level no-threshold-calibration, multi-symbol merge ordering, provider error pass-through, and committed-baseline equality.
+- `packages/eval-harness/package.json` / `bun.lock` — bump `@ankit-prop/eval-harness` `0.1.5` → `0.2.0`.
+- `biome.json` — excludes only `packages/eval-harness/baselines/*.json` so replay baselines remain byte-identical to the CLI's canonical compact JSON instead of being formatter-expanded.
+- `package.json` — root umbrella stays `0.4.48` (cut against the same release window as `@ankit-prop/news@0.5.3`; rebumped during rebase reconciliation rather than reordering history).
+- `TODOS.md`, `.dev/progress.md`, `.dev/journal.md` — record [ANKA-280](/ANKA/issues/ANKA-280) progress and audit trail.
+
+**Verification**
+
+- `bun run lint:fix` → exit 0; pre-existing unrelated Biome warnings/infos remain, no fixes applied after the baseline ignore.
+- `bun test packages/eval-harness/src/replay-driver.spec.ts packages/eval-harness/src/replay-baseline.spec.ts packages/eval-harness/src/golden.spec.ts packages/eval-harness/src/ftmo-rules.spec.ts packages/eval-harness/src/backtest.spec.ts` → `26 pass / 0 fail / 8125 expects`.
+- CLI byte-stability check: `bun run packages/eval-harness/src/replay-cli.ts --fixture-root data/market-data/twelvedata/v1.0.0-2026-04-28 --smoke --strategy open_hold_close_v1 --symbol-set xauusd_5m --out /tmp/anka-280-open-hold-close.json && cmp -s /tmp/anka-280-open-hold-close.json packages/eval-harness/baselines/open_hold_close_v1__v1.0.0-2026-04-28__xauusd_5m__smoke.json` → `byte-identical`.
+- `bun run typecheck` → clean.
+- `bun test` → `517 pass / 0 fail / 10649 expects`.
+- `git diff --check` → clean.
 
 ## 0.4.47 / @ankit-prop/market-data@0.1.2 / @ankit-prop/market-data-twelvedata@0.1.3 / @ankit-prop/eval-harness@0.1.5 — 2026-04-29 22:10 Europe/Amsterdam
 

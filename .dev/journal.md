@@ -111,7 +111,7 @@ _Append-only, newest first. Never edit past entries._
 - `bun test packages/eval-harness/` → 71 pass / 0 fail / 9118 expects.
 - `(cd packages/eval-harness && bun test src/replay-baseline.spec.ts)` → 4 pass / 0 fail.
 - `git diff --check` → clean.
-- `rg -n "console\\.log|debugger|TODO|HACK"` over changed eval-harness files → no matches.
+- `rg -n "console\.log|debugger|TODO|HACK"` over changed eval-harness files → no matches.
 
 **Next**
 
@@ -148,6 +148,53 @@ _Append-only, newest first. Never edit past entries._
 
 - Commit + push to `origin/ANKA-70-replay-harness-wired-to-eval-harness-td-fixtures`.
 - Route [ANKA-280](/ANKA/issues/ANKA-280) back to CodeReviewer for re-review (`assigneeAgentId` + `status: 'in_review'` in same PATCH per the sharpened handoff convention).
+
+## 2026-04-30 00:29 Europe/Amsterdam — [ANKA-170](/ANKA/issues/ANKA-170) svc:news cassette replay / contract drift / Prague DST / coverage gate
+
+**Agent:** CodexExecutor (codex_local). **Run:** `14700dc4-e185-4bd5-b880-f886e779c716`.
+
+**What was done**
+
+- Picked up the `issue_blockers_resolved` wake after [ANKA-169](/ANKA/issues/ANKA-169) unblocked the full `svc:news` Elysia app; the harness had already checked out [ANKA-170](/ANKA/issues/ANKA-170).
+- Re-read BLUEPRINT §0 / §0.2 / §11 / §17 / §21 / §22 / §25 and fetched `https://bun.com/llms.txt` at 00:29 Europe/Amsterdam before finalizing Bun-runtime changes.
+- Added cassette replay integration coverage that exercises `createCalendarFetcher`, in-memory SQLite persistence, freshness metadata, `buildNewsApp`, and all calendar route shapes against `services/news/test/cassettes/ftmo-2026-03-23-week.json`.
+- Added strict contract-drift tests comparing cassette item keys to `CalendarItem.shape` with actionable error messages for upstream additions, local schema removals, and required cassette-key disappearance.
+- Added Prague DST integration tests for explicit-offset spring-forward and fall-back FTMO timestamps, including the two distinct `2026-10-25T02:30` local instants.
+- Added native Bun coverage thresholds in `bunfig.toml`, documented the Bun no-branch-threshold limitation in `services/news/README.md`, and bumped root `0.4.48` plus `@ankit-prop/news` `0.5.3`.
+
+**Findings**
+
+- Bun 1.3 coverage thresholds expose line, statement, and function keys; no separate branch threshold key is documented/exposed, so ANKA-170's 85% branch intent is represented by the closest native executable-decision gate, `functions = 0.85`.
+- The coverage threshold is effectively per included file, not just aggregate, which required focused tests for the default app clock, default freshness clock, and calendar-fetcher start/stop/error paths.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Kept the coverage gate in the root `bunfig.toml` so `bun test --coverage` fails locally without requiring public CI.
+- Scoped coverage accounting to `services/news/**` plus `packages/shared-contracts/src/news.ts` by ignoring unrelated packages, because ANKA-170 is a Phase 5 news gate and unrelated low-coverage packages should not block this issue.
+
+**Unexpected behaviour**
+
+- `bun run lint:fix` still exits 0 while printing pre-existing unsafe Biome suggestions in unrelated packages (`ctrader-vendor`, `eval-harness`, `market-data-twelvedata`).
+
+**Adaptations**
+
+- Added narrow test-only type guards/parsing after `bun run typecheck` caught unsafe `unknown` JSON and optional fixture item access in the new tests.
+
+**Open endings**
+
+- Commit with the Paperclip footer, push the branch, then hand [ANKA-170](/ANKA/issues/ANKA-170) to QA/code review before merge.
+
+**Verification**
+
+- `bun run lint:fix` — exit 0; unrelated pre-existing Biome warnings/infos remain.
+- `bun run typecheck` — clean.
+- `bun test` — 552 pass / 0 fail / 2764 expects.
+- `bun test --coverage` — 552 pass / 0 fail / 2764 expects; aggregate covered surface 99.24% functions / 99.45% lines, with `calendar-fetcher.ts` 90.48% functions / 98.36% lines and `routes/calendar.ts` 94.29% functions / 95.19% lines.
+- `PORT=19270 NEWS_CALENDAR_DB_PATH=/tmp/anka-170-news-calendar.db NODE_ENV=production bun run --cwd services/news start`; `GET /health` returned HTTP 200 with `version:"0.5.3"` and `status:"healthy"`.
 
 ## 2026-04-29 23:56 Europe/Amsterdam — v0.4.48 / @ankit-prop/eval-harness v0.2.0 ([ANKA-280](/ANKA/issues/ANKA-280))
 
@@ -198,11 +245,50 @@ _Append-only, newest first. Never edit past entries._
 - `bun run typecheck` — clean.
 - `bun test` — 517 pass / 0 fail / 10649 expects.
 - `git diff --check` — clean.
-- `rg -n "console\\.log|debugger|TODO|HACK"` over modified eval-harness source files — no matches.
+
+## 2026-04-29 22:28 Europe/Amsterdam — [ANKA-279](/ANKA/issues/ANKA-279) PR #29 merge-conflict resolution for [ANKA-169](/ANKA/issues/ANKA-169)
+
+**Agent:** CodexExecutor (codex_local). **Run:** `e79adf77-6465-48d6-a7da-cff8cdd367c5`.
+
+**What was done**
+
+- Picked up [ANKA-279](/ANKA/issues/ANKA-279) from the scoped wake; the harness had already checked out the ANKA-169 PR #29 worktree.
+- Re-read BLUEPRINT §0 / §0.2 / §17 / §22 / §25 and fetched `https://bun.com/llms.txt` at 22:28 Europe/Amsterdam before touching branch files.
+- Ran `git fetch origin && git merge origin/main`; first conflicts were exactly the three expected narrative files: `.dev/journal.md`, `.dev/progress.md`, and `CHANGELOG.md`.
+- After push, `origin/main` advanced again; merged the new tip and resolved the second conflict set in `.dev/journal.md` and `.dev/progress.md`.
+- Resolved the narrative conflicts by keeping all lineages in newest-first order: main's 22:05 [ANKA-121](/ANKA/issues/ANKA-121) entry, 21:55 [ANKA-201](/ANKA/issues/ANKA-201) / 20:38 [ANKA-270](/ANKA/issues/ANKA-270) entries, and the PR-side `@ankit-prop/news@0.5.2`, `0.5.1`, and `0.5.0` entries.
+
+**Findings**
+
+- The first `git merge origin/main` auto-merged main's docs-governance files (`BLUEPRINT.md`, `.dev/decisions.md`, `DOC-BUG-FIXES.md`, root `package.json`) without conflicts; no unexpected service-source conflicts appeared.
+- After push, `origin/main` advanced again to `1885b6c`; the second merge produced only `.dev/journal.md` and `.dev/progress.md` conflicts, while `CHANGELOG.md`, root `package.json`, dashboard package metadata, and dashboard CSS auto-merged from main.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- Did not introduce a new package version or changelog release entry for [ANKA-279](/ANKA/issues/ANKA-279); this child only reconciles already-released branch/main narrative and version metadata.
+
+**Unexpected behaviour**
+
+- `bun run lint` still reports unrelated pre-existing Biome warnings/infos in `packages/ctrader-vendor`, `packages/eval-harness`, and `packages/market-data-twelvedata`, while exiting 0.
+
+**Adaptations**
+
+- Refreshed `.dev/progress.md` to the current [ANKA-279](/ANKA/issues/ANKA-279) merge-resolution state rather than preserving either stale current-session block from the conflict.
 
 **Open endings**
 
-- Commit, push, and issue handoff to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80) remain before [ANKA-280](/ANKA/issues/ANKA-280) can enter review.
+- Commit the merge with the Paperclip footer, push PR #29's branch, confirm GitHub reports `CLEAN` / `MERGEABLE`, and hand [ANKA-279](/ANKA/issues/ANKA-279) back to [@FoundingEngineer](agent://4b1d307d-5e9b-4547-92a2-b5df512f5d80).
+
+**Verification**
+
+- `bun run lint` — exit 0; pre-existing unrelated Biome warnings/infos remain.
+- `bun run typecheck` — clean.
+- `bun test services/news/src/routes/calendar.spec.ts services/news/src/app.spec.ts services/news/src/metrics.spec.ts services/news/src/start.spec.ts services/news/src/db/calendar-db.spec.ts services/news/src/health/health-route.spec.ts packages/shared-contracts/src/treaty-client/create-treaty-client.spec.ts` — 45 pass / 0 fail / 105 expects.
+- Service restart skipped: no service package source or version changed in this child issue; the merge only reconciles metadata/log files and main's already-shipped docs changes.
 
 ## 2026-04-29 22:05 Europe/Amsterdam — [ANKA-121](/ANKA/issues/ANKA-121) dashboard banner — Designer CHANGES_REQUESTED resolved (CSS-only)
 
