@@ -2,6 +2,25 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 12:14 Europe/Amsterdam — [ANKA-340](/ANKA/issues/ANKA-340) ADR-0009 local fast-forward merge to `main`
+
+**Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` resume after CodeReviewer APPROVE on head `6ee0246`.
+
+**What was done**
+
+- Ran AGENTS.md §1 pre-merge range audit on the 9 commits in `28fe893..origin/ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay` (`0f7abdc`, `e022b4b`, `d0fd002`, `33857cf`, `eebde21`, `bb0235d`, `49ece57`, `46223de`, `6ee0246`). All 9 cleared the four hard fails: `parents=1`, `committer == author`, committer != `GitHub <noreply@github.com>`, canonical `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer present.
+- `git merge --ff-only 6ee0246` and `git push origin main` from the shared root checkout. Push: `28fe893..6ee0246  main -> main`.
+- Re-ran the §2 post-merge range audit over `28fe893..origin/main`: every landed commit shows one parent, committer = author = `FoundingEngineer <foundingengineer@paperclip.ing>`, canonical Paperclip footer present.
+
+**Findings**
+
+- The branch was acting as a rolling stack of follow-ups on top of merged PR #38 (ANKA-318). The audited range therefore lands the previously approved [ANKA-335](/ANKA/issues/ANKA-335)/[ANKA-350](/ANKA/issues/ANKA-350)/[ANKA-340](/ANKA/issues/ANKA-340) work in one FF push. No GitHub-side merge was attempted; ADR-0009 §1 path used end-to-end.
+
+**Verification**
+
+- §1 pre-merge audit: `pass=9 fail=0`.
+- §2 post-merge audit: 9/9 commits clean across parents/committer/footer checks.
+
 ## 2026-04-30 12:06 Europe/Amsterdam — [ANKA-340](/ANKA/issues/ANKA-340) Reflector report QA coverage — journal-only follow-up — v0.4.56 / trader v0.4.1
 
 **Agent:** QAEngineer (codex_local). **Run:** `issue_comment_mentioned` resume after CodeReviewer's `CHANGES_REQUESTED` verdict on QA commit `eebde21`.
