@@ -2,6 +2,43 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 17:21 Europe/Amsterdam — [ANKA-381](/ANKA/issues/ANKA-381) Replay calendar rails and v0 Judge persona rejects — contracts v4.0.0, trader v0.6.0
+
+**Agent:** CodexExecutor. **Run:** `issue_assigned` on [ANKA-381](/ANKA/issues/ANKA-381).
+
+**What was done**
+
+- Extended `JudgeInput` with required `atrPips` so `stop_inside_noise` can compare stop distance against ATR from the runtime context.
+- Wired replay calendar events from `IMarketDataProvider.getEvents()` / explicit calendar provider into per-bar Judge lookahead and the in-process replay gateway.
+- Replaced the replay gateway's single fake idempotency allow with rail decisions for active window, `news_blackout_5m`, `news_pre_kill_2h`, and idempotency; rail rejects return `not_submitted/rail_block`.
+- Implemented v0 Judge enforcement for `outside_active_window` and `stop_inside_noise`; any other declared but unimplemented persona rejection rule now fails closed with `persona_rule_not_implemented`.
+- Added focused regression specs for the contract change, direct gateway rail blocks, replay calendar propagation, and the two reproduced Judge failures.
+
+**Findings**
+
+- `HARD_RAIL_KEYS` intentionally uses `news_blackout_5m` / `news_pre_kill_2h`; I did not add a new `session_window` rail key because the blueprint pins the 14-rail key set.
+- The default `v_ankit_classic` params still declare persona rules (`macro_bias_violation`, `anticipation_breakout`, `pattern_regime_mismatch`) that are not enforceable from current v0 Judge inputs, so clean default OPENs now fail closed until those rules are implemented or the params are narrowed by a separate decision.
+
+**Contradictions**
+
+- The issue text used `block` / `news_blackout` wording, while the existing contract uses `reject` and `news_blackout_5m`; preserved the existing shared-contract vocabulary.
+
+**Decisions**
+
+- Used `not_submitted/rail_block` rather than `rejected_by_rails` for the in-process gateway's replay block because no broker submission happened and the issue asked for a not-submitted result with a rail verdict.
+
+**Unexpected behaviour**
+
+- Changing the gateway to inspect rails before Judge rejection initially changed HOLD telemetry from `judge_reject` to `hold`; restored the previous HOLD-with-explicit-Judge telemetry while keeping OPEN rail blocks independent of Judge verdict.
+
+**Adaptations**
+
+- Fixture personas in approval-path specs now narrow `personaRejectionRules` to rules implemented in v0 so those specs keep testing the intended approval path while the real default params remain fail-closed.
+
+**Open endings**
+
+- Implement the remaining declared `v_ankit_classic` persona rules (`macro_bias_violation`, `anticipation_breakout`, `pattern_regime_mismatch`) before relying on default params for approving live OPENs.
+
 ## 2026-04-30 13:01 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) ADR-0009 local fast-forward merge to `main`
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` resume after CodeReviewer APPROVE on head `5a713dd` (`73286fe4`).

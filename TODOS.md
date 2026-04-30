@@ -43,6 +43,8 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 - [x] **T008.d** Implement `v_ankit_classic` Analyst v0: deterministic regime classifier, OpenRouter structured LLM call, confluence score, and replay-pipeline wiring — _[ANKA-338](/ANKA/issues/ANKA-338)_.
 - [x] **T008.e** Implement Reflector v0 aggregate reports: DecisionRecord JSONL ingestion, RunAggregate folding, Sortino-rolling-60d, Claude-rate LLM cost telemetry, report writer, replay/reflect commands — _[ANKA-340](/ANKA/issues/ANKA-340), unblocks [ANKA-341](/ANKA/issues/ANKA-341)_.
 - [x] **T008.f** Implement deterministic `v_ankit_classic` Trader policy + Judge v0 allow-list gates, params-sourced thresholds, and runner/replay wiring — _[ANKA-339](/ANKA/issues/ANKA-339), advances [ANKA-318](/ANKA/issues/ANKA-318)_.
+- [x] **T008.g** Wire replay calendar lookahead into Judge/gateway rails and fail-close v0 Judge persona-declared rejection rules — _[ANKA-381](/ANKA/issues/ANKA-381), unblocks [ANKA-378](/ANKA/issues/ANKA-378)_.
+- [ ] **T008.h** Implement remaining declared `v_ankit_classic` persona rejection rules (`macro_bias_violation`, `anticipation_breakout`, `pattern_regime_mismatch`) so default params can approve live OPENs without `persona_rule_not_implemented`.
 
 ## Phase 5 — `news`
 

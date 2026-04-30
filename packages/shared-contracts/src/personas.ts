@@ -154,6 +154,7 @@ export type RecentDecisionSummary = z.infer<typeof RecentDecisionSummary>;
 export const JudgeInput = z.strictObject({
   traderOutput: TraderOutput,
   analystOutput: AnalystOutput,
+  atrPips: z.number().nonnegative(),
   riskBudgetRemaining: RiskBudgetRemaining,
   openExposure: z.strictObject({
     totalPct: z.number().nonnegative(),
@@ -276,7 +277,7 @@ export const PersonaConfig = z.strictObject({
 });
 export type PersonaConfig = z.infer<typeof PersonaConfig>;
 
-export const GatewayDecision = z.discriminatedUnion('status', [
+export const GatewayDecision = z.union([
   // Trader produced HOLD or judge rejected; the gateway was never reached.
   z.strictObject({
     status: z.literal('not_submitted'),
@@ -288,6 +289,16 @@ export const GatewayDecision = z.discriminatedUnion('status', [
       TraderAmendOutput,
     ]),
     railVerdict: z.null(),
+  }),
+  // The replay/in-process gateway reached its binding rail check and blocked
+  // before broker submission.
+  z.strictObject({
+    status: z.literal('not_submitted'),
+    reason: z.literal('rail_block'),
+    traderOutput: z.union([TraderOpenOutput, TraderCloseOutput, TraderAmendOutput]),
+    railVerdict: RailVerdict.refine((verdict) => verdict.outcome === 'reject', {
+      message: "not_submitted/rail_block requires railVerdict.outcome === 'reject'",
+    }),
   }),
   // Pre-submit hard rails blocked transmission. The action reached the gateway,
   // but rails refused to forward it to the broker.

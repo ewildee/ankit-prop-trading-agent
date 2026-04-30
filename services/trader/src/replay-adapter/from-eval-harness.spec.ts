@@ -39,7 +39,7 @@ describe('runTraderReplay', () => {
     try {
       const bars = barsWithRepeatedLongSignals();
       const provider = new StaticMarketDataProvider(bars);
-      const persona = await loadPersonaConfig();
+      const persona = await loadReplayFixturePersona();
       const result = await runTraderReplay({
         runId: 'replay-adapter-spec',
         persona,
@@ -70,7 +70,7 @@ describe('runTraderReplay', () => {
     const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
     try {
       const provider = new StaticMarketDataProvider(barsWithRepeatedLongSignals());
-      const persona = await loadPersonaConfig();
+      const persona = await loadReplayFixturePersona();
       const result = await runTraderReplay({
         runId: 'replay-adapter-repeated-open-spec',
         persona,
@@ -116,7 +116,7 @@ describe('runTraderReplay', () => {
     try {
       const bars = barsAcrossPragueDayForCloseThenReopen();
       const provider = new StaticMarketDataProvider(bars);
-      const persona = personaWithAllDaySignalWindow(await loadPersonaConfig());
+      const persona = personaWithAllDaySignalWindow(await loadReplayFixturePersona());
       const result = await runTraderReplay({
         runId: 'replay-adapter-prague-day-spec',
         persona,
@@ -191,6 +191,55 @@ describe('runTraderReplay', () => {
       );
       expect(submittedReopen).toBeDefined();
       expect(submittedReopen?.judgeOutput?.verdict).toBe('APPROVE');
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
+  test('threads replay calendar events into judge input and gateway news rails', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
+    try {
+      const bars = barsWithRepeatedLongSignals();
+      const firstActionableEventTs = Date.parse('2026-04-27T12:35:00.000Z');
+      const provider = new StaticMarketDataProvider(bars, [
+        {
+          id: 'fomc-fixture',
+          timestamp: firstActionableEventTs,
+          symbols: ['XAUUSD'],
+          impact: 'high',
+          restricted: true,
+        },
+      ]);
+      const persona = await loadReplayFixturePersona();
+      const result = await runTraderReplay({
+        runId: 'replay-adapter-calendar-spec',
+        persona,
+        provider,
+        symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+        window: ONE_DAY_WINDOW,
+        account: ACCOUNT,
+        symbolMetas: await provider.listSymbols(),
+        logPath: join(tmp, 'decisions.jsonl'),
+        reflectAtEnd: false,
+        analystGenerator: fixtureAnalystGenerator,
+      });
+
+      const railBlocked = result.decisions.find(
+        (decision) =>
+          decision.gatewayDecision?.status === 'not_submitted' &&
+          decision.gatewayDecision.reason === 'rail_block',
+      );
+      expect(railBlocked?.judgeOutput?.rejectedRules).toContain('calendar_event_proximity');
+      expect(railBlocked?.gatewayDecision?.status).toBe('not_submitted');
+      if (railBlocked?.gatewayDecision?.status === 'not_submitted') {
+        expect(railBlocked.gatewayDecision.reason).toBe('rail_block');
+        expect(railBlocked.gatewayDecision.railVerdict?.decisions).toContainEqual(
+          expect.objectContaining({
+            rail: 'news_blackout_5m',
+            outcome: 'reject',
+          }),
+        );
+      }
     } finally {
       await rm(tmp, { recursive: true, force: true });
     }
@@ -323,6 +372,17 @@ function personaWithAllDaySignalWindow(persona: PersonaConfig): PersonaConfig {
   };
 }
 
+async function loadReplayFixturePersona(): Promise<PersonaConfig> {
+  const persona = await loadPersonaConfig();
+  return {
+    ...persona,
+    judge: {
+      ...persona.judge,
+      personaRejectionRules: ['confluence_too_weak', 'outside_active_window', 'stop_inside_noise'],
+    },
+  };
+}
+
 class StaticMarketDataProvider implements IMarketDataProvider {
   readonly #symbols: SymbolMeta[] = [
     {
@@ -331,7 +391,10 @@ class StaticMarketDataProvider implements IMarketDataProvider {
     },
   ];
 
-  constructor(private readonly bars: ReadonlyArray<Bar>) {}
+  constructor(
+    private readonly bars: ReadonlyArray<Bar>,
+    private readonly events: ReadonlyArray<CalendarEvent> = [],
+  ) {}
 
   async listSymbols(): Promise<readonly SymbolMeta[]> {
     return this.#symbols;
@@ -360,7 +423,9 @@ class StaticMarketDataProvider implements IMarketDataProvider {
     );
   }
 
-  async getEvents(): Promise<readonly CalendarEvent[]> {
-    return [];
+  async getEvents(args: { fromMs: number; toMs: number }): Promise<readonly CalendarEvent[]> {
+    return this.events.filter(
+      (event) => event.timestamp >= args.fromMs && event.timestamp < args.toMs,
+    );
   }
 }

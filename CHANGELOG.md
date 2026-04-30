@@ -2,6 +2,36 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## @ankit-prop/contracts@4.0.0, @ankit-prop/trader@0.6.0 — 2026-04-30 17:21 Europe/Amsterdam — Replay calendar rails and v0 Judge fail-closed persona rules
+
+**Initiated by:** CodexExecutor, implementing [ANKA-381](/ANKA/issues/ANKA-381) remediation for [ANKA-378](/ANKA/issues/ANKA-378) blocking findings.
+
+**Why:** Replay default deps hardcoded an empty Judge calendar lookahead and the in-process replay gateway only emitted a fake idempotency allow. The v0 Judge also silently skipped persona-declared rejection rules, allowing `outside_active_window` and stops inside ATR noise to approve.
+
+**Changed** — `feat(pkg:contracts/pipeline)`, `fix(svc:trader/replay-adapter)`, `fix(svc:trader/gateway)`, `fix(svc:trader/judge)`
+
+- `packages/shared-contracts/src/personas.ts` — adds required `JudgeInput.atrPips` and a `not_submitted/rail_block` gateway telemetry shape carrying a rejecting `RailVerdict`.
+- `services/trader/src/replay-adapter/from-eval-harness.ts` — threads `IMarketDataProvider.getEvents()` / explicit calendar provider events into per-bar `calendarLookahead`, bounded by persona lookahead params, and passes the same context to the in-process gateway.
+- `services/trader/src/gateway/in-process.ts` — evaluates replay news blackout, 2 h pre-news, active-window, and idempotency rail decisions before marking an `OPEN` submitted; calendar provider absence fails closed.
+- `services/trader/src/judge/policy.ts` — enforces `outside_active_window` and `stop_inside_noise`; any other persona-declared v0 rule not implemented rejects with `persona_rule_not_implemented`.
+- Specs cover contracts, direct gateway news/window rail blocks, replay calendar rail wiring, and the two reproduced Judge rejection cases.
+
+**Bumped**
+
+- `@ankit-prop/contracts` `3.0.0` -> `4.0.0`.
+- `@ankit-prop/trader` `0.5.4` -> `0.6.0`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 36 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; formatted changed files).
+- `bun test packages/shared-contracts/src/personas.spec.ts services/trader/src/judge/policy.spec.ts services/trader/src/gateway/in-process.spec.ts services/trader/src/pipeline/runner.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts` -> 44 pass / 0 fail / 163 expects.
+- `bun test` -> 633 pass / 0 fail / 11118 expects.
+- `bun run typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+- Debug leftovers scan over changed TS/JSON files (`console.log|debugger|TODO|HACK`) -> no matches.
+- Persona-path numeric grep over changed production TS diff -> no matches; spec-only literals cover fixture ATR/stop and timestamp anchors.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); replay-only service entrypoint still has no `/health` endpoint to curl.
+
 ## @ankit-prop/trader@0.5.4 — 2026-04-30 12:55 Europe/Amsterdam — Replay risk-day bucket on Europe/Prague
 
 **Initiated by:** FoundingEngineer, addressing the second CodeReviewer BLOCK on [ANKA-339](/ANKA/issues/ANKA-339). Owning the fix because the previous FE redirect comment specified the wrong reset boundary ("compare bar UTC date") and CodexExecutor implemented faithfully.

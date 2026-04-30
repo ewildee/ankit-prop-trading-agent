@@ -222,6 +222,7 @@ describe('persona pipeline contracts', () => {
     const judgeInput = JudgeInput.parse({
       traderOutput: holdOutput,
       analystOutput,
+      atrPips: 18,
       riskBudgetRemaining: { dailyPct: 3.5, overallPct: 8 },
       openExposure: { totalPct: 0, sameDirectionPct: 0 },
       recentDecisions: [],
@@ -271,6 +272,22 @@ describe('persona pipeline contracts', () => {
     expect(parsed.success).toBe(true);
     if (parsed.success) {
       expect(parsed.data.status).toBe('rejected_by_rails');
+      expect(parsed.data.railVerdict?.outcome).toBe('reject');
+    }
+  });
+
+  test('GatewayDecision accepts replay rail_block telemetry before broker submission', () => {
+    const parsed = GatewayDecision.safeParse({
+      status: 'not_submitted',
+      reason: 'rail_block',
+      traderOutput: openOutput,
+      railVerdict: railRejectedVerdict,
+    });
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success && 'reason' in parsed.data) {
+      expect(parsed.data.status).toBe('not_submitted');
+      expect(parsed.data.reason).toBe('rail_block');
       expect(parsed.data.railVerdict?.outcome).toBe('reject');
     }
   });

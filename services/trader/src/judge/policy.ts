@@ -10,6 +10,18 @@ const ZERO_CACHE_STATS = {
   thinkingTokens: ZERO,
 } as const;
 
+const V0_IMPLEMENTED_REJECTION_RULES: ReadonlySet<RejectionRule> = new Set([
+  'rr_below_floor',
+  'size_above_soft_rail',
+  'daily_budget_insufficient',
+  'calendar_event_proximity',
+  'spread_above_threshold',
+  'open_exposure_at_cap',
+  'confluence_too_weak',
+  'outside_active_window',
+  'stop_inside_noise',
+]);
+
 export function createVAnkitClassicJudge(): JudgeStage {
   return {
     evaluate(input): JudgeOutput {
@@ -62,6 +74,10 @@ function evaluateVAnkitClassic(input: JudgeStageInput): JudgeOutput {
   if (judgeInput.calendarLookahead.length > ZERO) {
     rejectedRules.push('calendar_event_proximity');
   }
+  const unimplementedPersonaRule = applyPersonaRejectionRules(input, rejectedRules);
+  if (unimplementedPersonaRule !== null) {
+    return reject('persona_rule_not_implemented', [unimplementedPersonaRule]);
+  }
 
   if (rejectedRules.length > ZERO) {
     return reject('v0_open_rejected', rejectedRules);
@@ -71,6 +87,35 @@ function evaluateVAnkitClassic(input: JudgeStageInput): JudgeOutput {
     reason: 'v0_open_approved',
     cacheStats: ZERO_CACHE_STATS,
   };
+}
+
+function applyPersonaRejectionRules(
+  input: JudgeStageInput,
+  rejectedRules: RejectionRule[],
+): RejectionRule | null {
+  const { judgeInput } = input;
+  for (const rule of input.persona.judge.personaRejectionRules) {
+    if (!V0_IMPLEMENTED_REJECTION_RULES.has(rule)) return rule;
+    if (
+      rule === 'outside_active_window' &&
+      judgeInput.analystOutput.regimeLabel === 'outside_active_window'
+    ) {
+      pushOnce(rejectedRules, rule);
+    }
+    if (
+      rule === 'stop_inside_noise' &&
+      judgeInput.traderOutput.action === 'OPEN' &&
+      judgeInput.traderOutput.stopLossPips <
+        judgeInput.atrPips * input.persona.filters.minStopAtrMultiple
+    ) {
+      pushOnce(rejectedRules, rule);
+    }
+  }
+  return null;
+}
+
+function pushOnce(rejectedRules: RejectionRule[], rule: RejectionRule): void {
+  if (!rejectedRules.includes(rule)) rejectedRules.push(rule);
 }
 
 function reject(reason: string, rejectedRules: RejectionRule[]): JudgeOutput {

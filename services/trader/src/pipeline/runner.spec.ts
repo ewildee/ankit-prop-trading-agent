@@ -3,6 +3,7 @@ import {
   DecisionRecord,
   type JudgeInput,
   type JudgeOutput,
+  type PersonaConfig,
   type TraderOutput,
 } from '@ankit-prop/contracts';
 import type { Bar } from '@ankit-prop/market-data';
@@ -124,7 +125,7 @@ describe('runDecision', () => {
   });
 
   test('v_ankit_classic real trader and judge can approve an OPEN through the runner', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = personaWithImplementedRules(await loadPersonaConfig());
     const record = await runDecision(BAR, persona, {
       ...depsWithJudgeInput(),
       analyst: {
@@ -151,6 +152,7 @@ describe('runDecision', () => {
         return {
           traderOutput: input.traderOutput,
           analystOutput: input.analystOutput,
+          atrPips: 120,
           riskBudgetRemaining: {
             dailyPct: persona.risk.maxPerTradePct,
             overallPct: persona.risk.maxPerTradePct,
@@ -237,6 +239,16 @@ function baseDeps(): PipelineDeps {
   };
 }
 
+function personaWithImplementedRules(persona: PersonaConfig): PersonaConfig {
+  return {
+    ...persona,
+    judge: {
+      ...persona.judge,
+      personaRejectionRules: ['confluence_too_weak', 'outside_active_window', 'stop_inside_noise'],
+    },
+  };
+}
+
 function depsWithJudgeInput(): PipelineDeps {
   return {
     ...baseDeps(),
@@ -244,6 +256,7 @@ function depsWithJudgeInput(): PipelineDeps {
       return {
         traderOutput: input.traderOutput,
         analystOutput: input.analystOutput,
+        atrPips: 120,
         riskBudgetRemaining: {
           dailyPct: 3,
           overallPct: 7,

@@ -21,7 +21,7 @@ const ZERO_CACHE_STATS = {
 
 describe('createVAnkitClassicJudge', () => {
   test('rejects trader HOLD as weak confluence telemetry', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = await loadJudgeFixturePersona();
     const output = await createVAnkitClassicJudge().evaluate(
       stageInput(persona, {
         ...judgeInput(persona),
@@ -40,7 +40,7 @@ describe('createVAnkitClassicJudge', () => {
   });
 
   test('approves CLOSE as risk reducing', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = await loadJudgeFixturePersona();
     const output = await createVAnkitClassicJudge().evaluate(
       stageInput(persona, {
         ...judgeInput(persona),
@@ -59,7 +59,7 @@ describe('createVAnkitClassicJudge', () => {
   });
 
   test('approves OPEN when every v0 gate passes', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = await loadJudgeFixturePersona();
     const output = await createVAnkitClassicJudge().evaluate(
       stageInput(persona, judgeInput(persona)),
     );
@@ -68,7 +68,7 @@ describe('createVAnkitClassicJudge', () => {
   });
 
   test('rejects weak confluence', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = await loadJudgeFixturePersona();
     const input = judgeInput(persona, {
       analystOutput: analystFor(persona, {
         confluenceScore: persona.judge.threshold - persona.macro.minConfidence,
@@ -81,7 +81,7 @@ describe('createVAnkitClassicJudge', () => {
   });
 
   test('rejects reward-to-risk below floor', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = await loadJudgeFixturePersona();
     const input = judgeInput(persona, {
       traderOutput: openOutput(persona, {
         expectedRR: persona.risk.minRR - EPSILON,
@@ -94,7 +94,7 @@ describe('createVAnkitClassicJudge', () => {
   });
 
   test('rejects size above the persona cap', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = await loadJudgeFixturePersona();
     const input = judgeInput(persona, {
       traderOutput: openOutput(persona, {
         size: {
@@ -110,7 +110,7 @@ describe('createVAnkitClassicJudge', () => {
   });
 
   test('rejects insufficient remaining daily budget', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = await loadJudgeFixturePersona();
     const input = judgeInput(persona, {
       riskBudgetRemaining: {
         dailyPct: persona.risk.maxPerTradePct - EPSILON,
@@ -124,7 +124,7 @@ describe('createVAnkitClassicJudge', () => {
   });
 
   test('rejects existing open exposure overlap', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = await loadJudgeFixturePersona();
     const input = judgeInput(persona, {
       openExposure: {
         totalPct: persona.risk.maxPerTradePct,
@@ -138,7 +138,7 @@ describe('createVAnkitClassicJudge', () => {
   });
 
   test('rejects spread above the persona multiplier', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = await loadJudgeFixturePersona();
     const input = judgeInput(persona, {
       spreadStats: {
         current: persona.filters.maxSpreadMultiplier + EPSILON,
@@ -152,7 +152,7 @@ describe('createVAnkitClassicJudge', () => {
   });
 
   test('rejects restricted calendar proximity', async () => {
-    const persona = await loadPersonaConfig();
+    const persona = await loadJudgeFixturePersona();
     const input = judgeInput(persona, {
       calendarLookahead: [calendarItem(persona)],
     });
@@ -161,12 +161,49 @@ describe('createVAnkitClassicJudge', () => {
     expect(output.verdict).toBe('REJECT');
     expect(output.rejectedRules).toContain('calendar_event_proximity');
   });
+
+  test('rejects OPEN outside the active window when the persona declares the rule', async () => {
+    const persona = personaWithPersonaRules(await loadPersonaConfig(), ['outside_active_window']);
+    const input = judgeInput(persona, {
+      analystOutput: analystFor(persona, { regimeLabel: 'outside_active_window' }),
+    });
+    const output = await createVAnkitClassicJudge().evaluate(stageInput(persona, input));
+
+    expect(output.verdict).toBe('REJECT');
+    expect(output.rejectedRules).toContain('outside_active_window');
+  });
+
+  test('rejects OPEN with stop inside the ATR noise floor', async () => {
+    const persona = personaWithPersonaRules(await loadPersonaConfig(), ['stop_inside_noise']);
+    const input = judgeInput(persona, {
+      atrPips: 50,
+      traderOutput: openOutput(persona, {
+        stopLossPips: 0.000001,
+      }),
+    });
+    const output = await createVAnkitClassicJudge().evaluate(stageInput(persona, input));
+
+    expect(output.verdict).toBe('REJECT');
+    expect(output.rejectedRules).toContain('stop_inside_noise');
+  });
+
+  test('fails closed when the persona declares a v0 rule that is not implemented', async () => {
+    const persona = personaWithPersonaRules(await loadPersonaConfig(), ['macro_bias_violation']);
+    const output = await createVAnkitClassicJudge().evaluate(
+      stageInput(persona, judgeInput(persona)),
+    );
+
+    expect(output.verdict).toBe('REJECT');
+    expect(output.reason).toBe('persona_rule_not_implemented');
+    expect(output.rejectedRules).toEqual(['macro_bias_violation']);
+  });
 });
 
 function judgeInput(persona: PersonaConfig, overrides: Partial<JudgeInput> = {}): JudgeInput {
   return {
     traderOutput: openOutput(persona),
     analystOutput: analystFor(persona),
+    atrPips: persona.filters.minStopAtrMultiple,
     riskBudgetRemaining: {
       dailyPct: persona.risk.maxPerTradePct,
       overallPct: persona.risk.maxPerTradePct,
@@ -183,6 +220,27 @@ function judgeInput(persona: PersonaConfig, overrides: Partial<JudgeInput> = {})
     },
     strategyParams: persona as unknown as Record<string, unknown>,
     ...overrides,
+  };
+}
+
+async function loadJudgeFixturePersona(): Promise<PersonaConfig> {
+  return personaWithPersonaRules(await loadPersonaConfig(), [
+    'confluence_too_weak',
+    'outside_active_window',
+    'stop_inside_noise',
+  ]);
+}
+
+function personaWithPersonaRules(
+  persona: PersonaConfig,
+  personaRejectionRules: PersonaConfig['judge']['personaRejectionRules'],
+): PersonaConfig {
+  return {
+    ...persona,
+    judge: {
+      ...persona.judge,
+      personaRejectionRules,
+    },
   };
 }
 
