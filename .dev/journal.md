@@ -2,6 +2,37 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 05:35 Europe/Amsterdam — [ANKA-302](/ANKA/issues/ANKA-302) PR #35 BLOCK follow-up — pre-merge range audit + verification refresh
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_comment_mentioned` wake on [ANKA-302](/ANKA/issues/ANKA-302) — CodeReviewer BLOCK comment `57202d38` on PR [#35](https://github.com/ewildee/ankit-prop-trading-agent/pull/35) head `657b092c`.
+
+**What was done**
+
+- Reproduced the reviewer's blocking finding: the §1/§2 protocol shipped in commit `657b092c` audits only the PR head SHA (`pr-<N>` / landed `<sha>`), but `git merge --ff-only pr-<N>` lands every commit in `origin/main..pr-<N>`. An earlier commit with two parents, committer `GitHub <noreply@github.com>`, or a missing canonical Paperclip footer would slip onto `main` even when the head commit is clean. The protocol therefore did not actually guarantee the [ANKA-302](/ANKA/issues/ANKA-302) requirement that future merge/audit flow cannot produce the audited failure shapes again.
+- Fixed AGENTS.md §1 to capture `BASE=$(git rev-parse HEAD)` immediately after `git pull --ff-only origin main`, then iterate `git rev-list --reverse "$BASE..pr-<N>"` and fail-close on any commit with `parents != 1`, with committer differing from author, with committer `GitHub <noreply@github.com>`, or missing the canonical `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer. The pre-merge range audit runs before `git merge --ff-only` so a dirty range is rejected before the FF push touches `main`.
+- Fixed AGENTS.md §2 to walk `$BASE..origin/main` oldest-first (every commit landed by the FF push, not only the new tip), running the same three HARD FAIL checks per commit and pasting the output into the issue thread. Documented explicitly that auditing only the head SHA is insufficient and that §1 + §2 are paired (pre-merge fail-closed; post-merge durable evidence).
+- Refreshed CHANGELOG: updated the prior 0.4.49 entry's "Verification" section from future-tense ("`bun run lint` to be run...") to past-tense outcomes (the runs that completed `exit 0` before commit `657b092c` was pushed), and fixed the wording "appends ADR-0009 (newest first)" → "prepends ADR-0009 (newest-first ordering)" per the reviewer's nit. Added a newest-first PR #35 BLOCK follow-up entry at the same root version 0.4.49 covering the §1/§2 range-audit additions.
+- Appended this newest-first journal entry without editing the prior 05:20 entry, per the file's append-only convention.
+
+**Findings**
+
+- The hole the reviewer caught was real and important: the prior commit's protocol passed for a single-commit PR but failed open for a multi-commit PR with even one bad earlier commit. The PR-head-only audit could not have caught the four [ANKA-299](/ANKA/issues/ANKA-299) exception commits if they had landed via the new local-FF path, because each was a single-commit PR head; the same applies to multi-commit PRs only if every commit happens to be clean. The range audit makes the protocol's coverage match its claim.
+- Capturing `$BASE` in §1 lets §2 reuse it without re-deriving the pre-push tip after the push has already moved `origin/main`. The two blocks are paired around the same `$BASE` shell variable.
+- The §1 pre-merge range audit was dry-run against this branch's own `origin/main..HEAD` range (two commits — the prior `657b092c` and the new BLOCK-fix commit). Both passed all four hard fails: one parent, committer = author = `FoundingEngineer <foundingengineer@paperclip.ing>`, committer ≠ `GitHub <noreply@github.com>`, canonical Paperclip footer present. Output captured below under Verification.
+
+**Verification (worktree)**
+
+- `bun run lint` → exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing per the 0.4.48 CHANGELOG).
+- `bun run typecheck` → exit 0.
+- §1 pre-merge range audit dry-run on `origin/main..HEAD` (this branch) → both commits pass; full output pasted on [ANKA-302](/ANKA/issues/ANKA-302) when the new commit is pushed.
+
+**Next**
+
+- Commit on `anka-302-merge-protocol-tightening` (the local `.githooks/commit-msg` hook will enforce the canonical Paperclip footer at author time).
+- Push to update PR [#35](https://github.com/ewildee/ankit-prop-trading-agent/pull/35); paste the §1 dry-run audit output on [ANKA-302](/ANKA/issues/ANKA-302) with the new head SHA.
+- Reassign [ANKA-302](/ANKA/issues/ANKA-302) to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) `in_review` for the second-pass review on the new head.
+- On APPROVE → [@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177) second pass → merging agent runs the new §1 block (now including the pre-merge range audit) and pastes the §2 range-walk audit on [ANKA-302](/ANKA/issues/ANKA-302) and [ANKA-299](/ANKA/issues/ANKA-299) before [ANKA-302](/ANKA/issues/ANKA-302) closure.
+
 ## 2026-04-30 05:20 Europe/Amsterdam — [ANKA-302](/ANKA/issues/ANKA-302) ADR-0009 apply pass — merge protocol switches to local fast-forward
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_comment_mentioned` wake on [ANKA-302](/ANKA/issues/ANKA-302) — CEO approval comment `3a4cb648` on the ADR-0009 draft.

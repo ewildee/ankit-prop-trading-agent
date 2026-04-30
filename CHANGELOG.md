@@ -2,6 +2,25 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.49 — 2026-04-30 05:35 Europe/Amsterdam (PR #35 BLOCK follow-up — pre-merge range audit + verification refresh)
+
+**Initiated by:** FoundingEngineer, addressing CodeReviewer BLOCK on PR [#35](https://github.com/ewildee/ankit-prop-trading-agent/pull/35) ([ANKA-302](/ANKA/issues/ANKA-302) comment `57202d38`). Same in-flight branch / same release window — no root version bump.
+
+**Why:** Reviewer reproduced the gap that the prior 0.4.49 commit's §1/§2 protocol only audited the PR head SHA (`pr-<N>` / landed `<sha>`). `git merge --ff-only pr-<N>` lands every commit in `origin/main..pr-<N>`, so an earlier commit with two parents, committer `GitHub <noreply@github.com>`, or a missing canonical Paperclip footer would slip onto `main` even when the head commit is clean. That defeats the [ANKA-302](/ANKA/issues/ANKA-302) requirement that future merge/audit flow cannot produce the audited failure shapes again. Reviewer also flagged that the prior commit's CHANGELOG and journal verification entries were future-tense (`bun run lint` / `bun run typecheck` "to be run") after PR #35 was already pushed, which BLUEPRINT §0.2 does not accept as durable operational evidence.
+
+**Changed** — repo-wide governance docs
+
+- `AGENTS.md` §1 — adds a mandatory **pre-merge range audit** before `git merge --ff-only`. The block now captures `BASE=$(git rev-parse HEAD)` immediately after `git pull --ff-only origin main`, then iterates `git rev-list --reverse "$BASE..pr-<N>"` and fail-closes on any commit whose `parents != 1`, whose committer differs from author, whose committer is `GitHub <noreply@github.com>`, or which is missing the canonical `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer. A clean PR-head SHA is no longer sufficient — every commit in the landed range must pass.
+- `AGENTS.md` §2 — converts the post-merge audit from a single-SHA inspection into a range walk over `$BASE..origin/main`, oldest first, applying the same three HARD FAIL checks per commit. Documents that auditing only the head SHA is insufficient and that the §1 pre-merge audit and §2 post-merge audit are paired (pre-merge fails closed, post-merge produces the durable pasted evidence).
+- `CHANGELOG.md` — updates the prior 0.4.49 entry's "Verification" section to past-tense outcomes (the `bun run lint` and `bun run typecheck` runs from that commit completed `exit 0` before PR #35 was pushed); fixes the wording "appends ADR-0009 (newest first)" → "prepends ADR-0009 (newest-first ordering)".
+- `.dev/journal.md` — appends a new newest-first entry covering the BLOCK fix (the prior 05:20 entry stays untouched per the file's append-only convention).
+
+**Verification (worktree)**
+
+- `bun run lint` → exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing per the 0.4.48 CHANGELOG).
+- `bun run typecheck` → exit 0.
+- The new §1 pre-merge range audit was dry-run against this branch's `origin/main..HEAD` range (two commits — `657b092c` and the BLOCK-fix commit) and both passed all four hard fails: one parent, committer = author = `FoundingEngineer <foundingengineer@paperclip.ing>`, committer ≠ `GitHub <noreply@github.com>`, canonical Paperclip footer present.
+
 ## 0.4.49 — 2026-04-30 05:20 Europe/Amsterdam — ADR-0009 lands; merge protocol switches to local fast-forward push
 
 **Initiated by:** FoundingEngineer, addressing CEO approval on [ANKA-302](/ANKA/issues/ANKA-302) comment `3a4cb648` (remediation of [ANKA-299](/ANKA/issues/ANKA-299) 12-hour audit).
@@ -10,16 +29,17 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 
 **Changed** — repo-wide governance docs
 
-- `.dev/decisions.md` — appends ADR-0009 (newest first). Logs the four exception commits with their PR / issue / shape / timestamp evidence; replaces AGENTS.md §1's recommended `gh pr merge --rebase --match-head-commit <sha>` with a local fast-forward push block; promotes the §2 committer-identity check to a hard fail; reframes §3 from "gh as merge fallback" to "gh as PR-inspection helper". Records the GitHub `422 no_merge_method` result under "Alternatives considered" so the next reader knows the repo-settings option was tried.
-- `AGENTS.md` §1 — replaces the `gh pr merge … --rebase --match-head-commit` block with a `git fetch origin pull/<N>/head:pr-<N>` + `git merge --ff-only` + `git push origin main` block. Adds `gh pr merge --rebase` and the GitHub UI "Rebase and merge" button to the "Forbidden" list. Calls out that PR heads not fast-forwardable from `main` must be rebased locally and re-pushed; never a server-side rebase.
-- `AGENTS.md` §2 — promotes the post-merge audit's committer-identity check to a hard fail with explicit `HARD FAIL (ADR-0009): committer must equal author and MUST NOT be "GitHub <noreply@github.com>"` wording. Adjusts the parents check (one parent expected on the local-FF path; two parents indicates the forbidden "Create a merge commit" path). Updates the failure-mode framing from "bypassed the rebase path" to "bypassed the local fast-forward path" and links the remediation template to both [ANKA-268](/ANKA/issues/ANKA-268) and [ANKA-302](/ANKA/issues/ANKA-302).
+- `.dev/decisions.md` — prepends ADR-0009 (newest-first ordering). Logs the four exception commits with their PR / issue / shape / timestamp evidence; replaces AGENTS.md §1's recommended `gh pr merge --rebase --match-head-commit <sha>` with a local fast-forward push block; promotes the §2 committer-identity check to a hard fail; reframes §3 from "gh as merge fallback" to "gh as PR-inspection helper". Records the GitHub `422 no_merge_method` result under "Alternatives considered" so the next reader knows the repo-settings option was tried.
+- `AGENTS.md` §1 — replaces the `gh pr merge … --rebase --match-head-commit` block with a `git fetch origin pull/<N>/head:pr-<N>` + `git merge --ff-only` + `git push origin main` block. Adds `gh pr merge --rebase` and the GitHub UI "Rebase and merge" button to the "Forbidden" list. Calls out that PR heads not fast-forwardable from `main` must be rebased locally and re-pushed; never a server-side rebase. (Pre-merge range audit added in the PR #35 BLOCK follow-up entry above.)
+- `AGENTS.md` §2 — promotes the post-merge audit's committer-identity check to a hard fail with explicit `HARD FAIL (ADR-0009): committer must equal author and MUST NOT be "GitHub <noreply@github.com>"` wording. Adjusts the parents check (one parent expected on the local-FF path; two parents indicates the forbidden "Create a merge commit" path). Updates the failure-mode framing from "bypassed the rebase path" to "bypassed the local fast-forward path" and links the remediation template to both [ANKA-268](/ANKA/issues/ANKA-268) and [ANKA-302](/ANKA/issues/ANKA-302). (Range walk added in the PR #35 BLOCK follow-up entry above.)
 - `AGENTS.md` §3 — reframes `gh` as PR-inspection only; calls out that no `gh pr merge` mode is permitted under ADR-0007 / ADR-0009; documents the `git fetch origin pull/<N>/head` head-SHA fallback when `gh` is unavailable.
 - `package.json` — bumps root `0.4.48` → `0.4.49`.
 
 **Verification (worktree)**
 
-- `bun run lint` to be run in this same heartbeat before push.
-- `bun run typecheck` to be run in this same heartbeat before push.
+- `bun run lint` → exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing per the 0.4.48 CHANGELOG).
+- `bun run typecheck` → exit 0.
+- Commit `657b092c` accepted by the `.githooks/commit-msg` hook; committer = author = `FoundingEngineer <foundingengineer@paperclip.ing>`; canonical Paperclip footer present.
 - This PR will be merged via the new §1 local fast-forward push as the first commit to validate the protocol on itself.
 
 ## 0.4.48 / @ankit-prop/eval-harness@0.2.2 — 2026-04-30 01:30 Europe/Amsterdam (PR #34 BLOCK follow-up)

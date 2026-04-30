@@ -148,8 +148,30 @@ PR's QA-reviewed head SHA `<sha>`:
 ```sh
 git fetch origin
 git checkout main && git pull --ff-only origin main
+BASE=$(git rev-parse HEAD)            # captured for the §2 post-merge audit below.
 git fetch origin pull/<N>/head:pr-<N>
 [ "$(git rev-parse pr-<N>)" = "<sha>" ] || { echo "head moved"; exit 1; }
+
+# Mandatory pre-merge range audit (ADR-0009): every commit in
+# $BASE..pr-<N> must pass the §2 hard fails before the FF push lands
+# it on `main`. A clean PR-head SHA alone is NOT sufficient — `git
+# merge --ff-only pr-<N>` lands the entire range, so an earlier
+# commit with two parents, committer "GitHub <noreply@github.com>",
+# or a missing canonical Paperclip footer would slip in even if the
+# head commit is clean.
+for c in $(git rev-list --reverse "$BASE..pr-<N>"); do
+  parents=$(git rev-list --parents -n 1 "$c" | awk '{print NF-1}')
+  author=$(git show --no-patch --format='%an <%ae>' "$c")
+  committer=$(git show --no-patch --format='%cn <%ce>' "$c")
+  has_footer=$(git log -n 1 --format=%B "$c" \
+    | grep -cF 'Co-Authored-By: Paperclip <noreply@paperclip.ing>' || true)
+  [ "$parents" = "1" ] \
+    && [ "$committer" = "$author" ] \
+    && [ "$committer" != "GitHub <noreply@github.com>" ] \
+    && [ "$has_footer" -ge 1 ] \
+    || { echo "PRE-MERGE AUDIT FAIL on $c (parents=$parents committer=$committer author=$author footer=$has_footer)"; exit 1; }
+done
+
 git merge --ff-only pr-<N>
 git push origin main
 git branch -D pr-<N>
@@ -195,20 +217,35 @@ rewrite) and adds this audit step so a future bypass is caught at
 merge time, not weeks later.
 
 After every merge to `main`, the merging agent runs the audit locally
-against the landed commit `<sha>` and pastes the output into the
-Paperclip issue thread before closing:
+over the **entire landed range** (every commit the FF push put on
+`main`, not only the new tip) and pastes the output into the
+Paperclip issue thread before closing. `$BASE` is the SHA captured by
+the §1 block immediately before the FF push:
 
 ```sh
-git rev-list --parents -n 1 <sha>      # HARD FAIL: must have exactly ONE parent. A two-parent merge commit indicates the GitHub-side "Create a merge commit" path, forbidden under ADR-0007 / ADR-0009.
-git show --no-patch --pretty=fuller <sha>   # HARD FAIL (ADR-0009): committer must equal author and MUST NOT be "GitHub <noreply@github.com>". The GitHub-side rebase / squash / merge buttons all rewrite committer to "GitHub <noreply@github.com>"; only the local fast-forward push path defined in §1 preserves committer identity.
-git log -n 1 --format=%B <sha> | grep -F 'Co-Authored-By: Paperclip <noreply@paperclip.ing>'   # HARD FAIL: canonical Paperclip footer must match exactly (the local .githooks/commit-msg hook enforces this at author time; absence indicates a server-side synthesised commit body).
+git fetch origin
+RANGE="$BASE..origin/main"            # every commit landed by this FF push, oldest first.
+git rev-list --reverse "$RANGE" | while read c; do
+  echo "=== $c ==="
+  git rev-list --parents -n 1 "$c"      # HARD FAIL: must have exactly ONE parent. A two-parent merge commit indicates the GitHub-side "Create a merge commit" path, forbidden under ADR-0007 / ADR-0009.
+  git show --no-patch --pretty=fuller "$c"   # HARD FAIL (ADR-0009): committer must equal author and MUST NOT be "GitHub <noreply@github.com>". The GitHub-side rebase / squash / merge buttons all rewrite committer to "GitHub <noreply@github.com>"; only the local fast-forward push path defined in §1 preserves committer identity.
+  git log -n 1 --format=%B "$c" | grep -F 'Co-Authored-By: Paperclip <noreply@paperclip.ing>'   # HARD FAIL: canonical Paperclip footer must match exactly (the local .githooks/commit-msg hook enforces this at author time; absence indicates a server-side synthesised commit body).
+done
 ```
 
+Auditing only the head SHA is insufficient: `git merge --ff-only
+pr-<N>` lands every commit in `$BASE..pr-<N>`, so a clean head with a
+dirty earlier commit in the range still ships a §2-violating shape on
+`main`. The §1 pre-merge range audit and this post-merge range audit
+are paired: the pre-merge audit fails closed before push, and the
+post-merge audit's pasted output is the durable evidence that every
+landed commit passed.
+
 Failure on any line means the merge bypassed the local fast-forward
-path. Open a remediation issue immediately (template:
-[ANKA-268](/ANKA/issues/ANKA-268) / [ANKA-302](/ANKA/issues/ANKA-302))
-and route to FoundingEngineer; do **not** force-push `main` without a
-fresh CEO-approved ADR.
+path or the pre-merge range audit was skipped. Open a remediation
+issue immediately (template: [ANKA-268](/ANKA/issues/ANKA-268) /
+[ANKA-302](/ANKA/issues/ANKA-302)) and route to FoundingEngineer; do
+**not** force-push `main` without a fresh CEO-approved ADR.
 
 ### 3. PR inspection with `gh`; merge is always local FF
 
