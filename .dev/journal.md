@@ -2,6 +2,32 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 09:24 Europe/Amsterdam — [ANKA-321](/ANKA/issues/ANKA-321) PR #36 rebase after CodeReviewer CHANGES_REQUESTED — v0.4.50 / contracts v0.8.1
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_comment_mentioned` wake for CodeReviewer comment `888c1144`.
+
+**What was done**
+
+- Checked out [ANKA-321](/ANKA/issues/ANKA-321) after CodeReviewer accepted the `GatewayDecision` code repair but requested a local rebase because PR [#36](https://github.com/ewildee/ankit-prop-trading-agent/pull/36) was `CONFLICTING/DIRTY`.
+- Fetched `origin` and rebased `ANKA-319-architect-vertical-slice-contract-surface-analyst-trader-judge-reflector` onto current `origin/main` (`ccbfcb6`).
+- Resolved `.dev/journal.md`, `.dev/progress.md`, and `CHANGELOG.md` conflicts by preserving both `main` DBF entries and ANKA-321 entries in newest-first order.
+- Left the approved contract code shape intact: `submitted` accepts only `allow | tighten`; `rejected_by_rails` requires `reject`; `DecisionRecord` and `RunAggregate` remain unchanged.
+
+**Verification on rebased head**
+
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun test packages/shared-contracts/src/personas.spec.ts packages/shared-contracts/src/index.spec.ts` -> 12 pass / 0 fail / 31 expects.
+- `bun test packages/shared-contracts` -> 71 pass / 0 fail / 155 expects.
+- `bun run lint` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics).
+- `bun run typecheck` -> exit 0.
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 85 installs across 89 packages (no changes)`).
+- Reviewer repro matrix -> `{"submittedReject":false,"railReject":true,"submittedAllow":true}`.
+- Debug leftovers scan over changed TS/JSON/YAML files (`console.log|debugger|TODO|HACK`) -> no matches.
+
+**Next**
+
+- Amend the rebased repair commit with this evidence, force-with-lease push PR [#36](https://github.com/ewildee/ankit-prop-trading-agent/pull/36), confirm GitHub reports the new head, and hand [ANKA-321](/ANKA/issues/ANKA-321) back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592).
+
 ## 2026-04-30 09:18 Europe/Amsterdam — [ANKA-326](/ANKA/issues/ANKA-326) apply DBF-003 + DBF-004 BLUEPRINT.md edits and land via ADR-0009 local-FF
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_assigned` wake on [ANKA-326](/ANKA/issues/ANKA-326) — mechanical apply of DBF-003 + DBF-004 from the 2026-04-30 [ANKA-322](/ANKA/issues/ANKA-322) daily blueprint audit, both CEO-accepted verbatim (DBF-004 with the option-(a) judgement call documented in the parent ANKA-324 / ANKA-326 thread).
@@ -62,6 +88,39 @@ _Append-only, newest first. Never edit past entries._
 - Push to `origin` per BLUEPRINT §0.2.
 - Close [ANKA-325](/ANKA/issues/ANKA-325) with the commit SHA. No reviewer required: docs-only, FE-owned ledger, per the §31 review-gate matrix's "Trivial: docs-only, CHANGELOG/journal, version bumps without code → No reviewer required; close yourself" row.
 - DBF-002 / DBF-003 / DBF-004 remain queued under [ANKA-322](/ANKA/issues/ANKA-322) for separate BlueprintAuditor-reviewed closures (they touch BLUEPRINT.md, which DBF-005 did not).
+
+## 2026-04-30 09:13 Europe/Amsterdam — [ANKA-321](/ANKA/issues/ANKA-321) PR #36 BLOCK follow-up — `GatewayDecision` rail reject telemetry — v0.4.50 / contracts v0.8.1
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_comment_mentioned` wake for [ANKA-321](/ANKA/issues/ANKA-321) repair brief `4da84343`.
+
+**What was done**
+
+- Acknowledged the local-board repair brief and checked out [ANKA-321](/ANKA/issues/ANKA-321) from `todo`.
+- Fetched and read `https://bun.com/llms.txt` at 09:13 Europe/Amsterdam before editing Bun-runtime TypeScript; no new npm dependencies were added.
+- Tightened `GatewayDecision` so `status: 'submitted'` only accepts `RailVerdict.outcome: 'allow' | 'tighten'`.
+- Added explicit `status: 'rejected_by_rails'` for pre-submit hard-rail rejection with `RailVerdict.outcome: 'reject'`.
+- Added regressions for the CodeReviewer repro (`submitted + reject` fails), the explicit rail-reject branch, and a submitted allow positive control.
+- Bumped `@ankit-prop/contracts` `0.8.0` → `0.8.1` and added a root CHANGELOG follow-up entry.
+
+**Findings**
+
+- `RunAggregate.gatewayOutcomes` already has a `reject` bucket, so no aggregate reshaping was needed.
+- `DecisionRecord.gatewayDecision: GatewayDecision.nullable()` remains correct; only the nested gateway telemetry variant was unsafe.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun test packages/shared-contracts/src/personas.spec.ts packages/shared-contracts/src/index.spec.ts` -> 12 pass / 0 fail / 31 expects.
+- `bun test packages/shared-contracts` -> 71 pass / 0 fail / 155 expects.
+- `bun run lint` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics).
+- `bun run typecheck` -> exit 0.
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 85 installs across 89 packages (no changes)`).
+- Reviewer repro one-liner for `submitted + reject` -> `{"success": false}`.
+- Debug leftovers scan over changed TS/JSON/YAML files (`console.log|debugger|TODO|HACK`) -> no matches.
+
+**Next**
+
+- Commit and push PR [#36](https://github.com/ewildee/ankit-prop-trading-agent/pull/36), then hand [ANKA-321](/ANKA/issues/ANKA-321) back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592).
 
 ## 2026-04-30 08:57 Europe/Amsterdam — [ANKA-321](/ANKA/issues/ANKA-321) persona contracts + v_ankit_classic params skeleton — v0.4.50
 

@@ -1,8 +1,9 @@
 # Progress
 
-- Current issue: [ANKA-321](/ANKA/issues/ANKA-321) — rebase PR #36 after CodeReviewer `CHANGES_REQUESTED`.
+- Current issue: [ANKA-321](/ANKA/issues/ANKA-321) — PR #36 rebase after CodeReviewer `CHANGES_REQUESTED`.
 - Worktree: `.paperclip/worktrees/ANKA-319-architect-vertical-slice-contract-surface-analyst-trader-judge-reflector`.
-- Latest review: code repair accepted, but PR #36 was `CONFLICTING/DIRTY` against `origin/main`.
-- Rebase in progress onto current `origin/main`; first commit conflict resolution keeps both `main` DBF entries and ANKA-321 entries newest-first.
-- Conflict files: `.dev/journal.md`, `.dev/progress.md`, `CHANGELOG.md`.
-- Next: continue rebase, resolve the PR #36 BLOCK-follow-up commit if needed, rerun local gate, force-with-lease push, and hand back to CodeReviewer.
+- Rebased branch onto current `origin/main` (`ccbfcb6`) after PR #36 was `CONFLICTING/DIRTY`.
+- Conflict resolution preserved `main` DBF entries plus ANKA-321 09:13 and 08:57 entries newest-first in CHANGELOG and journal.
+- Approved `GatewayDecision` repair remains intact: `submitted` allows `allow | tighten`; `rejected_by_rails` requires `reject`.
+- Rebased-head gate passed: lint:fix, focused tests, package tests, lint, typecheck, frozen install, repro matrix, debug scan.
+- Next: amend/push rebased PR #36 head and hand [ANKA-321](/ANKA/issues/ANKA-321) back to CodeReviewer.

@@ -255,6 +255,7 @@ export const PersonaConfig = z.strictObject({
 export type PersonaConfig = z.infer<typeof PersonaConfig>;
 
 export const GatewayDecision = z.discriminatedUnion('status', [
+  // Trader produced HOLD or judge rejected; the gateway was never reached.
   z.strictObject({
     status: z.literal('not_submitted'),
     reason: z.enum(['hold', 'judge_reject']),
@@ -266,10 +267,26 @@ export const GatewayDecision = z.discriminatedUnion('status', [
     ]),
     railVerdict: z.null(),
   }),
+  // Pre-submit hard rails blocked transmission. The action reached the gateway,
+  // but rails refused to forward it to the broker.
+  z.strictObject({
+    status: z.literal('rejected_by_rails'),
+    traderOutput: z.union([TraderOpenOutput, TraderCloseOutput, TraderAmendOutput]),
+    railVerdict: RailVerdict.refine((verdict) => verdict.outcome === 'reject', {
+      message: "rejected_by_rails requires railVerdict.outcome === 'reject'",
+    }),
+  }),
+  // Order made it to the broker. Rails either passed it through unchanged or
+  // tightened it on the way; a reject verdict here is a contract violation.
   z.strictObject({
     status: z.literal('submitted'),
     traderOutput: z.union([TraderOpenOutput, TraderCloseOutput, TraderAmendOutput]),
-    railVerdict: RailVerdict,
+    railVerdict: RailVerdict.refine(
+      (verdict) => verdict.outcome === 'allow' || verdict.outcome === 'tighten',
+      {
+        message: "submitted requires railVerdict.outcome 'allow' or 'tighten'",
+      },
+    ),
     submittedAt: z.string().min(1),
   }),
 ]);

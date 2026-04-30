@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { composeRailVerdict } from './hard-rails.ts';
 import {
   AnalystOutput,
   DecisionRecord,
@@ -72,6 +73,32 @@ const calendarItem = {
   articleLink: null,
 } as const;
 
+const railRejectedVerdict = composeRailVerdict(
+  [
+    {
+      rail: 'spread_guard',
+      outcome: 'reject',
+      reason: 'spread blew out',
+      detail: {},
+      decidedAt: '2026-04-30T14:35:01.500Z',
+    },
+  ],
+  '2026-04-30T14:35:01.500Z',
+);
+
+const railAllowedVerdict = composeRailVerdict(
+  [
+    {
+      rail: 'spread_guard',
+      outcome: 'allow',
+      reason: 'spread within threshold',
+      detail: {},
+      decidedAt: '2026-04-30T14:35:01.500Z',
+    },
+  ],
+  '2026-04-30T14:35:01.500Z',
+);
+
 describe('persona pipeline contracts', () => {
   test('AnalystOutput accepts the blueprint-backed v_ankit_classic shape', () => {
     const parsed = AnalystOutput.parse(analystOutput);
@@ -142,6 +169,43 @@ describe('persona pipeline contracts', () => {
     });
 
     expect(parsed.status).toBe('not_submitted');
+  });
+
+  test('GatewayDecision rejects submitted telemetry with a rail reject verdict', () => {
+    const parsed = GatewayDecision.safeParse({
+      status: 'submitted',
+      traderOutput: openOutput,
+      railVerdict: railRejectedVerdict,
+      submittedAt: '2026-04-30T14:35:02.000Z',
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  test('GatewayDecision accepts explicit rail-reject telemetry before broker submission', () => {
+    const parsed = GatewayDecision.safeParse({
+      status: 'rejected_by_rails',
+      traderOutput: openOutput,
+      railVerdict: railRejectedVerdict,
+    });
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.status).toBe('rejected_by_rails');
+      expect(parsed.data.railVerdict?.outcome).toBe('reject');
+    }
+  });
+
+  test('GatewayDecision accepts submitted telemetry with an allow verdict', () => {
+    const parsed = GatewayDecision.parse({
+      status: 'submitted',
+      traderOutput: openOutput,
+      railVerdict: railAllowedVerdict,
+      submittedAt: '2026-04-30T14:35:02.000Z',
+    });
+
+    expect(parsed.status).toBe('submitted');
+    expect(parsed.railVerdict?.outcome).toBe('allow');
   });
 
   test('DecisionRecord composes analyst, trader, judge, and gateway artifacts', () => {

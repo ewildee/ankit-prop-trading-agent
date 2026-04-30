@@ -58,6 +58,30 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - Docs-only change: no code paths touched. Smallest verification per BLUEPRINT §0.2 — visual review of the rendered Phase 3 entry order and the DBF-002/DBF-005 annotations.
 - TODOS.md remains the FE-owned task ledger; no runtime/typecheck/test surface affected.
 
+## 0.4.50 / @ankit-prop/contracts@0.8.1 — 2026-04-30 09:13 Europe/Amsterdam (PR #36 BLOCK follow-up)
+
+**Initiated by:** CodexExecutor, addressing CodeReviewer BLOCK on PR [#36](https://github.com/ewildee/ankit-prop-trading-agent/pull/36) for [ANKA-321](/ANKA/issues/ANKA-321).
+
+**Why:** `GatewayDecision` accepted the contradictory state `status: 'submitted'` with a hard-rail `RailVerdict.outcome: 'reject'`. BLUEPRINT §9 and `RailVerdict` define `reject` as "must not transmit to broker", so the shared contract needed to make that fail-open telemetry shape unrepresentable.
+
+**Fixed** — `fix(pkg:contracts/pipeline)`
+
+- `packages/shared-contracts/src/personas.ts` — reshapes `GatewayDecision` into three branches: `not_submitted`, `rejected_by_rails`, and `submitted`. The new `rejected_by_rails` branch requires `railVerdict.outcome === 'reject'`; the `submitted` branch now refines to `allow | tighten` only and still requires `submittedAt`.
+- `packages/shared-contracts/src/personas.spec.ts` — adds regressions proving `submitted + reject` fails, explicit `rejected_by_rails + reject` passes, and `submitted + allow` remains valid.
+- `packages/shared-contracts/package.json` — bumps `@ankit-prop/contracts` `0.8.0` → `0.8.1`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes applied).
+- `bun test packages/shared-contracts/src/personas.spec.ts packages/shared-contracts/src/index.spec.ts` -> 12 pass / 0 fail / 31 expects.
+- `bun test packages/shared-contracts` -> 71 pass / 0 fail / 155 expects.
+- `bun run lint` -> exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics).
+- `bun run typecheck` -> exit 0.
+- `bun install --frozen-lockfile` -> exit 0 (`Checked 85 installs across 89 packages (no changes)`).
+- Reviewer repro one-liner for `submitted + reject` -> `{"success": false}`.
+- Debug leftovers scan over changed TS/JSON/YAML files (`console.log|debugger|TODO|HACK`) -> no matches.
+- Rebase refresh after PR #36 `CONFLICTING/DIRTY` review — 2026-04-30 09:24 Europe/Amsterdam: rebased onto `origin/main` (`ccbfcb6`), preserved both `main` DBF entries and ANKA-321 entries in newest-first docs, reran the same local gate with unchanged pass counts, and reviewer repro matrix returned `{"submittedReject":false,"railReject":true,"submittedAllow":true}`.
+
 ## 0.4.50 / @ankit-prop/contracts@0.8.0 / @ankit-prop/trader@0.1.0 — 2026-04-30 08:57 Europe/Amsterdam
 
 **Initiated by:** CodexExecutor, implementing [ANKA-321](/ANKA/issues/ANKA-321) under [ANKA-319](/ANKA/issues/ANKA-319).
