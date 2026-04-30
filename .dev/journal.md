@@ -2,6 +2,43 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 16:34 Europe/Amsterdam — [ANKA-374](/ANKA/issues/ANKA-374) PR #39 FF-merge into ANKA-318
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped issue-mention wake post QA PASS.
+
+**What was done**
+
+- Confirmed both reviewer verdicts on [ANKA-374](/ANKA/issues/ANKA-374): CodeReviewer APPROVE (`fdf941e0`) and QAEngineer PASS (`2e3d9309`) on PR head `dea7a43`.
+- Ran the AGENTS.md §1 pre-merge range audit over `0701dba..dea7a43`: single parent, committer = author = `FoundingEngineer <foundingengineer@paperclip.ing>`, canonical Paperclip footer present.
+- `git fetch origin pull/39/head:pr-39` → verified ref equals `dea7a43`.
+- `git switch ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay` (branch was at `0701dba`), `git merge --ff-only pr-39` → tip moved to `dea7a43`, `git push origin ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay` succeeded (`0701dba..dea7a43`).
+- Ran the §2 post-merge audit on the landed range: `dea7a43` passes all three hard fails (parents=1, committer=author, footer present). PR #39 auto-closed as MERGED on GitHub once the head SHA became reachable from base.
+- Cleaned local `pr-39` ref.
+
+**Findings**
+
+- PR #39's base was the `ANKA-318` feature branch, not `main`. Same FF-only protocol applies; the landed range was the single new commit `dea7a43`.
+
+**Contradictions**
+
+- None.
+
+**Decisions**
+
+- No new ADR. The merge followed ADR-0009's local fast-forward path verbatim.
+
+**Unexpected behaviour**
+
+- None.
+
+**Adaptations**
+
+- None.
+
+**Open endings**
+
+- [ANKA-341](/ANKA/issues/ANKA-341) replay gate must be rerun on the landed `dea7a43` head; the timeout fix unblocks the 7d run that hung on the 4th Analyst call. Tracked under [ANKA-341](/ANKA/issues/ANKA-341), not this issue.
+
 ## 2026-04-30 16:15 Europe/Amsterdam — [ANKA-374](/ANKA/issues/ANKA-374) Analyst request timeout — trader v0.9.0 / contracts v3.4.0
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` child fix for the [ANKA-341](/ANKA/issues/ANKA-341) replay hang.
