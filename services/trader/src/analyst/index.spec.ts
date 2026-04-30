@@ -5,6 +5,7 @@ import type { LanguageModelUsage, ProviderMetadata } from 'ai';
 import { loadPersonaConfig } from '../persona-config/loader.ts';
 import type { AnalystGenerationRequest } from './index.ts';
 import {
+  buildOpenRouterAnalystGenerationOutputMode,
   buildOpenRouterAnalystProviderOptions,
   createVAnkitClassicAnalyst,
   DEFAULT_ANALYST_REQUEST_TIMEOUT_MS,
@@ -50,7 +51,7 @@ describe('createVAnkitClassicAnalyst', () => {
     }
 
     expect(requests.length).toBe(6);
-    expect(requests.at(-1)?.model).toBe('moonshotai/kimi-k2.6');
+    expect(requests.at(-1)?.model).toBe(params.analyst.model);
     expect(requests.at(-1)?.reasoningMaxTokens).toBe(params.analyst.reasoningMaxTokens);
     expect(requests.at(-1)?.requestTimeoutMs).toBe(DEFAULT_ANALYST_REQUEST_TIMEOUT_MS);
     expect(requests.at(-1)?.system).toContain('v_ankit_classic');
@@ -141,6 +142,17 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(openRouterCostUsdFromProviderMetadata(undefined)).toBeUndefined();
   });
 
+  test('uses schema-free AI SDK JSON output mode for OpenRouter analyst generation', async () => {
+    const outputMode = buildOpenRouterAnalystGenerationOutputMode();
+
+    await expect(outputMode.responseFormat).resolves.toEqual({
+      type: 'json',
+      name: 'AnalystGenerationOutput',
+      description:
+        'Validated model-generated Analyst fields for v_ankit_classic; runtime fills deterministic telemetry fields.',
+    });
+  });
+
   test('passes params-sourced reasoning cap through OpenRouter provider options', async () => {
     const params = await loadPersonaConfig();
     const reasoningMaxTokens = params.analyst.reasoningMaxTokens;
@@ -153,6 +165,12 @@ describe('createVAnkitClassicAnalyst', () => {
       max_tokens: reasoningMaxTokens,
       exclude: true,
     });
+  });
+
+  test('does not pin OpenRouter routing away from fallback providers', () => {
+    const options = buildOpenRouterAnalystProviderOptions({});
+
+    expect(options.openrouter).not.toHaveProperty('provider');
   });
 
   test('passes low-effort and disabled reasoning retry options through OpenRouter provider options', async () => {

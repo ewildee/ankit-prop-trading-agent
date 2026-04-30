@@ -2,6 +2,50 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 17:39 Europe/Amsterdam — [ANKA-385](/ANKA/issues/ANKA-385) Analyst JSON output mode — trader v0.9.2
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_status_changed` wake for [ANKA-385](/ANKA/issues/ANKA-385).
+
+**What was done**
+
+- Fetched/read `https://bun.com/llms.txt` before editing Bun-runtime TypeScript.
+- Created per-issue worktree `.paperclip/worktrees/ANKA-385` from the [ANKA-318](/ANKA/issues/ANKA-318) feature branch after confirming `origin/main` did not contain the Analyst timeout/model-swap state.
+- Switched the v_ankit_classic OpenRouter Analyst generation path from strict-schema `generateObject` to AI SDK `6.0.168`'s schema-free JSON output path (`generateText` + `Output.json`), then kept runtime validation via `AnalystGenerationOutput.safeParse`.
+- Confirmed `buildOpenRouterAnalystProviderOptions` has no `provider` routing pin and added specs for schema-free JSON output mode and unpinned provider routing.
+- Updated the stale Analyst model expectation in `index.spec.ts` to follow `params.analyst.model`, preserving the [ANKA-341](/ANKA/issues/ANKA-341) `openai/gpt-5.4-mini` swap.
+- Bumped `@ankit-prop/trader` `0.9.1` → `0.9.2` and appended the root `CHANGELOG.md` entry.
+
+**Findings**
+
+- The pinned AI SDK type and runtime do not expose `generateObject({ mode: 'json' })`; `generateObject` always passes `responseFormat: { type: 'json', schema }`. In this installed version, the matching JSON-mode field is `generateText({ output: Output.json(...) })`.
+- There is no `services/trader/CHANGELOG.md` on this branch; trader package entries live in the root `CHANGELOG.md`.
+
+**Contradictions**
+
+- [ANKA-385](/ANKA/issues/ANKA-385) names `generateObject mode: 'json'` and `services/trader/CHANGELOG.md`; the installed dependency and repo layout differ. Resolution: used the installed-version JSON mode and the existing root changelog convention.
+
+**Decisions**
+
+- No new ADR. This is an implementation detail under the [ANKA-380](/ANKA/issues/ANKA-380) Option B directive, not a broader provider policy change.
+
+**Unexpected behaviour**
+
+- The first wrong-base worktree from `origin/main` showed trader `0.5.4` with no retry ladder; it was removed before edits and recreated from `origin/ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay`.
+- Codebase retrieval returned HTTP 429 twice; direct repo and package reads provided the required context.
+
+**Verification**
+
+- `bun run --cwd services/trader lint:fix` → exit 0 (`Found 27 warnings.`; existing non-null assertion warnings remain).
+- `bun run --cwd services/trader lint` → exit 0 (`Found 27 warnings.`).
+- `bun run --cwd services/trader test` → 67 pass / 0 fail / 262 expects.
+- `bun run --cwd services/trader typecheck` → exit 0.
+- Live smoke `.dev/runs/anka380-smoke.ts` with root `.env` `OPENROUTER_API_KEY` → parsed JSON output; `bias=neutral`; `providerCostUsd=0.00045441`.
+- `bun run --cwd services/trader start` → exit 0 with Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
+**Open endings**
+
+- Commit and push `feat(svc:trader/analyst): use ai-sdk json mode to bypass strict-schema rejection`, then hand [ANKA-385](/ANKA/issues/ANKA-385) to CodeReviewer. FoundingEngineer reruns the [ANKA-341](/ANKA/issues/ANKA-341) replay after review.
+
 ## 2026-04-30 16:48 Europe/Amsterdam — [ANKA-341](/ANKA/issues/ANKA-341) Analyst model swap to openai/gpt-5.4-mini per board directive
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped issue-comment wake on board directive `b4afb497`.
