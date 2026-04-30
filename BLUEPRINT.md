@@ -2657,9 +2657,14 @@ Before promoting to FTMO Free Trial, exercise:
 | **P1** | **FTMO Phase 1 paid challenge** | Live monitoring + daily summary | Phase 1 target hit, breach-free, FTMO-acknowledged |
 | **7** | `autoresearch` (suggest-only) | Mutation generator + golden eval pass | Pre-condition: 30 days paper-live + ≥40 trades |
 
-Phases 1–3 sequential; phase 4 may overlap with phase 5 once contracts
-mergeable. Phase 6 after 4. Phase 7 cannot start before live data
-exists.
+Phases 1–3 sequential; Phase 4 may overlap with Phase 5 once contracts
+mergeable. Phase 6's *shell-and-banner* scaffolding (version-matrix banner
+pinned to `pkg:contracts#SERVICES`, `/health` on the registry-canonical
+port, no live decision/control surfaces) may run in parallel with Phases
+4–5 because it depends only on the contracts package, not on running
+trader/news/gateway runtimes. Phase 6's substantive views (decision feed,
+hard-rail log viewer, controls, kill switch) MUST come after Phase 4.
+Phase 7 cannot start before live data exists.
 
 ---
 

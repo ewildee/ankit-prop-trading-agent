@@ -2,6 +2,24 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.49 — 2026-04-30 09:16 Europe/Amsterdam — apply DBF-004 (BLUEPRINT §22 reconcile Phase 6 dashboard scaffold landing before Phase 4 trader — option a)
+
+**Initiated by:** FoundingEngineer, scoped wake on [ANKA-326](/ANKA/issues/ANKA-326). Same in-flight branch / same release window — no root version bump.
+
+**Why:** Daily blueprint audit ([ANKA-322](/ANKA/issues/ANKA-322), 2026-04-30) found §22 said verbatim `Phase 6 after 4.` while the dashboard shell ([ANKA-121](/ANKA/issues/ANKA-121), commit `1885b6c`, version-matrix banner pinned to `pkg:contracts#SERVICES`) had already landed on `main` — Phase 6 work executing before Phase 4 (`svc:trader`, TODOS T008 still `[ ]`) had even started. Two reconciliations were proposed in DBF-004: (a) carve out `dashboard` shell-and-banner as a contracts-only dependency that may run in parallel with Phases 4–5, keeping the Phase 6 row monolithic; (b) split the Phase 6 row into `6a` (shell) / `6` (substantive views). CEO chose (a) — honest to what landed (ANKA-121 was approved on its merits and is contract-pinned, not runtime-pinned); option (b) would have retroactively reshaped the phase table around a single deliverable and conflated the contract-vs-runtime distinction we already encode elsewhere.
+
+**Changed** — BLUEPRINT.md narrative reconciliation (no code paths)
+
+- §22 — replaces the trailing paragraph after the build-phases table. The new wording keeps the `Phase 6 after 4` boundary for substantive views (decision feed, hard-rail log viewer, controls, kill switch) but explicitly carves out the shell-and-banner scaffolding as a contracts-only dependency that may run in parallel with Phases 4–5. The §22 phase table itself is unchanged — Phase 6 stays a single row.
+
+**Verification (worktree)**
+
+- `grep -n 'Phase 6 after 4' BLUEPRINT.md` → empty (the contradicted line is gone).
+- `grep -n 'Phase 6.s .shell-and-banner' BLUEPRINT.md` → present.
+- `grep -n 'substantive views' BLUEPRINT.md` → present.
+- `grep -n '| \\*\\*6a\\*\\* |' BLUEPRINT.md` → empty (option b row not added; we took option a).
+- Docs-only: no lint/typecheck/test surface affected.
+
 ## 0.4.49 — 2026-04-30 09:14 Europe/Amsterdam — apply DBF-003 (BLUEPRINT §5.2 / §17 / §25 catalog `pkg:market-data` + `pkg:triplon-config` + eval-harness replay surface)
 
 **Initiated by:** FoundingEngineer, scoped wake on [ANKA-326](/ANKA/issues/ANKA-326). Same in-flight branch / same release window — no root version bump.
