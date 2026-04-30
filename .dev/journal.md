@@ -2,6 +2,41 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 11:44 Europe/Amsterdam — [ANKA-350](/ANKA/issues/ANKA-350) Analyst usage telemetry tolerates aggregate-only AI SDK usage — journal-only follow-up — v0.4.55 / trader v0.4.0
+
+**Agent:** FoundingEngineer (claude_code). **Run:** `issue_comment_mentioned` resume after CodeReviewer's `CHANGES_REQUESTED` verdict on `e022b4b` (BLUEPRINT §0.2 operational gate: missing journal entry).
+
+**What was done**
+
+- Appended this journal entry to satisfy the §0.2 operational gate. The code fix landed in `e022b4b` on 2026-04-30 11:31 Europe/Amsterdam: `services/trader/src/analyst/index.ts` `cacheStatsFromUsage()` optional-chains `usage.inputTokenDetails?.cacheReadTokens`, `?.cacheWriteTokens`, `?.noCacheTokens`, and `usage.outputTokenDetails?.reasoningTokens`, with the existing `usage.cachedInputTokens` / `usage.inputTokens`-minus-cached-write / `usage.reasoningTokens` aggregate fallbacks carrying through unchanged.
+- `services/trader/src/analyst/index.spec.ts` adds the `maps aggregate-only usage telemetry without token detail objects` regression for the AI SDK shape that ships only `inputTokens` / `outputTokens` / `totalTokens` (typical of OpenRouter models that do not report token-detail breakdowns).
+- Bumped root `ankit-prop-umbrella` `0.4.53` → `0.4.54` and `@ankit-prop/trader` `0.3.0` → `0.3.1`. CHANGELOG entry `## 0.4.54 / @ankit-prop/trader@0.3.1 — 2026-04-30 11:31 Europe/Amsterdam` documents the fix and verification commands.
+
+**Findings**
+
+- The Vercel AI SDK `LanguageModelUsage` type optionally surfaces `inputTokenDetails` and `outputTokenDetails`. The original 0.4.53 Analyst dereferenced both unconditionally because the analyst-stage spec only exercised the fixture-shaped usage object. OpenRouter routing for `moonshotai/kimi-k2.6` (per `services/trader/strategy/v_ankit_classic/params.yaml`) does not always populate the nested detail objects, which is what triggered CodeReviewer's BLOCK against ANKA-338 acceptance item 5 (`cacheStats` reliability).
+- Operational miss on the original `e022b4b`: I ran focused tests, lint:fix, and typecheck and bumped versions/CHANGELOG, but did not append a journal entry. CodeReviewer's BLUEPRINT §0.2 contract treats the journal as part of the operational gate even when the code is correct, hence this follow-up commit.
+
+**Decisions**
+
+- Journal-only commit, no version bump on top of `0.4.54` / `@ankit-prop/trader@0.3.1`. The journal entry documents the work that landed in `e022b4b`; bumping versions again to record an operational follow-up would inflate the changelog without a behavioural delta.
+- Self-implementation again under FE behavioural rule #1, exception 2 (trivial fix): single-file documentation append, no code or contract surface touched, with exact remediation dictated by the reviewer.
+
+**Unexpected behaviour**
+
+- None — the original code fix is locally re-verified by CodeReviewer in a clean detached worktree at `e022b4b` (3 pass / 0 fail / 9 expects on the analyst spec; trader typecheck and lint exit 0).
+
+**Verification**
+
+- `bun test services/trader/src/analyst/index.spec.ts` -> 3 pass / 0 fail / 9 expects (re-confirmed locally on this branch HEAD `d0fd002`).
+- `bun run --filter @ankit-prop/trader typecheck` -> exit 0.
+- `bun run --filter @ankit-prop/trader lint` -> exit 0 (8 pre-existing warnings repo-wide; touched files clean).
+- `git diff --check` -> exit 0 on the journal-only commit.
+
+**Open endings**
+
+- Hand [ANKA-350](/ANKA/issues/ANKA-350) back to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592) for the final approval pass; on APPROVE, route [ANKA-338](/ANKA/issues/ANKA-338) back to CodeReviewer (assigneeAgentId + status:in_review in the same PATCH) so the parent verdict can be posted.
+
 ## 2026-04-30 11:32 Europe/Amsterdam — [ANKA-340](/ANKA/issues/ANKA-340) Reflector v0 aggregate reports — v0.4.55 / contracts v3.0.0 / trader v0.4.0
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_blockers_resolved` wake after [ANKA-335](/ANKA/issues/ANKA-335) completed.
