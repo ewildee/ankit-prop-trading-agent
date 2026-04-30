@@ -2,6 +2,45 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 15:38 Europe/Amsterdam — [ANKA-371](/ANKA/issues/ANKA-371) Analyst active-window LLM skip — trader v0.8.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` child fix for the [ANKA-341](/ANKA/issues/ANKA-341) replay cost gate.
+
+**What was done**
+
+- Fetched/read `https://bun.com/llms.txt` before editing Bun-runtime TypeScript.
+- Added a deterministic `outside_active_window` branch in `createVAnkitClassicAnalyst.analyze` that returns a neutral schema-valid Analyst output with zero cache tokens and `costUsd: 0` before prompt read or generator invocation.
+- Added Analyst unit coverage for the out-of-window skip and the in-window generator path.
+- Added replay-adapter coverage for mixed outside/inside active-window bars.
+- Added Reflector aggregate/report coverage proving zero-cost skip decisions count but do not add LLM spend.
+- Bumped root `0.4.63` -> `0.4.64` and `@ankit-prop/trader` `0.7.1` -> `0.8.0`.
+
+**Findings**
+
+- `scoreConfluence` already returns zero score/confidence for `outside_active_window`, so the skip branch can reuse the existing regime note and does not need a new contract marker.
+- Trader's existing neutral-bias HOLD path handles the synthesized output with `reason: 'neutral_bias'`.
+
+**Contradictions**
+
+- None. This does not change persona windows, thresholds, weights, or params.
+
+**Decisions**
+
+- Skip exactly `outside_active_window`; leave `unknown` and macro regimes on the LLM path.
+- Use `costUsd: 0` plus zero cache stats as the deterministic-path signal rather than adding a new schema field.
+
+**Unexpected behaviour**
+
+- `bun run lint:fix` and `bun run lint` still report pre-existing repo-wide warnings outside this issue; both exit 0.
+
+**Adaptations**
+
+- Ran the full `services/trader` spec suite after the focused gating suite so the Trader/Judge/Pipeline consequences stayed covered locally.
+
+**Open endings**
+
+- [ANKA-371](/ANKA/issues/ANKA-371) needs commit/push, then CodeReviewer and QAEngineer handoff.
+
 ## 2026-04-30 14:59 Europe/Amsterdam — [ANKA-368](/ANKA/issues/ANKA-368) Analyst retry telemetry accumulation — trader v0.7.1
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` child fix after CodeReviewer CHANGES_REQUESTED on [ANKA-365](/ANKA/issues/ANKA-365).

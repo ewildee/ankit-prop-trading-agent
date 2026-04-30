@@ -42,4 +42,29 @@ describe('aggregateDecisionRecords', () => {
 
     expect(aggregate.analystFallbackCount).toBe(1);
   });
+
+  test('keeps zero-cost deterministic skips in decision count without adding LLM spend', () => {
+    const records = fixtureRun();
+    const { aggregate } = aggregateDecisionRecords([
+      {
+        ...records[0]!,
+        analystOutput: {
+          ...records[0]!.analystOutput,
+          regimeLabel: 'outside_active_window',
+          regimeNote: 'outside_active_window; tf=0 ind=0',
+          costUsd: 0,
+        },
+      },
+      {
+        ...records[1]!,
+        analystOutput: {
+          ...records[1]!.analystOutput,
+          costUsd: 0.012345,
+        },
+      },
+    ]);
+
+    expect(aggregate.decisionCount).toBe(2);
+    expect(aggregate.llmCostUsd.totalUsd).toBe(0.012345);
+  });
 });

@@ -67,6 +67,71 @@ describe('runTraderReplay', () => {
     }
   });
 
+  test('skips analyst generation for out-of-window bars and still generates in-window bars', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
+    try {
+      const bars = barsAcrossOutsideAndActiveWindows();
+      const provider = new StaticMarketDataProvider(bars);
+      const persona = await loadPersonaConfig();
+      let analystGeneratorCalls = 0;
+      const analystGenerator: AnalystGenerator = async () => {
+        analystGeneratorCalls += 1;
+        return {
+          object: {
+            thesis: 'Fixture active-window thesis long enough for AnalystOutput validation.',
+            bias: 'long',
+            keyLevels: [{ name: 'fixture active level', price: 100, timeframe: '5m' }],
+          },
+          usage: {
+            inputTokens: 0,
+            inputTokenDetails: {
+              noCacheTokens: 0,
+              cacheReadTokens: 0,
+              cacheWriteTokens: 0,
+            },
+            outputTokens: 0,
+            outputTokenDetails: {
+              textTokens: 0,
+              reasoningTokens: 0,
+            },
+            totalTokens: 0,
+          },
+        };
+      };
+
+      const result = await runTraderReplay({
+        runId: 'replay-adapter-outside-window-spec',
+        persona,
+        provider,
+        symbols: [{ symbol: 'XAUUSD', timeframe: '5m' }],
+        window: {
+          fromMs: Date.parse('2026-04-30T04:00:00.000Z'),
+          toMs: Date.parse('2026-04-30T12:20:00.000Z'),
+        },
+        account: ACCOUNT,
+        symbolMetas: await provider.listSymbols(),
+        logPath: join(tmp, 'decisions.jsonl'),
+        reflectAtEnd: false,
+        analystGenerator,
+      });
+
+      expect(result.decisions).toHaveLength(2);
+      expect(analystGeneratorCalls).toBe(1);
+      expect(result.decisions[0]?.analystOutput).toMatchObject({
+        regimeLabel: 'outside_active_window',
+        bias: 'neutral',
+        costUsd: 0,
+      });
+      expect(result.decisions[0]?.traderOutput).toMatchObject({
+        action: 'HOLD',
+        reason: 'neutral_bias',
+      });
+      expect(result.decisions[1]?.analystOutput.regimeLabel).not.toBe('outside_active_window');
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
+
   test('flushes each emitted decision before processing the next bar', async () => {
     const tmp = await mkdtemp(join(tmpdir(), 'trader-replay-'));
     try {
@@ -334,6 +399,25 @@ function barsWithRepeatedLongSignals(): Bar[] {
       volume: 1000 + index,
     };
   });
+}
+
+function barsAcrossOutsideAndActiveWindows(): Bar[] {
+  return [barAt('2026-04-30T04:00:00.000Z', 100), barAt('2026-04-30T12:10:00.000Z', 102)];
+}
+
+function barAt(startIso: string, close: number): Bar {
+  const tsStart = Date.parse(startIso);
+  return {
+    symbol: 'XAUUSD',
+    timeframe: '5m',
+    tsStart,
+    tsEnd: tsStart + 5 * 60 * 1000,
+    open: close - 1,
+    high: close + 1,
+    low: close - 2,
+    close,
+    volume: 1000,
+  };
 }
 
 function barsAcrossPragueDayForCloseThenReopen(): Bar[] {

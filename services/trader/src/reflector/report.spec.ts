@@ -51,4 +51,52 @@ describe('writeReflectorReport', () => {
       await rm(tmp, { recursive: true, force: true });
     }
   });
+
+  test('reports live-call cost only when deterministic skip decisions cost zero', async () => {
+    const tmp = await mkdtemp(join(tmpdir(), 'reflector-report-'));
+    try {
+      const decisionsPath = join(tmp, 'decisions.jsonl');
+      const records = fixtureRun();
+      await writeFile(
+        decisionsPath,
+        `${[
+          {
+            ...records[0]!,
+            analystOutput: {
+              ...records[0]!.analystOutput,
+              regimeLabel: 'outside_active_window',
+              regimeNote: 'outside_active_window; tf=0 ind=0',
+              costUsd: 0,
+            },
+          },
+          {
+            ...records[1]!,
+            analystOutput: {
+              ...records[1]!.analystOutput,
+              costUsd: 0.012345,
+            },
+          },
+        ]
+          .map((record) => JSON.stringify(record))
+          .join('\n')}\n`,
+      );
+
+      const report = await writeReflectorReport({
+        runId: 'reflector-zero-cost-skip-spec',
+        decisionsPath,
+        outputDir: tmp,
+      });
+
+      const json = JSON.parse(await readFile(report.reportJsonPath, 'utf8'));
+      const aggregate = RunAggregate.parse(json.aggregate);
+      expect(aggregate.decisionCount).toBe(2);
+      expect(aggregate.llmCostUsd.totalUsd).toBe(0.012345);
+
+      const markdown = await readFile(report.reportMdPath, 'utf8');
+      expect(markdown).toContain('- Decisions: 2');
+      expect(markdown).toContain('- LLM cost: $0.012345');
+    } finally {
+      await rm(tmp, { recursive: true, force: true });
+    }
+  });
 });

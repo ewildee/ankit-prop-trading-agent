@@ -19,6 +19,8 @@ const ANALYST_GENERATION_MAX_ATTEMPTS = 3;
 const ANALYST_GENERATION_RETRY_MAX_OUTPUT_TOKENS = 4096;
 const ANALYST_SAFE_FALLBACK_THESIS =
   'ANALYST_SAFE_FALLBACK: structured generation failed after retry escalation; neutral HOLD emitted.';
+const OUTSIDE_ACTIVE_WINDOW_THESIS =
+  'outside-active-window: deterministic skip; analyst LLM not invoked.';
 
 const SERVICE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const ANALYST_PROMPT_PATH = resolve(
@@ -90,6 +92,9 @@ export function createVAnkitClassicAnalyst(
         recentBars: series,
         params: input.persona,
       });
+      if (regimeLabel === 'outside_active_window') {
+        return outsideActiveWindowAnalystOutput(confluence.regimeNote);
+      }
       const staticPrompt = await readFile(promptPath, 'utf8');
       const baseGenerationRequest = {
         model: input.persona.analyst.model,
@@ -137,6 +142,20 @@ export function createVAnkitClassicAnalyst(
       return parsed.data;
     },
   };
+}
+
+function outsideActiveWindowAnalystOutput(regimeNote: string): AnalystOutputType {
+  return AnalystOutput.parse({
+    thesis: OUTSIDE_ACTIVE_WINDOW_THESIS,
+    bias: 'neutral',
+    confidence: ZERO,
+    confluenceScore: ZERO,
+    keyLevels: [],
+    regimeLabel: 'outside_active_window',
+    regimeNote,
+    cacheStats: zeroCacheStats(),
+    costUsd: ZERO,
+  });
 }
 
 export function createOpenRouterAnalystGenerator(

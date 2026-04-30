@@ -61,6 +61,72 @@ describe('createVAnkitClassicAnalyst', () => {
     expect(output?.costUsd).toBe(0.012345);
   });
 
+  test('skips analyst generation outside the active Prague window', async () => {
+    const params = await loadPersonaConfig();
+    const analyst = createVAnkitClassicAnalyst({
+      generator: async () => {
+        throw new Error('generator must not be called outside active window');
+      },
+    });
+    const bar = barsFromClosesAt('2026-04-30T04:00:00.000Z', [2300]).at(-1)!;
+
+    const output = await analyst.analyze({
+      bar,
+      persona: params,
+      context: {
+        runId: 'analyst-outside-window-spec',
+        paramsHash: 'params-hash',
+        decidedAt: new Date(bar.tsEnd).toISOString(),
+      },
+    });
+
+    expect(output).toMatchObject({
+      thesis: 'outside-active-window: deterministic skip; analyst LLM not invoked.',
+      bias: 'neutral',
+      confidence: 0,
+      confluenceScore: 0,
+      keyLevels: [],
+      regimeLabel: 'outside_active_window',
+      costUsd: 0,
+    });
+    expect(output.regimeNote).toContain('outside_active_window');
+    expect(output.cacheStats).toEqual({
+      inputCachedTokens: 0,
+      inputFreshTokens: 0,
+      inputCacheWriteTokens: 0,
+      outputTokens: 0,
+      thinkingTokens: 0,
+    });
+  });
+
+  test('still invokes analyst generation inside the active Prague window', async () => {
+    const params = await loadPersonaConfig();
+    const requests: AnalystGenerationRequest[] = [];
+    const analyst = createVAnkitClassicAnalyst({
+      generator: async (request) => {
+        requests.push(request);
+        return {
+          object: draftOutput(),
+          usage: usageFixture(),
+        };
+      },
+    });
+    const bar = barsFromClosesAt('2026-04-30T12:10:00.000Z', [2300]).at(-1)!;
+
+    const output = await analyst.analyze({
+      bar,
+      persona: params,
+      context: {
+        runId: 'analyst-inside-window-spec',
+        paramsHash: 'params-hash',
+        decidedAt: new Date(bar.tsEnd).toISOString(),
+      },
+    });
+
+    expect(requests).toHaveLength(1);
+    expect(output.regimeLabel).not.toBe('outside_active_window');
+  });
+
   test('extracts OpenRouter credits-USD usage cost from provider metadata', () => {
     expect(openRouterCostUsdFromProviderMetadata(openRouterUsageCostFixture(0.009876))).toBe(
       0.009876,
@@ -406,12 +472,16 @@ function noObjectGeneratedLengthError({
 }
 
 function barsFromCloses(closes: number[]): Bar[] {
-  const start = Date.parse('2026-04-30T12:10:00.000Z');
+  return barsFromClosesAt('2026-04-30T12:10:00.000Z', closes);
+}
+
+function barsFromClosesAt(startIso: string, closes: number[]): Bar[] {
+  const startAt = Date.parse(startIso);
   return closes.map((close, index) => ({
     symbol: 'XAUUSD',
     timeframe: '5m',
-    tsStart: start + index * 300_000,
-    tsEnd: start + (index + 1) * 300_000,
+    tsStart: startAt + index * 300_000,
+    tsEnd: startAt + (index + 1) * 300_000,
     open: close - 0.2,
     high: close + 0.3,
     low: close - 0.4,

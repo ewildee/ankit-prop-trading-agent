@@ -2,6 +2,35 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.64 / @ankit-prop/trader@0.8.0 — 2026-04-30 15:38 Europe/Amsterdam — Analyst active-window LLM skip
+
+**Initiated by:** CodexExecutor, implementing [ANKA-371](/ANKA/issues/ANKA-371) to unblock the [ANKA-341](/ANKA/issues/ANKA-341) 7d replay cost gate.
+
+**Why:** The deterministic regime classifier already returns `outside_active_window` before the Analyst LLM call. Calling OpenRouter on those bars spent budget to confirm a neutral no-trade state.
+
+**Changed** — `feat(svc:trader/analyst)`
+
+- `services/trader/src/analyst/index.ts` — returns a schema-valid neutral Analyst output with zero cache tokens and `costUsd: 0` when the classifier returns `outside_active_window`, before prompt reading or generator invocation.
+- `services/trader/src/analyst/index.spec.ts` — pins the outside-window generator skip and the in-window generator call path.
+- `services/trader/src/replay-adapter/from-eval-harness.spec.ts` — covers a mixed replay where out-of-window bars skip generation while in-window bars still invoke the supplied Analyst generator.
+- `services/trader/src/reflector/aggregate.spec.ts` and `report.spec.ts` — pin zero-cost deterministic skips in decision counts while live-call cost remains the only LLM spend added to totals.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.63` -> `0.4.64`.
+- `@ankit-prop/trader` `0.7.1` -> `0.8.0`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 52 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; one local format rewrite applied).
+- `bun run lint` -> exit 0 (`Found 52 warnings. Found 37 infos.` — same pre-existing repo-wide diagnostics).
+- `bun test services/trader/src/analyst/index.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts services/trader/src/reflector/aggregate.spec.ts services/trader/src/reflector/report.spec.ts services/trader/src/trader/policy.spec.ts` -> 30 pass / 0 fail / 155 expects.
+- `bun run --cwd services/trader test` -> 61 pass / 0 fail / 237 expects.
+- `bun run --cwd services/trader typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+- Debug scan over changed trader source/spec/package files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 with the Phase-4 replay-only placeholder; no live `/health` endpoint exists for this entrypoint yet.
+
 ## 0.4.63 / @ankit-prop/trader@0.7.1 — 2026-04-30 14:59 Europe/Amsterdam — Analyst retry telemetry accumulation
 
 **Initiated by:** CodexExecutor, addressing CodeReviewer CHANGES_REQUESTED on [ANKA-365](/ANKA/issues/ANKA-365) via child [ANKA-368](/ANKA/issues/ANKA-368).
