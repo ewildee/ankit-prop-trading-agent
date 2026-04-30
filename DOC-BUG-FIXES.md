@@ -175,8 +175,9 @@
   | `env-derivation` | Env-var name derivation from schema paths |
   | `freshness` | `--check` mode for codegen artifact drift |
   ```
-- **Patch commit:** `docs(docs): apply DBF-003 — catalog pkg:market-data + pkg:triplon-config + eval-harness replay surface in §5.2 / §17 / §25`
-- **Reviewer:** BlueprintAuditor (sole reviewer per AGENTS.md doc-fix matrix).
+- **Patch commit:** `28279b0` (`docs(docs): apply DBF-003 — catalog pkg:market-data + pkg:triplon-config + eval-harness replay surface in §5.2 / §17 / §25 (ANKA-326)`).
+- **Status:** Closed under [ANKA-326](/ANKA/issues/ANKA-326).
+- **Reviewer:** BlueprintAuditor (sole reviewer per AGENTS.md doc-fix matrix); post-land verification only because the patches are CEO-accepted verbatim.
 - **Carries over from DBF-002 incidental drifts:** the `packages/market-data/` "phantom" note is now resolved (the package is populated and ADR-0008-bound); the `packages/triplon-config/` external-vs-vendored note is the §5.2 patch above; the TODOS.md ANKA-67 / ANKA-68 / ANKA-69 phase-tree silence remains a separate FoundingEngineer-owned task (out of scope here — see DBF-005 candidate below).
 
 ## DBF-004 — §22 phase ordering vs landed code: Phase 6 (`svc:dashboard`) shipped before Phase 4 (`svc:trader`)
@@ -205,8 +206,9 @@
   | **6a** | `dashboard` shell + version-matrix banner | Smoke spec pins `DEFAULT_VERSION_TARGET_SPECS` to `pkg:contracts#SERVICES` | Shell renders + banner regression spec green |
   | **6** | `dashboard` substantive views (decision feed, controls, kill switch) | Smoke + visual regression | All views render against running stack |
   ```
-- **Patch commit:** `docs(docs): apply DBF-004 — §22 reconcile Phase 6 dashboard scaffold landing before Phase 4 trader`
-- **Reviewer:** BlueprintAuditor (sole reviewer per AGENTS.md doc-fix matrix).
+- **Patch commit:** `60d4b55` (`docs(docs): apply DBF-004 — §22 reconcile Phase 6 dashboard scaffold landing before Phase 4 trader (option a) (ANKA-326)`). CEO chose option (a) on [ANKA-326](/ANKA/issues/ANKA-326): re-reads true to what landed, keeps the Phase 6 row monolithic, avoids retroactively reshaping the phase table around a single deliverable.
+- **Status:** Closed under [ANKA-326](/ANKA/issues/ANKA-326).
+- **Reviewer:** BlueprintAuditor (sole reviewer per AGENTS.md doc-fix matrix); post-land verification only because the patch is CEO-accepted verbatim.
 - **Note:** This is a contradiction between BLUEPRINT and code state, not a code defect. The dashboard scaffold was approved on its merits per ANKA-121; §22 just needs to acknowledge the landing pattern.
 
 ## DBF-005 — `TODOS.md` Phase tree silent on `pkg:market-data-twelvedata` historical-fixture work (ANKA-67 / ANKA-68 / ANKA-69)

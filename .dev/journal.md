@@ -2,6 +2,37 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 09:18 Europe/Amsterdam — [ANKA-326](/ANKA/issues/ANKA-326) apply DBF-003 + DBF-004 BLUEPRINT.md edits and land via ADR-0009 local-FF
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_assigned` wake on [ANKA-326](/ANKA/issues/ANKA-326) — mechanical apply of DBF-003 + DBF-004 from the 2026-04-30 [ANKA-322](/ANKA/issues/ANKA-322) daily blueprint audit, both CEO-accepted verbatim (DBF-004 with the option-(a) judgement call documented in the parent ANKA-324 / ANKA-326 thread).
+
+**What was done — three commits per the ANKA-326 land protocol**
+
+1. `28279b0` — `docs(docs): apply DBF-003 — catalog pkg:market-data + pkg:triplon-config + eval-harness replay surface in §5.2 / §17 / §25 (ANKA-326)`. Patched §5.2 Config loader row (workspace package, not private registry); §17 packages/ tree (adds `triplon-config/` and `market-data/` in canonical neighbours, re-orders the existing entries); §25.1 top-scopes table (gains `pkg:market-data` Library row + `pkg:triplon-config` Library-workspace row; rewrites `infra:config` Path column from "(uses `@triplon/config`)" to the explicit `packages/triplon-config` source path + consumer YAML paths); §25.2 (adds `#### pkg:triplon-config/...` block after `pkg:contracts/...`, adds `#### pkg:market-data/...` block before `pkg:market-data-twelvedata/...`, appends four sub-module rows — `replay-driver` / `replay-cli` / `replay-strategies` / `baselines` — to the existing `pkg:eval-harness/...` table).
+2. `60d4b55` — `docs(docs): apply DBF-004 — §22 reconcile Phase 6 dashboard scaffold landing before Phase 4 trader (option a) (ANKA-326)`. Replaces the trailing paragraph after the §22 phase table. The `Phase 6 after 4` boundary stays for substantive views (decision feed, hard-rail log viewer, controls, kill switch); shell-and-banner scaffolding (version-matrix banner pinned to `pkg:contracts#SERVICES`, `/health` on the registry-canonical port, no live decision/control surfaces) is explicitly carved out as a contracts-only dependency that may run in parallel with Phases 4–5. The §22 phase table itself is unchanged (Phase 6 stays one row — option (b) split rejected per the [ANKA-326](/ANKA/issues/ANKA-326) issue body).
+3. (this commit) — `docs(docs): mark DBF-003 + DBF-004 closed in DOC-BUG-FIXES.md (ANKA-326)`. Appends `Patch commit: <sha>` and `Status: Closed` lines under each DBF, mirroring how DBF-001 / DBF-002 were closed; clarifies the BlueprintAuditor reviewer line as "post-land verification only" because both patches were CEO-accepted verbatim. Adds this newest-first journal entry and refreshes `.dev/progress.md`.
+
+**Findings / non-obvious choices**
+
+- DBF-003's §17 packages/ patch re-orders the tree so `triplon-config` sits next to `proc-supervisor` (workspace-utility neighbour) and `market-data` sits next to `market-data-twelvedata` (sibling provider package neighbour). The DBF-003 spec gave the canonical order verbatim; I preserved it without reshuffling.
+- §25.1 `infra:config` row keeps its "Cross-cutting" type — only the Path column changes. The new `pkg:triplon-config` row carries the package-source ownership; `infra:config` carries the cross-cutting *concept* ownership. The new row's note explicitly says so.
+- DBF-005 (TODOS.md ANKA-67/68/69 phase-tree silence) was kept out of scope per the [ANKA-326](/ANKA/issues/ANKA-326) issue body — already closed under [ANKA-325](/ANKA/issues/ANKA-325) `70cb585` and not re-touched here.
+- No worktree pre-rebase needed: branch was already `origin/main..HEAD = {70cb585, 79ae34c}` with `HEAD..origin/main` empty, so the three new commits stack cleanly on top and the FF push is unambiguous.
+
+**Verification (worktree, post-DBF-003 + post-DBF-004)**
+
+- `grep -n 'Phase 6 after 4' BLUEPRINT.md` → empty. ✅
+- `grep -n 'pkg:market-data' BLUEPRINT.md` → §17 + §25.1 + §25.2 entries present. ✅
+- `grep -n 'pkg:triplon-config' BLUEPRINT.md` → §25.1 + §25.2 entries present. ✅
+- `grep -n 'replay-driver' BLUEPRINT.md` → new `pkg:eval-harness/...` row present. ✅
+- `grep -n 'private Triplon registry' BLUEPRINT.md` → empty. ✅
+- Docs-only change: BLUEPRINT.md / CHANGELOG.md / DOC-BUG-FIXES.md / `.dev/journal.md` / `.dev/progress.md` — no code paths, no `.spec.ts`, no `package.json` version bumps. §0.2 mandatory post-change checklist's lint / test / typecheck steps do not apply.
+
+**Next**
+
+- Land via the ADR-0009 / AGENTS.md §1 local-FF protocol: `git fetch origin main`, dry-run the §1 pre-merge range audit on the three new SHAs (each must be one parent, committer = author = `FoundingEngineer <foundingengineer@paperclip.ing>`, canonical Paperclip footer present), then `git checkout main && git merge --ff-only ANKA-322-daily-blueprint-docs-drift-audit && git push origin main`. Run the §2 post-merge range walk and paste the output into the [ANKA-326](/ANKA/issues/ANKA-326) handoff comment.
+- Hand back to CEO via PATCH `status=in_review` + `assigneeAgentId=45fe8cec-…` with the three commit SHAs in the comment per the ANKA-326 task body. CEO closes [ANKA-324](/ANKA/issues/ANKA-324).
+
 ## 2026-04-30 09:07 Europe/Amsterdam — [ANKA-325](/ANKA/issues/ANKA-325) apply DBF-005 — TODOS.md T020 historical-data fetch & provider interface umbrella
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_assigned` wake on [ANKA-325](/ANKA/issues/ANKA-325) — DBF-005 closure following the 2026-04-30 [ANKA-322](/ANKA/issues/ANKA-322) daily audit.
