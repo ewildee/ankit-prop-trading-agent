@@ -95,9 +95,9 @@
 - **Patch commit:** `docs(docs): apply DBF-002 — catalog pkg:market-data-twelvedata in §17 / §25`
 - **Reviewer:** BlueprintAuditor (sole reviewer per AGENTS.md doc-fix matrix).
 - **Out-of-scope drift surfaced incidentally** (file as separate audit follow-ups, not part of DBF-002):
-  - `packages/market-data/` exists on disk but contains only `node_modules/` — appears to be an in-flight ANKA-69 placeholder. Either rename, populate, or remove; should not stay as a phantom.
-  - `packages/triplon-config/` is a workspace package with its own `package.json` and `src/`, while §5/§17/§25 frame `@triplon/config` as an external private-registry consumer. Drift between vendored copy and external dep needs its own DBF.
-  - `TODOS.md` Phase tree contains no entry for ANKA-67 / ANKA-68 / ANKA-69 historical-fixture work — Phase 0–7 layout is silent on this stream entirely.
+  - `packages/market-data/` exists on disk but contains only `node_modules/` — appears to be an in-flight ANKA-69 placeholder. Either rename, populate, or remove; should not stay as a phantom. _Resolved under DBF-003 — package is populated and ADR-0008-bound._
+  - `packages/triplon-config/` is a workspace package with its own `package.json` and `src/`, while §5/§17/§25 frame `@triplon/config` as an external private-registry consumer. Drift between vendored copy and external dep needs its own DBF. _Promoted to DBF-003._
+  - `TODOS.md` Phase tree contains no entry for ANKA-67 / ANKA-68 / ANKA-69 historical-fixture work — Phase 0–7 layout is silent on this stream entirely. _Promoted to DBF-005 and closed in [ANKA-325](/ANKA/issues/ANKA-325) (TODOS.md T020 added under Phase 3)._
 
 ## DBF-003 — §5.2 / §17 / §25 omit `pkg:market-data` and `pkg:triplon-config`; `pkg:eval-harness/...` missing replay-driver block
 
@@ -215,5 +215,6 @@
 - **Symptom:** `TODOS.md` Phase 0–7 layout has no entry that names ANKA-67 (TwelveData adoption parent), ANKA-68 (fetcher), or ANKA-69 (provider-agnostic `@ankit-prop/market-data` interface). The Cross-cutting block doesn't name them either. T019 covers the same territory by deliverable but cites only ANKA-236 / ANKA-248 / ANKA-266 / ANKA-280 — the parent tickets are invisible.
 - **Owner:** FoundingEngineer (`TODOS.md` is FE-owned; this is a code/process drift, not a blueprint patch).
 - **Resolution:** Add either (a) a Phase 3 sub-bullet `T020 — Historical-data fetch & provider interface (ANKA-67 / ANKA-68 / ANKA-69)` that lists the three parents and points at T019.{a,b,c} for the in-flight regressions, or (b) retag T019 to cite ANKA-67 / ANKA-68 / ANKA-69 as parents alongside the existing ANKA-236 / 248 / 266 / 280. Option (b) is the smaller diff and more honest to history; option (a) is more discoverable.
+- **Status:** **CLOSED** under [ANKA-325](/ANKA/issues/ANKA-325). Applied option (a): TODOS.md Phase 3 now carries `T020 — Historical-data fetch & provider interface umbrella` naming ANKA-67 / ANKA-68 / ANKA-69 as parents and pointing at T019.{a,b,c} for in-flight regressions. The matching DBF-002 incidental bullet now annotates "Promoted to DBF-005 and closed in ANKA-325."
 - **Reviewer:** BlueprintAuditor verifies the patch lands and removes the DBF-002 incidental note in the same edit.
 

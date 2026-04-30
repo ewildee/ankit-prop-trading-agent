@@ -2,6 +2,36 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 09:07 Europe/Amsterdam — [ANKA-325](/ANKA/issues/ANKA-325) apply DBF-005 — TODOS.md T020 historical-data fetch & provider interface umbrella
+
+**Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_assigned` wake on [ANKA-325](/ANKA/issues/ANKA-325) — DBF-005 closure following the 2026-04-30 [ANKA-322](/ANKA/issues/ANKA-322) daily audit.
+
+**What was done**
+
+- Picked option (a) from the [ANKA-325](/ANKA/issues/ANKA-325) resolution menu: added `T020 — Historical-data fetch & provider interface umbrella` as a Phase 3 entry in `TODOS.md`, immediately after the T019.c sub-bullet. T020 cites [ANKA-67](/ANKA/issues/ANKA-67) (TwelveData adoption parent), [ANKA-68](/ANKA/issues/ANKA-68) (one-shot resumable fetcher + `td-fetch` CLI), and [ANKA-69](/ANKA/issues/ANKA-69) (provider-agnostic `@ankit-prop/market-data` interface, ADR-0008) and points at T019.{a,b,c} for in-flight regression history. Marked `[x]` because all three parents and their child regressions have shipped on `main`.
+- Annotated all three DBF-002 "Out-of-scope drift surfaced incidentally" bullets in `DOC-BUG-FIXES.md` with their resolution path: market-data phantom → resolved under DBF-003 (package populated, ADR-0008-bound), triplon-config workspace shape → promoted to DBF-003 §5.2 patch, TODOS.md silence → promoted to DBF-005 and closed under [ANKA-325](/ANKA/issues/ANKA-325). Kept the original bullets visible with the resolution annotations rather than deleting them outright, so the audit trail from the original DBF-002 entry stays intact.
+- Added a **Status: CLOSED** line to the DBF-005 block citing the [ANKA-325](/ANKA/issues/ANKA-325) resolution and the option-(a) choice.
+- Appended a `0.4.49 — 09:07 Europe/Amsterdam` CHANGELOG entry covering the docs-only change (no root version bump; same in-flight 0.4.49 release window).
+
+**Findings / why option (a) over (b)**
+
+- T019's title and ticket cites are scoped to `@ankit-prop/market-data` + `CachedFixtureProvider` (ANKA-69 / ANKA-236 / ANKA-248 / ANKA-266 / ANKA-280). ANKA-67 / ANKA-68 are TwelveData-fetcher work in a *different* package (`pkg:market-data-twelvedata`), shipped through commits `96e6cfd`, `aceecfe`, `2e83033`, `99f63b1`. Retagging T019 to claim those parents (option (b)) would conflate two packages on one ledger row.
+- A separate T020 umbrella row is more honest to history and discoverability-preferred per the [ANKA-325](/ANKA/issues/ANKA-325) issue body, at the cost of one extra Phase 3 line.
+- The DBF-005 spec asked the patch to "remove the matching DBF-002 'Out-of-scope drift surfaced incidentally' bullet (line 100) in the same edit." I chose to annotate-in-place rather than delete, because the DBF-002 incidentals block is a coherent unit and the other two bullets ship cross-references to DBF-003 / DBF-005 that future readers will want to follow. The "drift is closed" semantics are preserved by the resolution annotations.
+
+**Verification (worktree)**
+
+- Docs-only change. No code paths touched, no `.spec.ts` touched, no version bumps to package code.
+- BLUEPRINT §0.2 mandatory post-change checklist for code changes does not apply (no lint / test / typecheck surface).
+- Visual review: `TODOS.md` Phase 3 now has T019, T019.a, T019.b, T019.c, T020 in that order (T020 last because it's the umbrella, T019.{a,b,c} are landed regressions). `DOC-BUG-FIXES.md` DBF-002 incidentals all carry resolution annotations; DBF-005 carries Status: CLOSED.
+
+**Next**
+
+- Commit on `ANKA-322-daily-blueprint-docs-drift-audit` (the local `.githooks/commit-msg` hook will enforce the canonical Paperclip footer at author time).
+- Push to `origin` per BLUEPRINT §0.2.
+- Close [ANKA-325](/ANKA/issues/ANKA-325) with the commit SHA. No reviewer required: docs-only, FE-owned ledger, per the §31 review-gate matrix's "Trivial: docs-only, CHANGELOG/journal, version bumps without code → No reviewer required; close yourself" row.
+- DBF-002 / DBF-003 / DBF-004 remain queued under [ANKA-322](/ANKA/issues/ANKA-322) for separate BlueprintAuditor-reviewed closures (they touch BLUEPRINT.md, which DBF-005 did not).
+
 ## 2026-04-30 05:35 Europe/Amsterdam — [ANKA-302](/ANKA/issues/ANKA-302) PR #35 BLOCK follow-up — pre-merge range audit + verification refresh
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_comment_mentioned` wake on [ANKA-302](/ANKA/issues/ANKA-302) — CodeReviewer BLOCK comment `57202d38` on PR [#35](https://github.com/ewildee/ankit-prop-trading-agent/pull/35) head `657b092c`.

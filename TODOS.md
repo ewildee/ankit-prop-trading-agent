@@ -32,6 +32,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 - [x] **T019.a** Fix PR #24 market-data timestamp projection and fixture-integrity review regressions — _[ANKA-248](/ANKA/issues/ANKA-248)_.
 - [x] **T019.b** Fix `CachedFixtureProvider.getEvents()` to filter news by projected `eventTsMs` with narrow NFP regression coverage — _[ANKA-266](/ANKA/issues/ANKA-266)_.
 - [x] **T019.c** Implement eval-harness replay driver, replay CLI, deterministic replay strategies, and fixture baselines wired to `CachedFixtureProvider` — _[ANKA-280](/ANKA/issues/ANKA-280), advances [ANKA-70](/ANKA/issues/ANKA-70)_.
+- [x] **T020** Historical-data fetch & provider interface umbrella — parents [ANKA-67](/ANKA/issues/ANKA-67) (TwelveData adoption, `pkg:market-data-twelvedata`), [ANKA-68](/ANKA/issues/ANKA-68) (one-shot resumable fetcher + `td-fetch` CLI), [ANKA-69](/ANKA/issues/ANKA-69) (provider-agnostic `@ankit-prop/market-data` interface, ADR-0008). In-flight regression history tracked under T019.{a,b,c}.
 
 ## Phase 4 — `trader`
 

@@ -2,6 +2,22 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.49 — 2026-04-30 09:07 Europe/Amsterdam — apply DBF-005 (TODOS.md T020 — historical-data fetch & provider interface umbrella)
+
+**Initiated by:** FoundingEngineer, scoped wake on [ANKA-325](/ANKA/issues/ANKA-325). Same in-flight branch / same release window — no root version bump.
+
+**Why:** Daily blueprint audit ([ANKA-322](/ANKA/issues/ANKA-322), 2026-04-30) confirmed the DBF-002 incidental TODOS.md drift was still unresolved: Phase 0–7 layout had no entry naming [ANKA-67](/ANKA/issues/ANKA-67) (TwelveData adoption parent), [ANKA-68](/ANKA/issues/ANKA-68) (fetcher), or [ANKA-69](/ANKA/issues/ANKA-69) (`@ankit-prop/market-data` interface). T019 covered the same deliverables by code but cited only ANKA-236 / ANKA-248 / ANKA-266 / ANKA-280 — the parent tickets were invisible. ANKA-325 broke this out as DBF-005 for separate closure.
+
+**Changed** — repo-tracked task list + doc-bug queue
+
+- `TODOS.md` — Phase 3 gains `T020 — Historical-data fetch & provider interface umbrella`, naming ANKA-67 / ANKA-68 / ANKA-69 as parents and pointing at T019.{a,b,c} for in-flight regression history. Option (a) per the [ANKA-325](/ANKA/issues/ANKA-325) resolution menu (preferred for discoverability over option (b) — retagging T019 — because T019 is the provider-agnostic interface deliverable, not the TwelveData fetcher; honesty to history demands a separate entry for the umbrella).
+- `DOC-BUG-FIXES.md` — DBF-002 "Out-of-scope drift surfaced incidentally" bullet annotated "Promoted to DBF-005 and closed in ANKA-325" (same edit also closes the loop on the other two incidentals: market-data phantom resolved under DBF-003, triplon-config workspace promoted to DBF-003 §5.2 patch). DBF-005 block gains a **Status: CLOSED** line citing the ANKA-325 resolution.
+
+**Verification (worktree)**
+
+- Docs-only change: no code paths touched. Smallest verification per BLUEPRINT §0.2 — visual review of the rendered Phase 3 entry order and the DBF-002/DBF-005 annotations.
+- TODOS.md remains the FE-owned task ledger; no runtime/typecheck/test surface affected.
+
 ## 0.4.49 — 2026-04-30 05:35 Europe/Amsterdam (PR #35 BLOCK follow-up — pre-merge range audit + verification refresh)
 
 **Initiated by:** FoundingEngineer, addressing CodeReviewer BLOCK on PR [#35](https://github.com/ewildee/ankit-prop-trading-agent/pull/35) ([ANKA-302](/ANKA/issues/ANKA-302) comment `57202d38`). Same in-flight branch / same release window — no root version bump.
