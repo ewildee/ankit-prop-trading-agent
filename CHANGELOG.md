@@ -2,6 +2,40 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.55 / @ankit-prop/contracts@3.0.0 / @ankit-prop/trader@0.4.0 — 2026-04-30 11:32 Europe/Amsterdam — Reflector v0 aggregate reports
+
+**Initiated by:** CodexExecutor, implementing [ANKA-340](/ANKA/issues/ANKA-340) under the [ANKA-318](/ANKA/issues/ANKA-318) trader vertical-slice umbrella.
+
+**Why:** The first XAUUSD replay gate needs one per-run report that folds DecisionRecord JSONL into action/verdict/outcome counts, Sortino-rolling-60d, Claude-rate LLM cost telemetry, gateway breach/trade count, and realized PnL before [ANKA-341](/ANKA/issues/ANKA-341) can run the 7d replay.
+
+**Added** — `feat(svc:trader/reflector)`
+
+- `services/trader/src/reflector/` — adds fail-fast DecisionRecord JSONL ingestion, RunAggregate aggregation, Sortino-rolling-60d, Claude Sonnet 4.5 rate pricing, report JSON/Markdown writing, and focused specs.
+- `services/trader/src/replay-adapter/from-eval-harness.ts` — runs the Reflector automatically at replay end, while keeping custom test log paths isolated.
+- `services/trader/src/replay-adapter/cli.ts` and `services/trader/package.json` — add independently invokable `reflect` and replay-with-reflection commands.
+- `TODOS.md` — closes T008.e for [ANKA-340](/ANKA/issues/ANKA-340).
+
+**Changed** — `feat(pkg:contracts/personas)` / breaking shared contract surface
+
+- `packages/shared-contracts/src/personas.ts` — replaces the earlier nested `RunLlmCostUsd` shape with the [ANKA-340](/ANKA/issues/ANKA-340) block: `inputCachedUsd`, `inputFreshUsd`, `inputCacheWriteUsd`, `outputUsd`, `thinkingUsd`, `totalUsd`.
+
+**Bumped**
+
+- root `ankit-prop-umbrella` `0.4.54` -> `0.4.55`.
+- `@ankit-prop/contracts` `2.0.0` -> `3.0.0`.
+- `@ankit-prop/trader` `0.3.1` -> `0.4.0`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; final rerun applied no fixes).
+- `bun test services/trader/src/reflector packages/shared-contracts/src/personas.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts services/trader/src/analyst/index.spec.ts` -> 24 pass / 0 fail / 646 expects.
+- `bun test` -> 606 pass / 0 fail / 11576 expects.
+- `bun run typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+- Production numeric grep over `services/trader/src/reflector/*.ts` reviewed: hits are structural counter increments, CLI/report formatting constants, rolling-60d arithmetic, and the named Claude pricing constants with source/date comment.
+- Debug leftovers scan over changed code/config files (`console.log|debugger|TODO|HACK`) -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
 ## 0.4.54 / @ankit-prop/trader@0.3.1 — 2026-04-30 11:31 Europe/Amsterdam — Analyst usage telemetry tolerates aggregate-only AI SDK usage
 
 **Initiated by:** FoundingEngineer, addressing the CodeReviewer BLOCK on [ANKA-350](/ANKA/issues/ANKA-350) (child of [ANKA-338](/ANKA/issues/ANKA-338)) under the [ANKA-318](/ANKA/issues/ANKA-318) trader vertical-slice umbrella.

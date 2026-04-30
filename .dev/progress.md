@@ -1,11 +1,12 @@
 # Progress
 
-- Current issue: [ANKA-338](/ANKA/issues/ANKA-338) — Analyst `v_ankit_classic` v0.
+- Current issue: [ANKA-340](/ANKA/issues/ANKA-340) — Reflector v0 + cost telemetry.
 - Worktree: `.paperclip/worktrees/ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay`.
-- Bun llms.txt fetched/read: 2026-04-30 10:49 Europe/Amsterdam.
-- Board redirected LLM integration to Vercel AI SDK v6 + OpenRouter; added `ai@6.0.168` and `@openrouter/ai-sdk-provider@2.8.1`.
-- Implemented `PersonaConfig.analyst`, deterministic regime classifier, confluence scoring, OpenRouter `generateObject` Analyst stage, prompt template, and replay default wiring.
-- Local gate passed: lint:fix; typecheck; focused trader/contracts tests 37/0; full `bun test` 601/0; diff check; persona numeric grep; debug scan; 1-bar OpenRouter smoke with populated `cacheStats`.
-- Version target applied: root `0.4.52` → `0.4.53`; `@ankit-prop/contracts` `1.0.0` → `2.0.0`; `@ankit-prop/trader` `0.2.1` → `0.3.0`.
+- Bun llms.txt fetched/read: 2026-04-30 11:20 Europe/Amsterdam.
+- Implemented `services/trader/src/reflector/`: JSONL ingestion, RunAggregate folding, Sortino-rolling-60d, Claude Sonnet 4.5 cost telemetry, JSON/Markdown report writer, and `reflect` CLI.
+- Wired replay end-of-run reflection and added `bun run --cwd services/trader replay|reflect` scripts.
+- Updated `RunLlmCostUsd` to the [ANKA-340](/ANKA/issues/ANKA-340) cost block; bumped root `0.4.55`, contracts `3.0.0`, trader `0.4.0`.
+- Local gate passed: `bun run lint:fix`; focused reflector/contracts/replay/analyst tests 24/0; `bun test` 606/0; `bun run typecheck`; diff/debug scans; service start placeholder.
+- Production numeric grep over reflector has structural hits only: counter increments, CLI line offsets, JSON indentation/format precision, rolling-60d arithmetic, and Claude pricing constants.
 - Service check: `bun run --cwd services/trader start` exits 0 with the replay-adapter placeholder; no `/health` endpoint exists yet.
-- Next: commit, push branch, and hand [ANKA-338](/ANKA/issues/ANKA-338) to CodeReviewer.
+- Next: commit, push branch, and hand [ANKA-340](/ANKA/issues/ANKA-340) to QAEngineer.

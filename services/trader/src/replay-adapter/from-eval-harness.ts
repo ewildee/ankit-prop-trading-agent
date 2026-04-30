@@ -16,6 +16,7 @@ import { createAnalystStub } from '../pipeline/stubs/analyst.stub.ts';
 import { createJudgeStub } from '../pipeline/stubs/judge.stub.ts';
 import { createReflectorStub } from '../pipeline/stubs/reflector.stub.ts';
 import { createTraderStub } from '../pipeline/stubs/trader.stub.ts';
+import { type ReflectorReport, writeReflectorReport } from '../reflector/report.ts';
 
 export type TraderReplayInput = {
   readonly runId: string;
@@ -28,12 +29,15 @@ export type TraderReplayInput = {
   readonly logPath?: string;
   readonly deps?: PipelineDeps;
   readonly truncateLog?: boolean;
+  readonly reflectAtEnd?: boolean;
+  readonly reportOutputDir?: string;
 };
 
 export type TraderReplayResult = {
   readonly runId: string;
   readonly logPath: string;
   readonly decisions: Awaited<ReturnType<typeof runDecision>>[];
+  readonly report: ReflectorReport | null;
 };
 
 export async function runTraderReplay(input: TraderReplayInput): Promise<TraderReplayResult> {
@@ -70,7 +74,17 @@ export async function runTraderReplay(input: TraderReplayInput): Promise<TraderR
     await appendFile(logPath, `${JSON.stringify(decision)}\n`);
   }
 
-  return { runId: input.runId, logPath, decisions };
+  const reportOutputDir = input.reportOutputDir ?? (input.logPath ? dirname(logPath) : undefined);
+  const report =
+    (input.reflectAtEnd ?? true)
+      ? await writeReflectorReport({
+          runId: input.runId,
+          decisionsPath: logPath,
+          ...(reportOutputDir ? { outputDir: reportOutputDir } : {}),
+        })
+      : null;
+
+  return { runId: input.runId, logPath, decisions, report };
 }
 
 function createDefaultPipelineDeps(runId: string, persona: PersonaConfig): PipelineDeps {

@@ -2,6 +2,47 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 11:32 Europe/Amsterdam — [ANKA-340](/ANKA/issues/ANKA-340) Reflector v0 aggregate reports — v0.4.55 / contracts v3.0.0 / trader v0.4.0
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_blockers_resolved` wake after [ANKA-335](/ANKA/issues/ANKA-335) completed.
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 11:20 Europe/Amsterdam before editing Bun-runtime TypeScript.
+- Added the Reflector v0 modules for DecisionRecord JSONL ingestion, RunAggregate folding, Sortino-rolling-60d, Claude Sonnet 4.5 cost pricing, and report JSON/Markdown output.
+- Wired `runTraderReplay` to invoke the Reflector at run end and added `bun run --cwd services/trader replay` / `reflect` commands.
+- Changed `RunLlmCostUsd` to the [ANKA-340](/ANKA/issues/ANKA-340) flat cost block and bumped contracts as a breaking schema surface.
+- Fixed the pre-existing aggregate-only AI SDK usage regression in `services/trader/src/analyst/index.ts` so full local tests can pass.
+
+**Findings**
+
+- The current DecisionRecord/GatewayDecision surface has no first-class broker fill object yet. The v0 aggregator extracts realized PnL for submitted CLOSE records from `railVerdict.decisions[*].detail.realizedPnl` / `realizedPnlUsd`, which is the only JSONL-carried telemetry field available without reshaping the gateway contract.
+- Replay tests with custom `logPath` need their report output beside that custom JSONL, otherwise specs leave `.dev/runs/*` artifacts behind.
+
+**Decisions**
+
+- Claude Sonnet 4.5 pricing is captured in one file with a source URL/date comment. Thinking tokens are priced as output tokens.
+- The Sortino accumulator returns a finite positive score when the 60-day window has positive returns and no downside samples, because `RunAggregate`'s Zod `number` contract rejects `Infinity`.
+
+**Unexpected behaviour**
+
+- A concurrent [ANKA-350](/ANKA/issues/ANKA-350) changelog entry reserved root `0.4.54`, so this change bumped the root package to `0.4.55` while moving trader to `0.4.0` and contracts to `3.0.0`.
+
+**Verification**
+
+- `bun run lint:fix` -> exit 0 (`Found 35 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; final rerun applied no fixes).
+- `bun test services/trader/src/reflector packages/shared-contracts/src/personas.spec.ts services/trader/src/replay-adapter/from-eval-harness.spec.ts services/trader/src/analyst/index.spec.ts` -> 24 pass / 0 fail / 646 expects.
+- `bun test` -> 606 pass / 0 fail / 11576 expects.
+- `bun run typecheck` -> exit 0.
+- `git diff --check` -> exit 0.
+- Production numeric grep over `services/trader/src/reflector/*.ts` reviewed: hits are structural counter increments, CLI/report formatting constants, rolling-60d arithmetic, and Claude pricing constants.
+- Debug leftovers scan over changed code/config files -> no matches.
+- `bun run --cwd services/trader start` -> exit 0 (`trader: replay adapter only (Phase 4 vertical slice)`); no `/health` endpoint exists for the replay-only service entrypoint yet.
+
+**Open endings**
+
+- Handoff to [@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177) after commit/push to run the [ANKA-340](/ANKA/issues/ANKA-340) QA pass, then CodeReviewer.
+
 ## 2026-04-30 11:13 Europe/Amsterdam — [ANKA-338](/ANKA/issues/ANKA-338) Analyst v_ankit_classic v0 — v0.4.53 / contracts v2.0.0 / trader v0.3.0
 
 **Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_blockers_resolved` wake, then board comments redirecting the LLM integration to Vercel AI SDK v6 + OpenRouter.

@@ -331,16 +331,12 @@ export const DecisionRecord = z.strictObject({
 export type DecisionRecord = z.infer<typeof DecisionRecord>;
 
 export const RunLlmCostUsd = z.strictObject({
-  total: z.number().nonnegative(),
-  breakdown: z.strictObject({
-    byStage: z.record(z.string(), z.number().nonnegative()),
-    byModel: z.record(z.string(), z.number().nonnegative()),
-  }),
-  claudeEquivalent: z.strictObject({
-    total: z.number().nonnegative(),
-    byStage: z.record(z.string(), z.number().nonnegative()),
-    byModel: z.record(z.string(), z.number().nonnegative()),
-  }),
+  inputCachedUsd: z.number().nonnegative(),
+  inputFreshUsd: z.number().nonnegative(),
+  inputCacheWriteUsd: z.number().nonnegative(),
+  outputUsd: z.number().nonnegative(),
+  thinkingUsd: z.number().nonnegative(),
+  totalUsd: z.number().nonnegative(),
 });
 export type RunLlmCostUsd = z.infer<typeof RunLlmCostUsd>;
 

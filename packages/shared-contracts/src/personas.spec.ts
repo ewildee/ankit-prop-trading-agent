@@ -317,16 +317,12 @@ describe('persona pipeline contracts', () => {
       decisionCount: 12,
       sortinoRolling60d: 1.4,
       llmCostUsd: {
-        total: 1.27,
-        breakdown: {
-          byStage: { analyst: 0.61, trader: 0.31, judge: 0.22, reflector: 0.13 },
-          byModel: { 'moonshotai/kimi-k2.6': 0.72, 'deepseek/deepseek-v4-flash': 0.55 },
-        },
-        claudeEquivalent: {
-          total: 4.92,
-          byStage: { analyst: 2.42, trader: 1.1, judge: 0.89, reflector: 0.51 },
-          byModel: { 'claude-sonnet-equivalent': 4.92 },
-        },
+        inputCachedUsd: 0.03,
+        inputFreshUsd: 0.15,
+        inputCacheWriteUsd: 0.02,
+        outputUsd: 0.9,
+        thinkingUsd: 0.17,
+        totalUsd: 1.27,
       },
       breachCount: 0,
       tradeCount: 3,
@@ -337,7 +333,7 @@ describe('persona pipeline contracts', () => {
     } as const;
 
     const parsed = RunAggregate.parse(aggregate);
-    expect(parsed.llmCostUsd.claudeEquivalent.total).toBe(4.92);
+    expect(parsed.llmCostUsd.totalUsd).toBe(1.27);
     expect(parsed.realizedPnl).toBe(184.55);
 
     for (const key of [

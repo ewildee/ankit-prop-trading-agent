@@ -1,12 +1,14 @@
 {
   "name": "@ankit-prop/trader",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "description": "Modular monolith with N account loops; Analyst → Trader → Judge → (Gateway) → Reflector. Port 9202.",
   "main": "src/index.ts",
   "scripts": {
     "start": "echo 'trader: replay adapter only (Phase 4 vertical slice)'",
+    "replay": "bun run src/replay-adapter/cli.ts",
+    "reflect": "bun run src/reflector/cli.ts",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "test": "bun test src",
