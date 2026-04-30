@@ -99,3 +99,121 @@
   - `packages/triplon-config/` is a workspace package with its own `package.json` and `src/`, while §5/§17/§25 frame `@triplon/config` as an external private-registry consumer. Drift between vendored copy and external dep needs its own DBF.
   - `TODOS.md` Phase tree contains no entry for ANKA-67 / ANKA-68 / ANKA-69 historical-fixture work — Phase 0–7 layout is silent on this stream entirely.
 
+## DBF-003 — §5.2 / §17 / §25 omit `pkg:market-data` and `pkg:triplon-config`; `pkg:eval-harness/...` missing replay-driver block
+
+- **Issue:** [ANKA-322](/ANKA/issues/ANKA-322) (daily blueprint & docs drift audit, 2026-04-30 deep pass — first run of ISO week 18)
+- **Implementing tickets already merged:**
+  [ANKA-69](/ANKA/issues/ANKA-69) (provider-agnostic `@ankit-prop/market-data` interface, ADR-0008),
+  [ANKA-130](/ANKA/issues/ANKA-130) (`@triplon/config` workspace package, T015),
+  [ANKA-236](/ANKA/issues/ANKA-236) / [ANKA-248](/ANKA/issues/ANKA-248) / [ANKA-266](/ANKA/issues/ANKA-266) (market-data + CachedFixtureProvider regressions),
+  [ANKA-280](/ANKA/issues/ANKA-280) / [ANKA-287](/ANKA/issues/ANKA-287) (eval-harness replay driver, replay CLI, deterministic strategies, fixture baselines, fail-closed broker-spec validation).
+- **Symptom:** Source-of-truth drift between BLUEPRINT and the working tree:
+  - `packages/market-data/` is on `main` at `@ankit-prop/market-data` with 7 source files (`provider.ts`, `cached-fixture-provider.ts`, `fixture-schema.ts`, `types.ts`, `index.ts`, plus 2 `.spec.ts`). ADR-0008 binds the package to BLUEPRINT, but §17, §25.1, and §25.2 do not catalog it. New commits have no canonical scope tag.
+  - `packages/triplon-config/` is a workspace package at `@triplon/config` with its own `package.json`, `src/`, and `CHANGELOG.md`. §5.2 still lists `@triplon/config` as `(private Triplon registry) … latest from registry`, and §25.1's `infra:config` row gives the path as parenthetical `(uses @triplon/config)`. The workspace-package shape contradicts both lines.
+  - `pkg:eval-harness/...` sub-module table (§25.2 lines 2915–2927) lists `backtest`, `paper-replay`, `live-score`, `ftmo-rule-simulator`, `bar-data-cache`, `slippage-model`, `walk-forward`, `metrics`, `golden-fixtures`. The merged ANKA-280 / ANKA-287 work landed `replay-driver`, `replay-cli`, `replay-strategies`, and `baselines/` in the same package; none are in the sub-module table. Future commits to the replay surface have no canonical sub-module tag.
+- **Resolution:** Catalog both packages and the new eval-harness replay surface. `pkg:triplon-config` becomes a workspace-package scope; `@triplon/config` stays the public name. `pkg:market-data` becomes a permanent Library scope (sibling to `pkg:market-data-twelvedata`'s temporary scope).
+
+  **Proposed §5.2 patch — replace the `Config loader` row:**
+  ```
+  | Config loader | `@triplon/config` (workspace package, `packages/triplon-config/`; `infra:config` cross-cutting tag) | n/a |
+  ```
+
+  **Proposed §17 patch — packages/ tree (replace lines 1867–1875, keep the surrounding `├──` ordering):**
+  ```
+  ├── packages/
+  │   ├── proc-supervisor/              # @triplon/proc-supervisor
+  │   ├── triplon-config/               # @triplon/config (workspace package; loader, schema codegen, freshness checks)
+  │   ├── shared-contracts/             # @ankit-prop/contracts (Zod schemas)
+  │   ├── eval-harness/                 # @ankit-prop/eval-harness  (LIBRARY)
+  │   ├── ctrader-vendor/               # vendored ctrader-ts or in-house
+  │   ├── market-data/                  # @ankit-prop/market-data (provider-agnostic
+  │   │                                 # IMarketDataProvider + CachedFixtureProvider;
+  │   │                                 # ADR-0008. cTrader live history slot-in lands here.)
+  │   └── market-data-twelvedata/       # @ankit-prop/market-data-twelvedata
+  │                                     # ANKA-68 one-shot TwelveData fetcher;
+  │                                     # deletable once cTrader-live history
+  │                                     # subsumes the same windows
+  ```
+
+  **Proposed §25.1 patch — append two rows after `pkg:ctrader-vendor`, before `pkg:market-data-twelvedata`; rewrite the `infra:config` Path column:**
+  ```
+  | `pkg:market-data` | Library | `packages/market-data` | `@ankit-prop/market-data` | Provider-agnostic `IMarketDataProvider` (listSymbols / resolveSymbol / listAvailability / getBars / getEvents) plus `CachedFixtureProvider` over the `data/market-data/twelvedata/<fixture-version>/` fixture seam. Permanent home for sibling providers including the future `CTraderHistoryProvider` (ADR-0008 cTrader slot-in). |
+  | `pkg:triplon-config` | Library (workspace) | `packages/triplon-config` | `@triplon/config` | Workspace home for the config loader, YAML schema, env-var derivation, and codegen artifacts (`infra:config` is the cross-cutting tag for the *concept*; this row is for changes to the *package source*). |
+  ```
+  ```
+  | `infra:config` | Cross-cutting | `packages/triplon-config` (loader source) + `config/*.example.yaml` + `~/.config/<app>/*.config.yaml` (consumer paths) | — | Config loading, env-var resolution, schema emission |
+  ```
+
+  **Proposed §25.2 patch — insert a new sub-module block before `#### pkg:market-data-twelvedata/...` and append four rows to `pkg:eval-harness/...`:**
+  ```
+  #### `pkg:market-data/...`
+
+  | Sub-module | Purpose |
+  |------------|---------|
+  | `provider` | `IMarketDataProvider` interface + canonical `Bar` / `SymbolMeta` / `CalendarEvent` types (ADR-0008) |
+  | `cached-fixture-provider` | Reads `data/market-data/twelvedata/<fixture-version>/`; loader-derived `tsEnd`; broker-side specs via `instrumentSpecs` injection |
+  | `fixture-schema` | Zod schemas for the on-disk fixture wire (`manifest.json`, symbol meta, JSONL bars, adversarial-windows) — duplicated v1 with `pkg:market-data-twelvedata/schema` until reconciled |
+  | `types` | Public canonical record shapes shared across consumers |
+  | `index` | Re-exports for harness, trader, future cTrader-history slot-in |
+  ```
+  ```
+  | `replay-driver` | Wires an `IMarketDataProvider` into `backtest()` for deterministic eval replay; fail-closed broker-spec validation (ANKA-287) |
+  | `replay-cli` | Bun CLI entrypoint for `runReplaySnapshot()` over committed baselines |
+  | `replay-strategies` | Deterministic replay strategies (`NOOP_V1`, `OPEN_HOLD_CLOSE_V1`) |
+  | `baselines` | Committed 3-month full-window snapshot fixtures used as regression anchors |
+  ```
+
+  **Proposed §25.2 patch — add a `pkg:triplon-config/...` block after `pkg:contracts/...`:**
+  ```
+  #### `pkg:triplon-config/...`
+
+  | Sub-module | Purpose |
+  |------------|---------|
+  | `loader` | Bun-native YAML loading + user/project precedence (ANKA-141 / ANKA-149) |
+  | `schema` | Schema definitions consumed by emitters and validators |
+  | `codegen` | `bun run config:codegen` producing typed loaders for SymbolTagMap and friends |
+  | `env-derivation` | Env-var name derivation from schema paths |
+  | `freshness` | `--check` mode for codegen artifact drift |
+  ```
+- **Patch commit:** `docs(docs): apply DBF-003 — catalog pkg:market-data + pkg:triplon-config + eval-harness replay surface in §5.2 / §17 / §25`
+- **Reviewer:** BlueprintAuditor (sole reviewer per AGENTS.md doc-fix matrix).
+- **Carries over from DBF-002 incidental drifts:** the `packages/market-data/` "phantom" note is now resolved (the package is populated and ADR-0008-bound); the `packages/triplon-config/` external-vs-vendored note is the §5.2 patch above; the TODOS.md ANKA-67 / ANKA-68 / ANKA-69 phase-tree silence remains a separate FoundingEngineer-owned task (out of scope here — see DBF-005 candidate below).
+
+## DBF-004 — §22 phase ordering vs landed code: Phase 6 (`svc:dashboard`) shipped before Phase 4 (`svc:trader`)
+
+- **Issue:** [ANKA-322](/ANKA/issues/ANKA-322) (daily blueprint & docs drift audit, 2026-04-30)
+- **Symptom:** §22 build phases say verbatim `Phase 6 after 4.` But:
+  - Phase 4 (`svc:trader`) deliverable is "End-to-end through gateway against FTMO Free Trial for 1 hour"; TODOS.md T008 is `[ ]` open. `services/trader/` directory is empty of source.
+  - Phase 6 (`svc:dashboard`) deliverable is "Smoke + visual regression"; TODOS.md T010 is `[~]` in progress and T010.a is `[x]` shipped (ANKA-121, commit `1885b6c` `feat(svc:dashboard): scaffold React shell + version-matrix banner pinned to SERVICES registry`). The `services/dashboard/` shell is on `main` and version-matrix-pinned to `pkg:contracts#SERVICES`.
+  - Phase 5 (`svc:news`) is also already substantially shipped (ANKA-75 closed, `services/news/` is on `main` at v0.1 with calendar-fetcher, evaluators, freshness-monitor, /health, /metrics, Treaty App). §22 says "phase 4 may overlap with phase 5 once contracts mergeable" — that line covers 4↔5 but not 4↔6.
+- **Resolution (proposed — CEO judgement call):** Either (a) re-order §22 to allow `svc:dashboard` shell-and-banner work to start before Phase 4 ends because the dashboard's regression coverage of `pkg:contracts#SERVICES` is a *contract* dependency rather than a *runtime* dependency; or (b) re-classify the ANKA-121 deliverable as a Phase 4 prerequisite (operator cockpit chrome) and move the substantive views (decision feed, hard-rail logs, kill switch) to Phase 6 proper. (a) reads truer to what landed; (b) preserves the current §22 wording.
+
+  **Proposed §22 patch (option a, preferred — replace the trailing paragraph after the table):**
+  ```
+  Phases 1–3 sequential; Phase 4 may overlap with Phase 5 once contracts
+  mergeable. Phase 6's *shell-and-banner* scaffolding (version-matrix banner
+  pinned to `pkg:contracts#SERVICES`, `/health` on the registry-canonical
+  port, no live decision/control surfaces) may run in parallel with Phases
+  4–5 because it depends only on the contracts package, not on running
+  trader/news/gateway runtimes. Phase 6's substantive views (decision feed,
+  hard-rail log viewer, controls, kill switch) MUST come after Phase 4.
+  Phase 7 cannot start before live data exists.
+  ```
+
+  **Proposed §22 patch (option b, alternative — split the Phase 6 row):**
+  ```
+  | **6a** | `dashboard` shell + version-matrix banner | Smoke spec pins `DEFAULT_VERSION_TARGET_SPECS` to `pkg:contracts#SERVICES` | Shell renders + banner regression spec green |
+  | **6** | `dashboard` substantive views (decision feed, controls, kill switch) | Smoke + visual regression | All views render against running stack |
+  ```
+- **Patch commit:** `docs(docs): apply DBF-004 — §22 reconcile Phase 6 dashboard scaffold landing before Phase 4 trader`
+- **Reviewer:** BlueprintAuditor (sole reviewer per AGENTS.md doc-fix matrix).
+- **Note:** This is a contradiction between BLUEPRINT and code state, not a code defect. The dashboard scaffold was approved on its merits per ANKA-121; §22 just needs to acknowledge the landing pattern.
+
+## DBF-005 — `TODOS.md` Phase tree silent on `pkg:market-data-twelvedata` historical-fixture work (ANKA-67 / ANKA-68 / ANKA-69)
+
+- **Issue:** [ANKA-322](/ANKA/issues/ANKA-322) (daily blueprint & docs drift audit, 2026-04-30); first surfaced as DBF-002 incidental, now broken out for separate closure.
+- **Symptom:** `TODOS.md` Phase 0–7 layout has no entry that names ANKA-67 (TwelveData adoption parent), ANKA-68 (fetcher), or ANKA-69 (provider-agnostic `@ankit-prop/market-data` interface). The Cross-cutting block doesn't name them either. T019 covers the same territory by deliverable but cites only ANKA-236 / ANKA-248 / ANKA-266 / ANKA-280 — the parent tickets are invisible.
+- **Owner:** FoundingEngineer (`TODOS.md` is FE-owned; this is a code/process drift, not a blueprint patch).
+- **Resolution:** Add either (a) a Phase 3 sub-bullet `T020 — Historical-data fetch & provider interface (ANKA-67 / ANKA-68 / ANKA-69)` that lists the three parents and points at T019.{a,b,c} for the in-flight regressions, or (b) retag T019 to cite ANKA-67 / ANKA-68 / ANKA-69 as parents alongside the existing ANKA-236 / 248 / 266 / 280. Option (b) is the smaller diff and more honest to history; option (a) is more discoverable.
+- **Reviewer:** BlueprintAuditor verifies the patch lands and removes the DBF-002 incidental note in the same edit.
+
