@@ -2,6 +2,19 @@
 
 _Append-only, newest first. Each ADR captures: context, decision, alternatives, consequences._
 
+## ADR-0010 — Persona pipeline contract surface lives in shared contracts
+
+- **Date:** 2026-04-30 08:57 Europe/Amsterdam
+- **Status:** Accepted ([ANKA-321](/ANKA/issues/ANKA-321), child of [ANKA-319](/ANKA/issues/ANKA-319))
+- **Context:** The first Phase-4 trader vertical slice needs a stable Analyst → Trader → Judge → Gateway/Reflector data surface before service code, replay consumption, and dashboard telemetry start encoding their own shapes. The issue text and blueprint diverged on trader actions: `BLUEPRINT.md` decision E and §6.4 explicitly remove only legacy `TRAIL`, keep `HOLD`, and add `AMEND`; normal no-trade cannot be represented as judge rejection because the pipeline runs every 5-minute bar close and gateway rail intents have no no-op form.
+- **Decision:** `@ankit-prop/contracts` owns strict Zod schemas and inferred TypeScript types for the persona pipeline surface. Canonical `TraderOutput` is a discriminated union over `HOLD | OPEN | CLOSE | AMEND`; `TRAIL` is rejected. `OPEN` carries `side: BUY | SELL`; `HOLD` is a first-class terminal no-op; `AMEND` remains in the shared contract even though the initial runtime allow-list is `HOLD | OPEN | CLOSE`. Gateway telemetry depends on shared `RailVerdict` and models `HOLD` as `not_submitted`, leaving translation into service-local gateway intents to a later adapter. The `v_ankit_classic` params skeleton lives under `services/trader/strategy/v_ankit_classic/params.yaml` with blueprint-backed defaults for windows, scoring, macro confidence, judge threshold, and persona risk cap.
+- **Alternatives considered:**
+  - _Narrow the contract to only the first runtime slice (`HOLD | OPEN | CLOSE`)._ Rejected — it would contradict decision E and force schema churn when amend routing lands.
+  - _Keep `BUY | SELL` as top-level trader actions._ Rejected — the parent architecture pass selected the gateway-aligned canonical union, with direction carried on `OPEN`.
+  - _Represent no-trade as judge `REJECT`._ Rejected — it would pollute rejection telemetry and hide actual rule failures.
+  - _Import private gateway `RailIntent` types into trader contracts._ Rejected — the shared surface should remain provider/service agnostic; `RailVerdict` is the current shared hard-rail telemetry contract.
+- **Consequences:** Eval, trader, gateway adapters, dashboard, and replay work can share one public schema surface instead of duplicating shape assumptions. Early trader runtime code must explicitly gate emitted actions to `V0_TRADER_RUNTIME_ACTIONS` until `AMEND` routing is implemented. The params skeleton is intentionally conservative and may under-trade the first 7-day replay; that is preferable to approving marginal XAUUSD entries before telemetry exists.
+
 ## ADR-0009 — Four post-protocol GitHub-merge commits logged as exceptions; switch merge path to local fast-forward
 
 - **Date:** 2026-04-30 05:20 Europe/Amsterdam

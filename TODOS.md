@@ -37,6 +37,7 @@ Status markers: `[ ]` open · `[~]` in progress · `[x]` done.
 ## Phase 4 — `trader`
 
 - [ ] **T008** Modular monolith with N account loops (drop-on-overlap concurrency, decision A).
+- [x] **T008.a** Materialize Analyst → Trader → Judge shared contract surface and `v_ankit_classic` params skeleton — _[ANKA-321](/ANKA/issues/ANKA-321)_.
 
 ## Phase 5 — `news`
 

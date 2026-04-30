@@ -1,0 +1,86 @@
+schemaVersion: 1
+personaId: v_ankit_classic
+instrument: XAUUSD
+timeframe: 5m
+decisionCadence: 5m
+actionCadence: bar_close
+
+# Canonical TraderOutput includes AMEND per BLUEPRINT decision E. The first
+# vertical slice only emits the runtime-safe subset below until amend routing
+# through the gateway adapter is implemented.
+v0RuntimeActionAllowList: [HOLD, OPEN, CLOSE]
+
+windowPrague:
+  macroSynthesis: "08:00"
+  preSessionStart: "13:00"
+  preSessionEnd: "14:30"
+  activeStart: "14:00"
+  activeEnd: "21:30"
+
+families:
+  sessionBreakout:
+    enabled: true
+    start: "14:25"
+    end: "15:30"
+    targetMinR: 1.5
+    stopAtPreSessionMidpoint: true
+  multiTimeframeConfluence:
+    enabled: true
+    start: "15:30"
+    end: "21:30"
+  macroFilter:
+    enabled: true
+
+macro:
+  minConfidence: 0.6
+  cooldownHoursAfterFlip: 4
+
+risk:
+  maxPerTradePct: 0.5
+  minRR: 1.5
+
+filters:
+  maxSpreadMultiplier: 1.5
+  minStopAtrMultiple: 1
+
+judge:
+  threshold: 70
+  personaRejectionRules:
+    - macro_bias_violation
+    - confluence_too_weak
+    - anticipation_breakout
+    - stop_inside_noise
+    - pattern_regime_mismatch
+    - outside_active_window
+
+indicators:
+  timeframes: [1d, 4h, 1h, 5m]
+  enabled:
+    - name: ma
+      params: { periods: [20, 50] }
+    - name: macd
+      params: { fast: 12, slow: 26, signal: 9 }
+    - name: rsi
+      params: { period: 14 }
+    - name: stochastic
+      params: { k_period: 14, d_period: 3 }
+    - name: atr
+      params: { period: 14 }
+
+scoring:
+  scheme: v1_continuous_confluence
+  threshold: 50
+  weights:
+    timeframeAgreement: 0.7
+    indicatorAlignment: 0.3
+  timeframeWeights: { "1d": 4, "4h": 3, "1h": 2, "5m": 1 }
+
+trail:
+  enabled: false
+  activateAtR: 1
+  distanceDollars: 3
+
+escalation:
+  nearBarCloseSeconds: 30
+  disagreementLookback: 3
+  dailyRiskBudgetConsumedPct: 50

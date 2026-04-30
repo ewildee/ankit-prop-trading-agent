@@ -63,6 +63,38 @@ _Append-only, newest first. Never edit past entries._
 - Close [ANKA-325](/ANKA/issues/ANKA-325) with the commit SHA. No reviewer required: docs-only, FE-owned ledger, per the §31 review-gate matrix's "Trivial: docs-only, CHANGELOG/journal, version bumps without code → No reviewer required; close yourself" row.
 - DBF-002 / DBF-003 / DBF-004 remain queued under [ANKA-322](/ANKA/issues/ANKA-322) for separate BlueprintAuditor-reviewed closures (they touch BLUEPRINT.md, which DBF-005 did not).
 
+## 2026-04-30 08:57 Europe/Amsterdam — [ANKA-321](/ANKA/issues/ANKA-321) persona contracts + v_ankit_classic params skeleton — v0.4.50
+
+**Agent:** CodexExecutor (codex_local). **Run:** scoped `issue_assigned` wake for [ANKA-321](/ANKA/issues/ANKA-321), child of [ANKA-319](/ANKA/issues/ANKA-319).
+
+**What was done**
+
+- Fetched and read `https://bun.com/llms.txt` at 08:53 Europe/Amsterdam before writing Bun-runtime code; no new npm dependencies were added.
+- Added `packages/shared-contracts/src/personas.ts` with strict Zod schemas and inferred types for the Analyst → Trader → Judge surface, plus decision/run/gateway telemetry contracts.
+- Defined canonical `TraderOutput` as `HOLD | OPEN | CLOSE | AMEND`, with `OPEN.side` carrying `BUY | SELL`; exposed `V0_TRADER_RUNTIME_ACTIONS = HOLD | OPEN | CLOSE` for the first runtime slice.
+- Added focused schema and barrel export coverage in `packages/shared-contracts/src/personas.spec.ts` and `packages/shared-contracts/src/index.spec.ts`.
+- Added `services/trader/strategy/v_ankit_classic/params.yaml` with BLUEPRINT §13 defaults and the parent architecture pass's conservative `judge.threshold: 70`.
+- Prepended ADR-0010 and bumped root `0.4.49` → `0.4.50`, `@ankit-prop/contracts` `0.7.1` → `0.8.0`, and `@ankit-prop/trader` `0.0.1` → `0.1.0`.
+
+**Findings**
+
+- The initial focused `index.spec.ts` run failed before assertions because this fresh worktree had no installed dependencies for the pre-existing `pino` barrel export; `bun install` completed successfully and the focused tests then passed.
+- `HOLD` must remain a real trader output rather than a judge rejection so normal 5-minute no-trade bars do not pollute rejection telemetry.
+
+**Verification**
+
+- Focused contract test passed after dependency install: `bun test packages/shared-contracts/src/personas.spec.ts packages/shared-contracts/src/index.spec.ts` → 9 pass / 0 fail / 25 expects.
+- `bun run lint:fix` → exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes pending after the second run).
+- Focused contract test refresh: `bun test packages/shared-contracts/src/personas.spec.ts packages/shared-contracts/src/index.spec.ts` → 9 pass / 0 fail / 25 expects.
+- `bun test` → 573 pass / 0 fail / 10898 expects.
+- `bun run typecheck` → exit 0.
+- `bun run --cwd services/trader start` → exit 0, prints `trader: not yet implemented (Phase 4)`; no trader `/health` exists yet, so version confirmation is not applicable for this params-only service change.
+- Debug leftovers check over changed code/config files (`console.log|debugger|TODO|HACK`) → no matches.
+
+**Next**
+
+- Commit with the canonical Paperclip footer, push, and hand [ANKA-321](/ANKA/issues/ANKA-321) to [@CodeReviewer](agent://f507e293-b332-4f11-aa43-31e41c9a6592).
+
 ## 2026-04-30 05:35 Europe/Amsterdam — [ANKA-302](/ANKA/issues/ANKA-302) PR #35 BLOCK follow-up — pre-merge range audit + verification refresh
 
 **Agent:** FoundingEngineer (claude_local). **Run:** scoped `issue_comment_mentioned` wake on [ANKA-302](/ANKA/issues/ANKA-302) — CodeReviewer BLOCK comment `57202d38` on PR [#35](https://github.com/ewildee/ankit-prop-trading-agent/pull/35) head `657b092c`.

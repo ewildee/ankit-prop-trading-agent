@@ -58,6 +58,36 @@ All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe
 - Docs-only change: no code paths touched. Smallest verification per BLUEPRINT §0.2 — visual review of the rendered Phase 3 entry order and the DBF-002/DBF-005 annotations.
 - TODOS.md remains the FE-owned task ledger; no runtime/typecheck/test surface affected.
 
+## 0.4.50 / @ankit-prop/contracts@0.8.0 / @ankit-prop/trader@0.1.0 — 2026-04-30 08:57 Europe/Amsterdam
+
+**Initiated by:** CodexExecutor, implementing [ANKA-321](/ANKA/issues/ANKA-321) under [ANKA-319](/ANKA/issues/ANKA-319).
+
+**Why:** Phase 4 needs a repo-materialized persona contract surface before the trader vertical slice, replay consumers, gateway adapter, and dashboard telemetry encode incompatible Analyst → Trader → Judge shapes.
+
+**Added** — `feat(pkg:contracts/pipeline)`
+
+- `packages/shared-contracts/src/personas.ts` — adds strict Zod schemas and inferred types for `PersonaId`, `RegimeLabel`, `AnalystOutput`, canonical `TraderOutput`, `JudgeInput`, `JudgeOutput`, `PersonaConfig`, `DecisionRecord`, `RunAggregate`, and `GatewayDecision`. Canonical `TraderOutput` is `HOLD | OPEN | CLOSE | AMEND`; `TRAIL` is intentionally absent. The v0 runtime allow-list is exposed separately as `V0_TRADER_RUNTIME_ACTIONS = HOLD | OPEN | CLOSE`.
+- `packages/shared-contracts/src/personas.spec.ts` and `packages/shared-contracts/src/index.spec.ts` — pin strict analyst parsing, the trader action union, normal no-trade as `HOLD`, gateway `not_submitted` telemetry for holds, decision composition, and package-barrel exports.
+- `.dev/decisions.md` — prepends ADR-0010 documenting why persona schemas live in `@ankit-prop/contracts`, why no-trade is not a judge rejection, and why the canonical shared type includes `AMEND` before the first runtime slice emits it.
+
+**Added** — `feat(svc:trader/instance-pipeline)`
+
+- `services/trader/strategy/v_ankit_classic/params.yaml` — adds the Phase-4 params skeleton with BLUEPRINT §13 defaults: Prague trading windows, macro `minConfidence: 0.6`, judge `threshold: 70`, risk cap `maxPerTradePct: 0.5`, scoring threshold `50`, timeframe weights `1d:4 / 4h:3 / 1h:2 / 5m:1`, and v0 action allow-list `HOLD | OPEN | CLOSE`.
+
+**Changed**
+
+- `package.json` — bumps root `0.4.49` → `0.4.50`.
+- `packages/shared-contracts/package.json` — bumps `@ankit-prop/contracts` `0.7.1` → `0.8.0`.
+- `services/trader/package.json` — bumps `@ankit-prop/trader` `0.0.1` → `0.1.0`.
+
+**Verification**
+
+- `bun run lint:fix` → exit 0 (`Found 27 warnings. Found 37 infos.` — pre-existing repo-wide diagnostics; no fixes pending after the second run).
+- `bun test packages/shared-contracts/src/personas.spec.ts packages/shared-contracts/src/index.spec.ts` → 9 pass / 0 fail / 25 expects.
+- `bun test` → 573 pass / 0 fail / 10898 expects.
+- `bun run typecheck` → exit 0.
+- Service restart/health: `@ankit-prop/trader` has no Phase-4 runtime yet; `bun run --cwd services/trader start` exits 0 with `trader: not yet implemented (Phase 4)`, so there is no `/health` endpoint to confirm for this params-only service change.
+
 ## 0.4.49 — 2026-04-30 05:35 Europe/Amsterdam (PR #35 BLOCK follow-up — pre-merge range audit + verification refresh)
 
 **Initiated by:** FoundingEngineer, addressing CodeReviewer BLOCK on PR [#35](https://github.com/ewildee/ankit-prop-trading-agent/pull/35) ([ANKA-302](/ANKA/issues/ANKA-302) comment `57202d38`). Same in-flight branch / same release window — no root version bump.
