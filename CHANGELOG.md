@@ -2,6 +2,28 @@
 
 All notable changes to this project. Newest first. Times are HH:MM 24-h **Europe/Amsterdam** (operator clock; this machine's local time). Service-runtime audit-log timestamps live in **Europe/Prague** (FTMO server clock) and are not the same axis.
 
+## 0.4.49 — 2026-04-30 09:14 Europe/Amsterdam — apply DBF-003 (BLUEPRINT §5.2 / §17 / §25 catalog `pkg:market-data` + `pkg:triplon-config` + eval-harness replay surface)
+
+**Initiated by:** FoundingEngineer, scoped wake on [ANKA-326](/ANKA/issues/ANKA-326). Same in-flight branch / same release window — no root version bump.
+
+**Why:** Daily blueprint audit ([ANKA-322](/ANKA/issues/ANKA-322), 2026-04-30) found three landed packages and one landed eval-harness surface uncatalogued in BLUEPRINT.md: `packages/market-data/` (`@ankit-prop/market-data`, ADR-0008 — provider-agnostic interface, [ANKA-69](/ANKA/issues/ANKA-69) / [ANKA-236](/ANKA/issues/ANKA-236) / [ANKA-248](/ANKA/issues/ANKA-248) / [ANKA-266](/ANKA/issues/ANKA-266)); `packages/triplon-config/` (`@triplon/config`, [ANKA-130](/ANKA/issues/ANKA-130) workspace package — §5.2 still framed it as `(private Triplon registry) … latest from registry`); the four `pkg:eval-harness/...` sub-modules `replay-driver` / `replay-cli` / `replay-strategies` / `baselines` landed by [ANKA-280](/ANKA/issues/ANKA-280) + [ANKA-287](/ANKA/issues/ANKA-287). Without a canonical scope tag, future commits to these surfaces have to invent ad-hoc tags. CEO accepted DBF-003 verbatim.
+
+**Changed** — BLUEPRINT.md narrative reconciliation (no code paths)
+
+- §5.2 — `Config loader` row rewritten from "private Triplon registry / latest from registry" to "workspace package, `packages/triplon-config/`; `infra:config` cross-cutting tag" / `n/a`.
+- §17 — packages/ tree adds `triplon-config/`, `market-data/`, and re-orders so `triplon-config` sits next to `proc-supervisor` (workspace utilities), `market-data` sits next to `market-data-twelvedata` (sibling provider packages).
+- §25.1 — top-scopes table gains `pkg:market-data` (Library) and `pkg:triplon-config` (Library — workspace) rows between `pkg:ctrader-vendor` and `pkg:market-data-twelvedata`. `infra:config` Path column rewritten from "(uses `@triplon/config`)" to the explicit `packages/triplon-config` source path plus consumer YAML paths.
+- §25.2 — adds `#### pkg:triplon-config/...` block (loader, schema, codegen, env-derivation, freshness sub-modules) after `pkg:contracts/...`; adds `#### pkg:market-data/...` block (provider, cached-fixture-provider, fixture-schema, types, index sub-modules) before `pkg:market-data-twelvedata/...`; appends four rows (`replay-driver`, `replay-cli`, `replay-strategies`, `baselines`) to the existing `pkg:eval-harness/...` table.
+
+**Verification (worktree)**
+
+- `grep -n 'Phase 6 after 4' BLUEPRINT.md` → still present (intentional; DBF-004 covers that line in the next commit).
+- `grep -n 'pkg:market-data' BLUEPRINT.md` → §17 + §25.1 + §25.2 entries present.
+- `grep -n 'pkg:triplon-config' BLUEPRINT.md` → §25.1 + §25.2 entries present.
+- `grep -n 'replay-driver' BLUEPRINT.md` → new `pkg:eval-harness/...` row present.
+- `grep -n 'private Triplon registry' BLUEPRINT.md` → empty (the §5.2 contradiction is gone).
+- Docs-only: no lint/typecheck/test surface affected.
+
 ## 0.4.49 — 2026-04-30 09:07 Europe/Amsterdam — apply DBF-005 (TODOS.md T020 — historical-data fetch & provider interface umbrella)
 
 **Initiated by:** FoundingEngineer, scoped wake on [ANKA-325](/ANKA/issues/ANKA-325). Same in-flight branch / same release window — no root version bump.

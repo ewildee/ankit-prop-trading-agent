@@ -591,7 +591,7 @@ ships is a red flag.
 | Runtime | **Bun** (never Node) | **1.3.13** |
 | Language | TypeScript strict | **6.0.3** |
 | Validation | Zod v4 | **4.3.6** |
-| Config loader | `@triplon/config` (private Triplon registry) | latest from registry |
+| Config loader | `@triplon/config` (workspace package, `packages/triplon-config/`; `infra:config` cross-cutting tag) | n/a |
 | Lint/format | Biome | **2.4.13** |
 | Workspaces | Bun workspaces (`packages/*`, `services/*`) | n/a |
 | Frontend | React + Tailwind v4 | React **19.2.5**, Tailwind **4.2.4** |
@@ -1866,9 +1866,13 @@ ankit-prop-umbrella/
 │   └── journal.md
 ├── packages/
 │   ├── proc-supervisor/              # @triplon/proc-supervisor
+│   ├── triplon-config/               # @triplon/config (workspace package; loader, schema codegen, freshness checks)
+│   ├── shared-contracts/             # @ankit-prop/contracts (Zod schemas)
 │   ├── eval-harness/                 # @ankit-prop/eval-harness  (LIBRARY)
 │   ├── ctrader-vendor/               # vendored ctrader-ts or in-house
-│   ├── shared-contracts/             # @ankit-prop/contracts (Zod schemas)
+│   ├── market-data/                  # @ankit-prop/market-data (provider-agnostic
+│   │                                 # IMarketDataProvider + CachedFixtureProvider;
+│   │                                 # ADR-0008. cTrader live history slot-in lands here.)
 │   └── market-data-twelvedata/       # @ankit-prop/market-data-twelvedata
 │                                     # ANKA-68 one-shot TwelveData fetcher;
 │                                     # deletable once cTrader-live history
@@ -2808,6 +2812,8 @@ appears.
 | `pkg:eval-harness` | Library | `packages/eval-harness` | `@ankit-prop/eval-harness` | Backtest, paper-replay, FTMO rule simulator |
 | `pkg:contracts` | Library | `packages/shared-contracts` | `@ankit-prop/contracts` | Zod schemas shared across services |
 | `pkg:ctrader-vendor` | Library | `packages/ctrader-vendor` | `@ankit-prop/ctrader-vendor` | Vendored `ctrader-ts` or in-house client |
+| `pkg:market-data` | Library | `packages/market-data` | `@ankit-prop/market-data` | Provider-agnostic `IMarketDataProvider` (listSymbols / resolveSymbol / listAvailability / getBars / getEvents) plus `CachedFixtureProvider` over the `data/market-data/twelvedata/<fixture-version>/` fixture seam. Permanent home for sibling providers including the future `CTraderHistoryProvider` (ADR-0008 cTrader slot-in). |
+| `pkg:triplon-config` | Library (workspace) | `packages/triplon-config` | `@triplon/config` | Workspace home for the config loader, YAML schema, env-var derivation, and codegen artifacts (`infra:config` is the cross-cutting tag for the *concept*; this row is for changes to the *package source*). |
 | `pkg:market-data-twelvedata` | Library (temporary, deletable) | `packages/market-data-twelvedata` | `@ankit-prop/market-data-twelvedata` | One-shot, resumable Bun fetcher for TwelveData REST historical bars (NAS100, XAUUSD; 1m/5m/15m/1h/1d). Writes versioned, checked-in fixtures under `data/market-data/twelvedata/<fixture-version>/` for `pkg:eval-harness/bar-data-cache` consumers. **Lifecycle:** delete the package, the scope tag, and the fixture tree together once `pkg:ctrader-vendor` live-history coverage subsumes the windows it fetches (parent ticket [ANKA-67](/ANKA/issues/ANKA-67)). **Owner:** FoundingEngineer; disposal trigger reviewed at every §22 phase boundary. |
 | `svc:supervisor` | Service runtime | `services/...` (none — supervisor is `pkg:` only) | — | (alias of `pkg:supervisor` runtime; reserved) |
 | `svc:gateway` | Service | `services/ctrader-gateway` | `@ankit-prop/ctrader-gateway` | Broker socket + hard guardrails |
@@ -2815,7 +2821,7 @@ appears.
 | `svc:news` | Service | `services/news` | `@ankit-prop/news` | FTMO calendar fetcher + endpoints |
 | `svc:autoresearch` | Service (scheduled) | `services/autoresearch` | `@ankit-prop/autoresearch` | Mutation/eval loop |
 | `svc:dashboard` | Service | `services/dashboard` | `@ankit-prop/dashboard` | Operator cockpit |
-| `infra:config` | Cross-cutting | (uses `@triplon/config`) | — | Config loading, env-var resolution, schema emission |
+| `infra:config` | Cross-cutting | `packages/triplon-config` (loader source) + `config/*.example.yaml` + `~/.config/<app>/*.config.yaml` (consumer paths) | — | Config loading, env-var resolution, schema emission |
 | `infra:db` | Cross-cutting | `bun:sqlite` migrations + DDL under each consumer | — | Schemas, migrations, backups |
 | `infra:secrets` | Cross-cutting | `data/secrets/`, `.env` | — | Refresh-token encryption, key rotation |
 | `infra:obs` | Cross-cutting | logger + metrics + tracing | — | Pino, Prometheus exposition, OTel SDK |
@@ -2925,6 +2931,10 @@ appears.
 | `walk-forward` | 12-fold rolling orchestrator |
 | `metrics` | Sortino, drawdown, profit factor, win rate, avg RR |
 | `golden-fixtures` | CI-gated bad/flat/trivial strategies |
+| `replay-driver` | Wires an `IMarketDataProvider` into `backtest()` for deterministic eval replay; fail-closed broker-spec validation (ANKA-287) |
+| `replay-cli` | Bun CLI entrypoint for `runReplaySnapshot()` over committed baselines |
+| `replay-strategies` | Deterministic replay strategies (`NOOP_V1`, `OPEN_HOLD_CLOSE_V1`) |
+| `baselines` | Committed 3-month full-window snapshot fixtures used as regression anchors |
 
 #### `pkg:supervisor/...`
 
@@ -2953,6 +2963,16 @@ appears.
 | `health` | `HealthSnapshot` shared schema + `loadVersionFromPkgJson()` helper (§19.0) |
 | `obs/otel-bootstrap` | `start(serviceName, serviceVersion)` programmatic OTel init (§20.3). Bootstrap *file* lives under `pkg:contracts`; `infra:obs` (§25.1) remains the cross-cutting issue tag for the OTel SDK init concept. |
 
+#### `pkg:triplon-config/...`
+
+| Sub-module | Purpose |
+|------------|---------|
+| `loader` | Bun-native YAML loading + user/project precedence (ANKA-141 / ANKA-149) |
+| `schema` | Schema definitions consumed by emitters and validators |
+| `codegen` | `bun run config:codegen` producing typed loaders for SymbolTagMap and friends |
+| `env-derivation` | Env-var name derivation from schema paths |
+| `freshness` | `--check` mode for codegen artifact drift |
+
 #### `pkg:ctrader-vendor/...`
 
 | Sub-module | Purpose |
@@ -2962,6 +2982,16 @@ appears.
 | `proto` | Vendored `Spotware/openapi-proto-messages` at pinned commit |
 | `framing` | 4-byte length prefix vs WSS-frame variants |
 | `smoke-test` | The 7-step gate harness |
+
+#### `pkg:market-data/...`
+
+| Sub-module | Purpose |
+|------------|---------|
+| `provider` | `IMarketDataProvider` interface + canonical `Bar` / `SymbolMeta` / `CalendarEvent` types (ADR-0008) |
+| `cached-fixture-provider` | Reads `data/market-data/twelvedata/<fixture-version>/`; loader-derived `tsEnd`; broker-side specs via `instrumentSpecs` injection |
+| `fixture-schema` | Zod schemas for the on-disk fixture wire (`manifest.json`, symbol meta, JSONL bars, adversarial-windows) — duplicated v1 with `pkg:market-data-twelvedata/schema` until reconciled |
+| `types` | Public canonical record shapes shared across consumers |
+| `index` | Re-exports for harness, trader, future cTrader-history slot-in |
 
 #### `pkg:market-data-twelvedata/...`
 
