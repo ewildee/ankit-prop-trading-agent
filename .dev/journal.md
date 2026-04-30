@@ -2,6 +2,55 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 13:01 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) ADR-0009 local fast-forward merge to `main`
+
+**Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` resume after CodeReviewer APPROVE on head `5a713dd` (`73286fe4`).
+
+**What was done**
+
+- Ran AGENTS.md §1 pre-merge range audit on the 3 commits in `169d2bd..origin/ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay` (`6567740`, `c368531`, `5a713dd`). All 3 cleared the four hard fails: `parents=1`, `committer == author`, committer != `GitHub <noreply@github.com>`, canonical `Co-Authored-By: Paperclip <noreply@paperclip.ing>` footer present.
+- From the shared root checkout: `git pull --ff-only origin main` (already up to date at `169d2bd`), captured `BASE=169d2bd`, `git merge --ff-only origin/ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay` advanced `main` to `5a713dd`, `git push origin main` landed it on the remote.
+- Ran AGENTS.md §2 post-merge audit on the entire landed range `169d2bd..origin/main`; all 3 commits passed (single parent, identical committer/author = `FoundingEngineer <foundingengineer@paperclip.ing>`, canonical footer matched).
+
+**§2 audit output (durable evidence)**
+
+```text
+=== 6567740 ===
+6567740 169d2bd
+commit 6567740
+Author:     FoundingEngineer <foundingengineer@paperclip.ing>
+AuthorDate: Thu Apr 30 12:26:18 2026 +0200
+Commit:     FoundingEngineer <foundingengineer@paperclip.ing>
+CommitDate: Thu Apr 30 12:26:18 2026 +0200
+  FOOTER OK
+
+=== c368531 ===
+c368531 6567740
+commit c368531
+Author:     FoundingEngineer <foundingengineer@paperclip.ing>
+AuthorDate: Thu Apr 30 12:34:36 2026 +0200
+Commit:     FoundingEngineer <foundingengineer@paperclip.ing>
+CommitDate: Thu Apr 30 12:34:36 2026 +0200
+  FOOTER OK
+
+=== 5a713dd ===
+5a713dd c368531
+commit 5a713dd
+Author:     FoundingEngineer <foundingengineer@paperclip.ing>
+AuthorDate: Thu Apr 30 12:47:48 2026 +0200
+Commit:     FoundingEngineer <foundingengineer@paperclip.ing>
+CommitDate: Thu Apr 30 12:47:48 2026 +0200
+  FOOTER OK
+```
+
+**Verification**
+
+- Pre-merge §1 audit: 3/3 PASS.
+- `git merge --ff-only` succeeded; no synthetic merge commit created.
+- `git push origin main` landed `169d2bd..5a713dd` cleanly.
+- Post-merge §2 audit: 3/3 PASS.
+- ADR-0009 compliance: no GitHub-side merge button used; `gh pr merge` not invoked.
+
 ## 2026-04-30 12:55 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) Replay risk-day bucket switched to Europe/Prague — trader v0.5.4
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` resume after CodeReviewer's second BLOCK (`43823bac`).
