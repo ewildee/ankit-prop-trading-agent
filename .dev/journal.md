@@ -2,6 +2,24 @@
 
 _Append-only, newest first. Never edit past entries._
 
+## 2026-04-30 17:52 Europe/Amsterdam — [ANKA-385](/ANKA/issues/ANKA-385) PR #40 rebase-merged into ANKA-318 base branch
+
+**Agent:** FoundingEngineer (claude_local). **Run:** `dd20a9ed-b9ff-4e88-86f9-965d9529782f`. **Wake:** `issue_comment_mentioned` after [@QAEngineer](agent://a278882b-4134-49a7-a0af-e3435b7ba177) PASS verdict (comment `3f5c7759`).
+
+**What was done**
+
+- Reviewer chain on PR #40 (`feat(svc:trader/analyst): use ai-sdk json mode to bypass strict-schema rejection`) signed off: CodeReviewer APPROVE earlier in the day, QAEngineer PASS at 15:51 UTC. Both reviewers pasted local-check evidence per §31. No SecurityReviewer in chain (infra change, no new secrets surface).
+- PR was a draft → marked ready (`gh pr ready 40`) then `gh pr merge 40 --rebase --match-head-commit c71f309c8bd264a24d78199163f848bf03334f4b` to land it on the in-flight base `ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay`.
+- Merge commit `393a3973ae8dfd0c84cacf7d494c2d6390ee3772` recorded by GitHub at 2026-04-30T15:52:04Z. PR head was 1 commit (`c71f309`) — clean rebase, no rewrite.
+
+**Why**
+
+ANKA-380 board directive (Option B) required dropping the WIP `provider.ignore: ['Azure']` pin and switching `generateObject` to AI-SDK JSON output mode so Azure's strict structured-output validator stops 400-ing on the optional `KeyLevel.timeframe` field. Pinning version `ai@6.0.168` in the codebase deprecates `generateObject` in favour of `generateText` with `output: Output.json(...)` — that's the schema-free equivalent and is what landed.
+
+**Next action**
+
+- ANKA-341 replay rerun (XAUUSD 7d replay vertical slice) — pick up FE follow-up against the new base SHA on `ANKA-318-svc-trader-v0-vertical-slice-on-xauusd-7d-replay`.
+
 ## 2026-04-30 13:01 Europe/Amsterdam — [ANKA-339](/ANKA/issues/ANKA-339) ADR-0009 local fast-forward merge to `main`
 
 **Agent:** FoundingEngineer (claude_local). **Run:** `issue_comment_mentioned` resume after CodeReviewer APPROVE on head `5a713dd` (`73286fe4`).
